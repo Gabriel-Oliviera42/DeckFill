@@ -31,7 +31,36 @@ const elements = {
     closeModalBtn: document.getElementById('close-modal-btn'),
     modalLoading: document.getElementById('modal-loading'),
     modalArtGrid: document.getElementById('modal-art-grid'),
-    modalError: document.getElementById('modal-error')
+    modalError: document.getElementById('modal-error'),
+    // Print Settings elements
+    printSettingsToggle: document.getElementById('print-settings-toggle'),
+    printSettingsContent: document.getElementById('print-settings-content'),
+    printSettingsChevron: document.getElementById('print-settings-chevron'),
+    pageSize: document.getElementById('page-size'),
+    gapSpacing: document.getElementById('gap-spacing'),
+    scale: document.getElementById('scale'),
+    gapValue: document.getElementById('gap-value'),
+    cropMarks: document.getElementById('crop-marks'),
+    blackCorners: document.getElementById('black-corners'),
+    bleed: document.getElementById('bleed'),
+    skipBasicLands: document.getElementById('skip-basic-lands'),
+    // Novos campos inteligentes
+    autodetectTokens: document.getElementById('autodetect-tokens'),
+    printDoubleFaced: document.getElementById('print-double-faced'),
+    smartFill: document.getElementById('smart-fill'),
+    guideColor: document.getElementById('guide-color'),
+    // Campos removidos do HTML (mantidos para compatibilidade)
+    printDecklist: document.getElementById('print-decklist'),
+    playtestWatermark: document.getElementById('playtest-watermark'),
+    // Progress Modal elements
+    progressModal: document.getElementById('progress-modal'),
+    progressBar: document.getElementById('progress-bar'),
+    progressPercentage: document.getElementById('progress-percentage'),
+    progressStatus: document.getElementById('progress-status'),
+    progressCards: document.getElementById('progress-cards'),
+    progressPages: document.getElementById('progress-pages'),
+    progressCancelBtn: document.getElementById('progress-cancel-btn'),
+    progressCloseBtn: document.getElementById('progress-close-btn')
 };
 
 // Decklist de exemplo
@@ -79,6 +108,16 @@ function initializeEventListeners() {
     
     // Botão Gerar PDF
     elements.generatePdfBtn.addEventListener('click', generatePDF);
+    
+    // Print Settings Accordion
+    elements.printSettingsToggle.addEventListener('click', togglePrintSettings);
+    
+    // Slider value updates
+    elements.gapSpacing.addEventListener('input', updateGapValue);
+    
+    // Progress Modal
+    elements.progressCancelBtn.addEventListener('click', hideProgressModal);
+    elements.progressCloseBtn.addEventListener('click', hideProgressModal);
     
     // Modal events
     elements.closeModalBtn.addEventListener('click', closeArtModal);
@@ -405,6 +444,9 @@ async function generatePDF() {
         return;
     }
     
+    // Mostrar modal de progresso
+    showProgressModal();
+    
     // Atualizar estado do botão
     const originalText = elements.generatePdfBtn.innerHTML;
     elements.generatePdfBtn.disabled = true;
@@ -418,34 +460,77 @@ async function generatePDF() {
     try {
         console.log('Iniciando geração de PDF...');
         
-        // Inicializar jsPDF
+        // 1. Capturar Configurações
+        const settings = getPrintSettings();
+        console.log('Configurações de Impressão:', settings);
+        
+        // 2. Inicializar jsPDF com folha dinâmica
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({
-            orientation: 'portrait',
-            unit: 'mm',
-            format: 'a4'
+        
+        // 3. Mapear Tamanho da Carta (Scale)
+        const scaleMultipliers = { small: 0.75, normal: 1, large: 1.25, giant: 1.5 };
+        const scaleMult = scaleMultipliers[settings.scale] || 1;
+        const cardWidth = 63 * scaleMult;
+        const cardHeight = 88 * scaleMult;
+
+        // 4. Gap dinâmico
+        const spacingX = parseFloat(settings.gapSpacing) || 0;
+        const spacingY = parseFloat(settings.gapSpacing) || 0;
+
+        // 5. Criar documento temporário para ler dimensões reais da folha
+        const tempDoc = new window.jspdf.jsPDF({ 
+            format: settings.pageSize || 'a4', 
+            orientation: 'portrait', 
+            unit: 'mm' 
         });
-        
-        // Dimensões
-        const pageWidth = 210; // A4 width in mm
-        const pageHeight = 297; // A4 height in mm
-        const cardWidth = 63; // Magic card width in mm
-        const cardHeight = 88; // Magic card height in mm
-        
-        // Calcular layout 3x3
-        const cols = 3;
-        const rows = 3;
+        const basePageW = tempDoc.internal.pageSize.getWidth();
+        const basePageH = tempDoc.internal.pageSize.getHeight();
+
+        // 6. Função que calcula quantas cartas cabem (considerando o gap)
+        const calculateFit = (pageW, pageH) => {
+            const cols = Math.floor((pageW + spacingX) / (cardWidth + spacingX));
+            const rows = Math.floor((pageH + spacingY) / (cardHeight + spacingY));
+            return { cols: Math.max(1, cols), rows: Math.max(1, rows), total: cols * rows };
+        };
+
+        // 7. Testa Retrato (Portrait) vs Paisagem (Landscape)
+        const portraitFit = calculateFit(basePageW, basePageH);
+        const landscapeFit = calculateFit(basePageH, basePageW);
+
+        // 8. Escolhe a orientação que couber mais cartas
+        let bestOrientation = 'portrait';
+        let cols = portraitFit.cols;
+        let rows = portraitFit.rows;
+
+        if (landscapeFit.total > portraitFit.total) {
+            bestOrientation = 'landscape';
+            cols = landscapeFit.cols;
+            rows = landscapeFit.rows;
+        }
+
         const cardsPerPage = cols * rows;
+
+        // 9. Inicializar o jsPDF Oficial com a Melhor Orientação
+        const doc = new window.jspdf.jsPDF({
+            orientation: bestOrientation,
+            unit: 'mm',
+            format: settings.pageSize || 'a4'
+        });
+
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
         
-        // Margens para centralizar
-        const totalCardsWidth = cols * cardWidth;
-        const totalCardsHeight = rows * cardHeight;
+        // Calcular o espaço total consumido pelos gaps (ex: 3 colunas têm 2 gaps entre elas)
+        const totalSpacingX = (cols - 1) * spacingX;
+        const totalSpacingY = (rows - 1) * spacingY;
+
+        // Calcular a largura e altura REAIS do grid inteiro
+        const totalCardsWidth = (cols * cardWidth) + totalSpacingX;
+        const totalCardsHeight = (rows * cardHeight) + totalSpacingY;
+
+        // Recalcular as margens perfeitas para centralizar tudo
         const marginX = (pageWidth - totalCardsWidth) / 2;
         const marginY = (pageHeight - totalCardsHeight) / 2;
-        
-        // Espaçamento entre cartas
-        const spacingX = 0;
-        const spacingY = 0;
         
         console.log(`Layout: ${cols}x${rows}, ${cardsPerPage} cartas/página`);
         console.log(`Margens: X=${marginX.toFixed(1)}mm, Y=${marginY.toFixed(1)}mm`);
@@ -454,6 +539,11 @@ async function generatePDF() {
         // Processar cada carta
         for (let i = 0; i < currentCards.length; i++) {
             const card = currentCards[i];
+            
+            // Atualizar progresso
+            const progressPercentage = ((i + 1) / currentCards.length) * 90; // 90% para processamento, 10% para save
+            const currentPage = Math.floor(i / cardsPerPage) + 1;
+            updateProgress(progressPercentage, 'Baixando imagens...', i + 1, currentCards.length, currentPage);
             
             // Calcular posição na página
             const cardIndex = i;
@@ -495,6 +585,38 @@ async function generatePDF() {
                 // Adicionar imagem ao PDF
                 doc.addImage(dataUrl, 'JPEG', x, y, cardWidth, cardHeight);
                 
+                // Função auxiliar para converter HEX para RGB
+                const hex2rgb = (hex) => {
+                    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                    return result ? [
+                        parseInt(result[1], 16),
+                        parseInt(result[2], 16),
+                        parseInt(result[3], 16)
+                    ] : [255, 255, 255];
+                };
+                const [r, g, b] = hex2rgb(settings.guideColor);
+
+                // 1. Bordas Coloridas (Black Corners -> agora "Colored Borders")
+                if (settings.blackCorners) {
+                    doc.setDrawColor(r, g, b); // Usa a cor selecionada
+                    doc.setLineWidth(0.5);
+                    doc.rect(x, y, cardWidth, cardHeight);
+                }
+
+                // 2. Marcas de Corte Contínuas (Guilhotina)
+                if (settings.cropMarks) {
+                    doc.setDrawColor(r, g, b); // Usa a cor selecionada
+                    doc.setLineWidth(0.2); // Linha fina
+
+                    // Linhas Horizontais cruzando toda a largura da página
+                    doc.line(0, y, pageWidth, y); // Topo da carta
+                    doc.line(0, y + cardHeight, pageWidth, y + cardHeight); // Base da carta
+
+                    // Linhas Verticais cruzando toda a altura da página
+                    doc.line(x, 0, x, pageHeight); // Esquerda da carta
+                    doc.line(x + cardWidth, 0, x + cardWidth, pageHeight); // Direita da carta
+                }
+                
             } catch (error) {
                 console.error(`Erro ao processar carta ${card.name}:`, error);
                 // Continuar com as próximas cartas mesmo se esta falhar
@@ -503,6 +625,7 @@ async function generatePDF() {
         
         // Salvar PDF
         console.log('Salvando PDF...');
+        updateProgress(100, 'Concluído!', currentCards.length, currentCards.length, Math.ceil(currentCards.length / cardsPerPage));
         doc.save('decklist.pdf');
         
         console.log('PDF gerado com sucesso!');
@@ -694,6 +817,118 @@ function addCardClickHandlers() {
     });
 }
 
+/**
+ * Toggle do Painel de Configurações de Impressão
+ */
+function togglePrintSettings() {
+    const isHidden = elements.printSettingsContent.classList.contains('hidden');
+    
+    if (isHidden) {
+        elements.printSettingsContent.classList.remove('hidden');
+        elements.printSettingsChevron.classList.add('rotate-180');
+    } else {
+        elements.printSettingsContent.classList.add('hidden');
+        elements.printSettingsChevron.classList.remove('rotate-180');
+    }
+}
+
+/**
+ * Atualiza o valor exibido do slider Gap
+ */
+function updateGapValue() {
+    const value = parseFloat(elements.gapSpacing.value);
+    elements.gapValue.textContent = `${value.toFixed(1)} mm`;
+}
+
+/**
+ * Mostra o Modal de Progresso
+ */
+function showProgressModal() {
+    elements.progressModal.classList.remove('hidden');
+    updateProgress(0, 'Iniciando...', 0, 0);
+}
+
+/**
+ * Esconde o Modal de Progresso
+ */
+function hideProgressModal() {
+    elements.progressModal.classList.add('hidden');
+}
+
+/**
+ * Atualiza a barra de progresso e status
+ */
+function updateProgress(percentage, status, currentCard, totalCards, currentPage = 0) {
+    const roundedPercentage = Math.round(percentage);
+    elements.progressBar.style.width = `${roundedPercentage}%`;
+    elements.progressPercentage.textContent = `${roundedPercentage}%`;
+    elements.progressStatus.textContent = `Status: ${status}`;
+    elements.progressCards.textContent = `Carta: ${currentCard} de ${totalCards}`;
+    elements.progressPages.textContent = `Página atual: ${currentPage}`;
+}
+
+/**
+ * Função Mock para Testar o Modal de Progresso
+ */
+function showProgressMock() {
+    showProgressModal();
+    
+    let progress = 0;
+    const totalCards = currentCards.length || 21;
+    const statuses = [
+        'Baixando imagens...',
+        'Processando cartas...',
+        'Montando páginas...',
+        'Aplicando configurações...',
+        'Gerando PDF...',
+        'Finalizando...'
+    ];
+    
+    const interval = setInterval(() => {
+        progress += Math.random() * 15;
+        
+        if (progress >= 100) {
+            progress = 100;
+            clearInterval(interval);
+            
+            setTimeout(() => {
+                updateProgress(100, 'Concluído', totalCards, totalCards, Math.ceil(totalCards / 9));
+            }, 500);
+        }
+        
+        const currentCard = Math.min(Math.floor((progress / 100) * totalCards), totalCards);
+        const currentPage = Math.ceil(currentCard / 9);
+        const statusIndex = Math.floor((progress / 100) * statuses.length);
+        const currentStatus = statuses[Math.min(statusIndex, statuses.length - 1)];
+        
+        updateProgress(progress, currentStatus, currentCard, totalCards, currentPage);
+    }, 300);
+}
+
+/**
+ * Obtém as configurações de impressão
+ */
+function getPrintSettings() {
+    return {
+        pageSize: elements.pageSize?.value || 'a4',
+        gapSpacing: parseFloat(elements.gapSpacing?.value) || 0,
+        scale: elements.scale?.value || 'normal',
+        cropMarks: elements.cropMarks?.checked || false,
+        blackCorners: elements.blackCorners?.checked || false,
+        bleed: elements.bleed?.checked || false,
+        skipBasicLands: elements.skipBasicLands?.checked || false,
+        // Novos campos inteligentes (com fallbacks seguros)
+        autodetectTokens: elements.autodetectTokens?.checked || false,
+        printDoubleFaced: elements.printDoubleFaced?.checked || false,
+        smartFill: elements.smartFill?.value || 'none',
+        // Cor das guias
+        guideColor: elements.guideColor?.value || '#FFFFFF',
+        // Campos removidos do HTML (mantidos para compatibilidade futura)
+        printDecklist: elements.printDecklist?.checked || false,
+        playtestWatermark: elements.playtestWatermark?.checked || false
+    };
+}
+
 // Exportar funções para debug (console)
 window.deckFillApp = {
     processDecklist,
@@ -702,7 +937,13 @@ window.deckFillApp = {
     generatePDF,
     openArtModal,
     currentCards,
-    checkApiHealth
+    checkApiHealth,
+    showProgressMock,  // Função de teste
+    getPrintSettings,
+    togglePrintSettings,
+    showProgressModal,
+    hideProgressModal,
+    updateProgress
 };
 
 console.log('Deck Fill App initialized');

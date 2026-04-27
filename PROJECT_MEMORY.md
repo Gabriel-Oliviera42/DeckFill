@@ -49,8 +49,15 @@
 - [x] **Phase 5.2: Correção Visual do Grid (Frontend)** - Ajustar o CSS/Tailwind das cartas renderizadas para a proporção real do MTG (`aspect-[2.5/3.5]`) para evitar cortes nas imagens.
 - [x] **Phase 5.3: Modal de Escolha de Artes (Frontend)** - Implementar a troca de artes de forma modular e segura, aproveitando o endpoint `/printings` já existente.
 
+### PHASE 6: Motor PDF Avançado & UI Premium ✅ COMPLETA
+- [x] **Painel de Impressão:** Interface categorizada com Tailwind (Layout & Geometria, Guias de Impressão, Funcionalidades Inteligentes).
+- [x] **Modal de Carregamento:** Overlay dinâmico exibindo o progresso real do download de imagens e geração do PDF.
+- [x] **Algoritmo Auto-Fit:** Cálculo matemático que detecta a orientação ideal (Retrato/Paisagem) e o grid máximo baseado no tamanho da folha e na escala da carta, evitando cortes e desperdícios de papel.
+- [x] **Layout Dinâmico:** Suporte a 7 formatos de folha (A4, Letter, A3, etc), Espaçamento (Gap) seguro com recálculo perfeito de centralização, e Categorias de Escala (Pequena, Normal, Grande, Gigante).
+- [x] **Guias de Corte (Guilhotina):** Implementação de bordas coloridas e marcações de corte contínuas que cruzam a página, com seletor de cores integrado na UI para contraste perfeito.
+
 ## Current Status
-**PHASE 4 CONCLUÍDA** ✅ - Projeto Deck Fill 100% completo!
+**PHASE 6 CONCLUÍDA** ✅ - Projeto Deck Fill 100% completo com Motor PDF Avançado!
 
 ### PHASE 1 - Resultados:
 - **Download:** 511.6 MB do Default Cards do Scryfall

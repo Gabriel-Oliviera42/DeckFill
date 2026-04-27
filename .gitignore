@@ -3,3 +3,15 @@ __pycache__/
 *.db
 .env
 .DS_Store
+
+# Uploads de imagens customizadas
+backend/uploads/
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.webp
+
+# Logs de debug
+*.log
+debug.log
