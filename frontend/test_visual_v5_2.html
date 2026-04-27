@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 5.2 - Test Visual</title>
+    
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">Phase 5.2 - Test Visual das Cartas</h1>
+        
+        <!-- Grid de Teste -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+            <!-- Card com proporção MTG correta -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden fade-in">
+                <div class="relative aspect-[2.5/3.5]">
+                    <img 
+                        src="https://cards.scryfall.io/normal/front/3/b/3bfb4b71-3c2c-4a4e-9e5c-df34b8f5b0a6.jpg?1599766811" 
+                        alt="Lightning Bolt"
+                        class="w-full h-full object-contain"
+                        loading="lazy"
+                    />
+                    <div class="absolute top-2 right-2 bg-black bg-opacity-60 text-white px-2 py-1 rounded text-xs">
+                        LEO
+                    </div>
+                </div>
+                <div class="p-3">
+                    <h3 class="font-bold text-gray-800 text-sm truncate" title="Lightning Bolt">
+                        Lightning Bolt
+                    </h3>
+                    <div class="flex items-center justify-between mt-1">
+                        <span class="text-xs text-gray-600">
+                            #282
+                        </span>
+                        <span class="text-xs text-gray-500">
+                            EN
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card sem imagem -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden fade-in">
+                <div class="aspect-[2.5/3.5] flex flex-col justify-center items-center bg-gray-100">
+                    <div class="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center mb-3">
+                        <svg class="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="font-bold text-gray-800 text-center text-sm">
+                        Card Sem Imagem
+                    </h3>
+                    <p class="text-xs text-gray-600 mt-1">
+                        SET #123
+                    </p>
+                </div>
+            </div>
+
+            <!-- Card com outra imagem -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden fade-in">
+                <div class="relative aspect-[2.5/3.5]">
+                    <img 
+                        src="https://cards.scryfall.io/normal/front/8/e/8e4c4f1a-1c6b-4b6c-91d8-7e0c0f9c5e1c.jpg?1599766811" 
+                        alt="Black Lotus"
+                        class="w-full h-full object-contain"
+                        loading="lazy"
+                    />
+                    <div class="absolute top-2 right-2 bg-black bg-opacity-60 text-white px-2 py-1 rounded text-xs">
+                        LEB
+                    </div>
+                </div>
+                <div class="p-3">
+                    <h3 class="font-bold text-gray-800 text-sm truncate" title="Black Lotus">
+                        Black Lotus
+                    </h3>
+                    <div class="flex items-center justify-between mt-1">
+                        <span class="text-xs text-gray-600">
+                            #233
+                        </span>
+                        <span class="text-xs text-gray-500">
+                            EN
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Informações do Teste -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h2 class="font-bold text-blue-800 mb-2">✅ Verificações Phase 5.2:</h2>
+            <ul class="space-y-1 text-sm text-blue-700">
+                <li>✅ Proporção <code class="bg-blue-100 px-1 rounded">aspect-[2.5/3.5]</code> (63x88mm)</li>
+                <li>✅ Imagem com <code class="bg-blue-100 px-1 rounded">object-contain</code> (sem cortes)</li>
+                <li>✅ Container com <code class="bg-blue-100 px-1 rounded">rounded-xl shadow-lg</code> (acabamento premium)</li>
+                <li>✅ Removido <code class="bg-blue-100 px-1 rounded">h-64</code> e <code class="bg-blue-100 px-1 rounded">object-cover</code></li>
+                <li>✅ Cartas mantêm proporção em qualquer tamanho de tela</li>
+            </ul>
+        </div>
+    </div>
+
+    <style>
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</body>
+</html>
