@@ -1,69 +1,93 @@
 /**
  * Deck Fill - Frontend Application
  * JavaScript para processar decklists e renderizar cartas
+ * 
+ * Arquitetura: Cliente-servidor com API FastAPI + Frontend Vanilla JS
+ * Responsabilidades: Processamento de decklists, renderização de cartas, geração de PDFs
  */
+
+// ================================================================================
+// CONFIGURAÇÃO E ESTADO GLOBAL
+// ================================================================================
 
 // Configuração da API
 const API_BASE = 'http://localhost:8000';
 
-// Estado da aplicação
-let currentCards = [];
-let isProcessing = false;
-let currentModalCardIndex = null;
+// Estado da aplicação (variáveis globais compartilhadas)
+let currentCards = [];              // Array de cartas processadas pela API
+let isGenerationCancelled = false;  // Flag para cancelar geração de PDF
+let isProcessing = false;           // Flag para evitar múltiplos processamentos simultâneos
+let currentModalCardIndex = null;   // Índice da carta atualmente selecionada no modal de artes
 
-// Elementos DOM
+// ================================================================================
+// MAPEAMENTO DE ELEMENTOS DOM
+// ================================================================================
+
+// Cache de elementos DOM para performance e organização
 const elements = {
-    decklistInput: document.getElementById('decklist-input'),
-    processBtn: document.getElementById('process-btn'),
-    clearBtn: document.getElementById('clear-btn'),
-    loadSampleBtn: document.getElementById('load-sample-btn'),
-    generatePdfBtn: document.getElementById('generate-pdf-btn'),
-    loadingSection: document.getElementById('loading-section'),
-    resultsSection: document.getElementById('results-section'),
-    cardsGrid: document.getElementById('cards-grid'),
-    resultsSummary: document.getElementById('results-summary'),
-    statusBadge: document.getElementById('status-badge'),
-    errorsSection: document.getElementById('errors-section'),
-    errorsList: document.getElementById('errors-list'),
-    // Modal elements
-    artModal: document.getElementById('art-modal'),
-    modalCardName: document.getElementById('modal-card-name'),
-    closeModalBtn: document.getElementById('close-modal-btn'),
-    modalLoading: document.getElementById('modal-loading'),
-    modalArtGrid: document.getElementById('modal-art-grid'),
-    modalError: document.getElementById('modal-error'),
-    // Print Settings elements
-    printSettingsToggle: document.getElementById('print-settings-toggle'),
-    printSettingsContent: document.getElementById('print-settings-content'),
-    printSettingsChevron: document.getElementById('print-settings-chevron'),
-    pageSize: document.getElementById('page-size'),
-    gapSpacing: document.getElementById('gap-spacing'),
-    scale: document.getElementById('scale'),
-    gapValue: document.getElementById('gap-value'),
-    cropMarks: document.getElementById('crop-marks'),
-    blackCorners: document.getElementById('black-corners'),
-    bleed: document.getElementById('bleed'),
-    skipBasicLands: document.getElementById('skip-basic-lands'),
-    // Novos campos inteligentes
-    autodetectTokens: document.getElementById('autodetect-tokens'),
-    printDoubleFaced: document.getElementById('print-double-faced'),
-    smartFill: document.getElementById('smart-fill'),
-    guideColor: document.getElementById('guide-color'),
-    // Campos removidos do HTML (mantidos para compatibilidade)
-    printDecklist: document.getElementById('print-decklist'),
-    playtestWatermark: document.getElementById('playtest-watermark'),
-    // Progress Modal elements
-    progressModal: document.getElementById('progress-modal'),
-    progressBar: document.getElementById('progress-bar'),
-    progressPercentage: document.getElementById('progress-percentage'),
-    progressStatus: document.getElementById('progress-status'),
-    progressCards: document.getElementById('progress-cards'),
-    progressPages: document.getElementById('progress-pages'),
-    progressCancelBtn: document.getElementById('progress-cancel-btn'),
-    progressCloseBtn: document.getElementById('progress-close-btn')
+    // === ELEMENTOS PRINCIPAIS DA INTERFACE ===
+    decklistInput: document.getElementById('decklist-input'),        // Input do decklist
+    processBtn: document.getElementById('process-btn'),              // Botão processar
+    clearBtn: document.getElementById('clear-btn'),                  // Botão limpar
+    loadSampleBtn: document.getElementById('load-sample-btn'),        // Botão carregar exemplo
+    generatePdfBtn: document.getElementById('generate-pdf-btn'),      // Botão gerar PDF
+    
+    // === SEÇÕES DA INTERFACE ===
+    loadingSection: document.getElementById('loading-section'),        // Loading principal
+    resultsSection: document.getElementById('results-section'),        // Resultados
+    cardsGrid: document.getElementById('cards-grid'),                  // Grid de cartas
+    resultsSummary: document.getElementById('results-summary'),        // Resumo estatístico
+    statusBadge: document.getElementById('status-badge'),              // Badge de status
+    errorsSection: document.getElementById('errors-section'),          // Seção de erros
+    errorsList: document.getElementById('errors-list'),                // Lista de erros
+    
+    // === MODAL DE ESCOLHA DE ARTES ===
+    artModal: document.getElementById('art-modal'),                    // Container principal do modal
+    modalCardName: document.getElementById('modal-card-name'),        // Nome da carta no header
+    closeModalBtn: document.getElementById('close-modal-btn'),        // Botão fechar modal
+    modalLoading: document.getElementById('modal-loading'),            // Loading de artes
+    modalArtGrid: document.getElementById('modal-art-grid'),            // Grid de opções de arte
+    modalError: document.getElementById('modal-error'),                  // Mensagem de erro
+    
+    // === CONFIGURAÇÕES DE IMPRESSÃO (ACCORDION) ===
+    printSettingsToggle: document.getElementById('print-settings-toggle'),      // Toggle do accordion
+    printSettingsContent: document.getElementById('print-settings-content'),    // Conteúdo do accordion
+    printSettingsChevron: document.getElementById('print-settings-chevron'),      // Ícone do accordion
+    
+    // === CATEGORIA 1: LAYOUT & GEOMETRIA ===
+    pageSize: document.getElementById('page-size'),                    // Tamanho da folha
+    gapSpacing: document.getElementById('gap-spacing'),                // Espaçamento/gap
+    scale: document.getElementById('scale'),                            // Escala da carta
+    gapValue: document.getElementById('gap-value'),                    // Display do valor do gap
+    
+    // === CATEGORIA 2: GUIAS DE IMPRESSÃO ===
+    cropMarks: document.getElementById('crop-marks'),                  // Marcas de corte
+    blackCorners: document.getElementById('black-corners'),            // Bordas pretas
+    bleed: document.getElementById('bleed'),                          // Sangria/bleed
+    guideColor: document.getElementById('guide-color'),                // Cor das guias
+    
+    // === CATEGORIA 3: FUNCIONALIDADES INTELIGENTES ===
+    skipBasicLands: document.getElementById('skip-basic-lands'),      // Ignorar terrenos básicos
+    autodetectTokens: document.getElementById('autodetect-tokens'),    // Auto-detectar tokens
+    printDoubleFaced: document.getElementById('print-double-faced'),  // Imprimir dupla face
+    smartFill: document.getElementById('smart-fill'),                  // Preenchimento inteligente
+    
+    // === MODAL DE PROGRESSO (GERAÇÃO DE PDF) ===
+    progressModal: document.getElementById('progress-modal'),            // Container do modal
+    progressBar: document.getElementById('progress-bar'),                // Barra de progresso
+    progressPercentage: document.getElementById('progress-percentage'),  // Percentual
+    progressStatus: document.getElementById('progress-status'),          // Status text
+    progressCards: document.getElementById('progress-cards'),            // Contador de cartas
+    progressPages: document.getElementById('progress-pages'),            // Contador de páginas
+    progressCancelBtn: document.getElementById('progress-cancel-btn'),  // Botão cancelar
+    progressCloseBtn: document.getElementById('progress-close-btn')      // Botão fechar
 };
 
-// Decklist de exemplo
+// ================================================================================
+// DADOS DE EXEMPLO
+// ================================================================================
+
+// Decklist de exemplo para demonstração e testes
 const SAMPLE_DECKLIST = `4x Lightning Bolt
 4x Chain Lightning
 4x Lava Dart
@@ -86,7 +110,11 @@ const SAMPLE_DECKLIST = `4x Lightning Bolt
 1x Mountain
 1x Plains`;
 
-// Inicialização
+// ================================================================================
+// INICIALIZAÇÃO DA APLICAÇÃO
+// ================================================================================
+
+// Ponto de entrada da aplicação - executado quando DOM está carregado
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Deck Fill Application started');
     initializeEventListeners();
@@ -94,7 +122,14 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * Inicializa os event listeners
+ * Inicializa todos os event listeners da aplicação
+ * 
+ * Responsabilidades:
+ * - Configurar interações dos botões principais
+ * - Configurar eventos do modal de artes
+ * - Configurar eventos do modal de progresso
+ * - Configurar exclusão mútua entre configurações
+ * - Configurar atalhos de teclado (ESC)
  */
 function initializeEventListeners() {
     // Botão Processar Deck
@@ -116,7 +151,10 @@ function initializeEventListeners() {
     elements.gapSpacing.addEventListener('input', updateGapValue);
     
     // Progress Modal
-    elements.progressCancelBtn.addEventListener('click', hideProgressModal);
+    elements.progressCancelBtn.addEventListener('click', () => {
+        isGenerationCancelled = true;
+        hideProgressModal();
+    });
     elements.progressCloseBtn.addEventListener('click', hideProgressModal);
     
     // Modal events
@@ -135,6 +173,21 @@ function initializeEventListeners() {
             closeArtModal();
         }
     });
+    
+    // Exclusão mútua: Sangria vs Bordas Pretas
+    const bleedCheckbox = document.getElementById('bleed'); 
+    const blackCornersCheckbox = document.getElementById('black-corners'); 
+    
+    if (bleedCheckbox && blackCornersCheckbox) {
+        blackCornersCheckbox.addEventListener('change', (e) => {
+            if (e.target.checked) bleedCheckbox.checked = false;
+            e.target.blur(); // Remove foco para eliminar borda laranja
+        });
+        bleedCheckbox.addEventListener('change', (e) => {
+            if (e.target.checked) blackCornersCheckbox.checked = false;
+            e.target.blur(); // Remove foco para eliminar borda laranja
+        });
+    }
     
     // Inicializa delegação de eventos para cliques nas cartas
     initializeCardClickDelegation();
@@ -183,23 +236,38 @@ async function checkApiHealth() {
     }
 }
 
+// ================================================================================
+// FUNÇÕES PRINCIPAIS DA APLICAÇÃO
+// ================================================================================
+
 /**
- * Processa o decklist
+ * Processa o decklist enviado pelo usuário
+ * 
+ * Fluxo de execução:
+ * 1. Validação do input
+ * 2. Prevenção de processamento duplicado
+ * 3. Envio para API FastAPI (/parse-deck)
+ * 4. Processamento da resposta
+ * 5. Renderização dos resultados
+ * 
+ * @returns {Promise<void>}
  */
 async function processDecklist() {
     const decklist = elements.decklistInput.value.trim();
     
-    // Validação básica
+    // === VALIDAÇÃO ===
     if (!decklist) {
         showError('Por favor, cole um decklist para processar.');
         return;
     }
     
+    // === PREVENÇÃO DE RACE CONDITIONS ===
     if (isProcessing) {
         console.log('Já está processando...');
         return;
     }
     
+    // === ESTADO DA INTERFACE ===
     isProcessing = true;
     showLoading();
     hideErrors();
@@ -207,6 +275,7 @@ async function processDecklist() {
     try {
         console.log('Enviando decklist para API...');
         
+        // === COMUNICAÇÃO COM API ===
         const response = await fetch(`${API_BASE}/parse-deck`, {
             method: 'POST',
             headers: {
@@ -222,10 +291,10 @@ async function processDecklist() {
         const data = await response.json();
         console.log('Resposta da API:', data);
         
-        // Atualizar estado
-        currentCards = data.cards;
+        // === ATUALIZAÇÃO DE ESTADO ===
+        currentCards = data.cards;  // Armazena cartas processadas globalmente
         
-        // Renderizar resultados
+        // === RENDERIZAÇÃO ===
         renderResults(data);
         
     } catch (error) {
@@ -433,21 +502,102 @@ function hideErrors() {
 }
 
 /**
- * Gera PDF com as cartas processadas
+ * Processa imagem com Sangria (Bleed) usando técnica de Edge Smearing
+ * Estende apenas os pixels das bordas mantendo o centro intacto
+ */
+async function processImageWithBleed(blob, bleedSizeInMm) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(blob);
+        
+        img.onload = () => {
+            try {
+                // Calcular pixels de sangria proporcionais ao tamanho real da carta (63x88mm)
+                const bleedPxX = Math.floor(img.width * (bleedSizeInMm / 63));
+                const bleedPxY = Math.floor(img.height * (bleedSizeInMm / 88));
+                
+                // Criar canvas com dimensões totais incluindo sangria
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width + (bleedPxX * 2);
+                canvas.height = img.height + (bleedPxY * 2);
+                const ctx = canvas.getContext('2d');
+                
+                // Desenhar imagem original perfeitamente no centro
+                ctx.drawImage(img, bleedPxX, bleedPxY, img.width, img.height);
+                
+                // Esticar as 4 bordas copiando fatias de 1 pixel da imagem original
+                // Topo
+                ctx.drawImage(img, 0, 0, img.width, 1, bleedPxX, 0, img.width, bleedPxY);
+                // Base
+                ctx.drawImage(img, 0, img.height - 1, img.width, 1, bleedPxX, bleedPxY + img.height, img.width, bleedPxY);
+                // Esquerda
+                ctx.drawImage(img, 0, 0, 1, img.height, 0, bleedPxY, bleedPxX, img.height);
+                // Direita
+                ctx.drawImage(img, img.width - 1, 0, 1, img.height, bleedPxX + img.width, bleedPxY, bleedPxX, img.height);
+                
+                // Esticar os 4 cantos pegando o pixel 1x1 das extremidades
+                // Canto Superior Esquerdo
+                ctx.drawImage(img, 0, 0, 1, 1, 0, 0, bleedPxX, bleedPxY);
+                // Canto Superior Direito
+                ctx.drawImage(img, img.width - 1, 0, 1, 1, bleedPxX + img.width, 0, bleedPxX, bleedPxY);
+                // Canto Inferior Esquerdo
+                ctx.drawImage(img, 0, img.height - 1, 1, 1, 0, bleedPxY + img.height, bleedPxX, bleedPxY);
+                // Canto Inferior Direito
+                ctx.drawImage(img, img.width - 1, img.height - 1, 1, 1, bleedPxX + img.width, bleedPxY + img.height, bleedPxX, bleedPxY);
+                
+                // Limpar URL e retornar base64 do canvas
+                URL.revokeObjectURL(url);
+                resolve(canvas.toDataURL('image/jpeg', 0.95));
+                
+            } catch (error) {
+                URL.revokeObjectURL(url);
+                reject(error);
+            }
+        };
+        
+        img.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error('Failed to load image'));
+        };
+        
+        img.src = url;
+    });
+}
+
+// ================================================================================
+// GERAÇÃO DE PDF - FUNÇÃO PRINCIPAL
+// ================================================================================
+
+/**
+ * Gera PDF com layout 3x3 em A4 usando dimensões MTG oficiais (63x88mm)
  * 
- * Implementação Phase 4: Layout 3x3 em A4 com dimensões MTG oficiais (63x88mm)
- * Usa jsPDF v2.5.1 com conversão segura para Base64 para evitar CORS
+ * Arquitetura de geração:
+ * - Sistema de DUAS PASSADAS para otimizar desenho de marcas de corte
+ * - Passada 1: Coleta de coordenadas e desenho de linhas de fundo (Background Lines)
+ * - Passada 2: Desenho de cartas, bordas e cruzes de sobreposição (Foreground Crosses)
+ * - Usa jsPDF v2.5.1 com conversão Base64 para evitar CORS
+ * 
+ * Fluxo de execução:
+ * 1. Validação e setup inicial
+ * 2. Captura de configurações do usuário
+ * 3. Inicialização do jsPDF
+ * 4. Cálculo de layout e dimensões
+ * 5. Passada 1: Desenhar linhas de fundo (se cropMarks ativado)
+ * 6. Passada 2: Desenhar cartas e elementos visuais
+ * 7. Salvamento do PDF
+ * 
+ * @returns {Promise<void>}
  */
 async function generatePDF() {
+    // === VALIDAÇÃO INICIAL ===
     if (!currentCards || currentCards.length === 0) {
         showError('Nenhuma carta para gerar PDF. Processe um decklist primeiro.');
         return;
     }
     
-    // Mostrar modal de progresso
+    // === ESTADO DA INTERFACE ===
     showProgressModal();
     
-    // Atualizar estado do botão
     const originalText = elements.generatePdfBtn.innerHTML;
     elements.generatePdfBtn.disabled = true;
     elements.generatePdfBtn.innerHTML = `
@@ -458,26 +608,48 @@ async function generatePDF() {
     `;
     
     try {
-        console.log('Iniciando geração de PDF...');
+        // === SISTEMA DE DEBUG AVANÇADO ===
+        console.group('🎨 Deck Fill - Geração de PDF Iniciada');
+        console.log('📊 Iniciando geração de PDF...');
         
-        // 1. Capturar Configurações
+        // === CAPTURA DE CONFIGURAÇÕES ===
         const settings = getPrintSettings();
-        console.log('Configurações de Impressão:', settings);
+        console.log('⚙️ Configurações de Impressão Detectadas:', settings);
+        console.log('🩸 Status da Sangria:', settings.bleed);
+        console.log('✂️ Status das Marcas de Corte:', settings.cropMarks);
+        console.log('⚫ Status das Bordas Pretas:', settings.blackCorners);
         
-        // 2. Inicializar jsPDF com folha dinâmica
+        // === UTILITÁRIOS DE COR ===
+        // Função auxiliar para converter HEX para RGB (usada para marcas de corte)
+        const hex2rgb = (hex) => {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? [
+                parseInt(result[1], 16),
+                parseInt(result[2], 16),
+                parseInt(result[3], 16)
+            ] : [255, 255, 255];
+        };
+        
+        // Converter cor das guias para RGB (variáveis globais da função)
+        const [r, g, b] = hex2rgb(settings.guideColor);
+        
+        // === INICIALIZAÇÃO DO JSPDF ===
         const { jsPDF } = window.jspdf;
         
-        // 3. Mapear Tamanho da Carta (Scale)
+        // === CÁLCULO DE DIMENSÕES DAS CARTAS ===
+        // Mapeamento de escala: small(75%), normal(100%), large(125%), giant(150%)
         const scaleMultipliers = { small: 0.75, normal: 1, large: 1.25, giant: 1.5 };
         const scaleMult = scaleMultipliers[settings.scale] || 1;
-        const cardWidth = 63 * scaleMult;
-        const cardHeight = 88 * scaleMult;
+        const cardWidth = 63 * scaleMult;    // Base: 63mm (dimensão MTG oficial)
+        const cardHeight = 88 * scaleMult;   // Base: 88mm (dimensão MTG oficial)
 
-        // 4. Gap dinâmico
+        // === CÁLCULO DE ESPAÇAMENTO (GAP) ===
+        // Gap é o espaço entre as cartas para facilitar corte
         const spacingX = parseFloat(settings.gapSpacing) || 0;
         const spacingY = parseFloat(settings.gapSpacing) || 0;
 
-        // 5. Criar documento temporário para ler dimensões reais da folha
+        // === OBTENÇÃO DE DIMENSÕES DA FOLHA ===
+        // Cria documento temporário apenas para ler dimensões reais do formato selecionado
         const tempDoc = new window.jspdf.jsPDF({ 
             format: settings.pageSize || 'a4', 
             orientation: 'portrait', 
@@ -486,18 +658,20 @@ async function generatePDF() {
         const basePageW = tempDoc.internal.pageSize.getWidth();
         const basePageH = tempDoc.internal.pageSize.getHeight();
 
-        // 6. Função que calcula quantas cartas cabem (considerando o gap)
+        // === FUNÇÃO DE OTIMIZAÇÃO DE LAYOUT ===
+        // Calcula quantas cartas cabem na página considerando o gap
         const calculateFit = (pageW, pageH) => {
             const cols = Math.floor((pageW + spacingX) / (cardWidth + spacingX));
             const rows = Math.floor((pageH + spacingY) / (cardHeight + spacingY));
             return { cols: Math.max(1, cols), rows: Math.max(1, rows), total: cols * rows };
         };
 
-        // 7. Testa Retrato (Portrait) vs Paisagem (Landscape)
+        // === OTIMIZAÇÃO DE ORIENTAÇÃO ===
+        // Testa qual orientação (retrato vs paisagem) comporta mais cartas
         const portraitFit = calculateFit(basePageW, basePageH);
         const landscapeFit = calculateFit(basePageH, basePageW);
 
-        // 8. Escolhe a orientação que couber mais cartas
+        // === ESCOLHA DA MELHOR ORIENTAÇÃO ===
         let bestOrientation = 'portrait';
         let cols = portraitFit.cols;
         let rows = portraitFit.rows;
@@ -510,7 +684,8 @@ async function generatePDF() {
 
         const cardsPerPage = cols * rows;
 
-        // 9. Inicializar o jsPDF Oficial com a Melhor Orientação
+        // === CRIAÇÃO DO DOCUMENTO JSPDF FINAL ===
+        // Inicializa o documento oficial com a melhor orientação encontrada
         const doc = new window.jspdf.jsPDF({
             orientation: bestOrientation,
             unit: 'mm',
@@ -520,6 +695,7 @@ async function generatePDF() {
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
         
+        // === CÁLCULO DE MARGENS E CENTRALIZAÇÃO ===
         // Calcular o espaço total consumido pelos gaps (ex: 3 colunas têm 2 gaps entre elas)
         const totalSpacingX = (cols - 1) * spacingX;
         const totalSpacingY = (rows - 1) * spacingY;
@@ -532,29 +708,24 @@ async function generatePDF() {
         const marginX = (pageWidth - totalCardsWidth) / 2;
         const marginY = (pageHeight - totalCardsHeight) / 2;
         
-        console.log(`Layout: ${cols}x${rows}, ${cardsPerPage} cartas/página`);
-        console.log(`Margens: X=${marginX.toFixed(1)}mm, Y=${marginY.toFixed(1)}mm`);
-        console.log(`Processando ${currentCards.length} cartas...`);
+        console.log(`📐 Layout: ${cols}x${rows}, ${cardsPerPage} cartas/página`);
+        console.log(`📏 Margens: X=${marginX.toFixed(1)}mm, Y=${marginY.toFixed(1)}mm`);
+        console.log(`🃏 Processando ${currentCards.length} cartas...`);
         
-        // Processar cada carta
+        // ================================================================================
+        // PASSADA 1: COLETA DE COORDENADAS PARA BACKGROUND LINES
+        // ================================================================================
+        console.group('🔍 Passada 1: Coleta de Coordenadas para Background Lines');
+        
+        // Coleta de coordenadas por página para desenhar linhas de fundo
+        const pageCoordinates = new Map(); // pageIndex -> {xCoords: Set, yCoords: Set}
+        
         for (let i = 0; i < currentCards.length; i++) {
-            const card = currentCards[i];
+            if (isGenerationCancelled) { break; }
             
-            // Atualizar progresso
-            const progressPercentage = ((i + 1) / currentCards.length) * 90; // 90% para processamento, 10% para save
-            const currentPage = Math.floor(i / cardsPerPage) + 1;
-            updateProgress(progressPercentage, 'Baixando imagens...', i + 1, currentCards.length, currentPage);
-            
-            // Calcular posição na página
             const cardIndex = i;
             const pageIndex = Math.floor(cardIndex / cardsPerPage);
             const cardIndexInPage = cardIndex % cardsPerPage;
-            
-            // Adicionar nova página se necessário (exceto primeira)
-            if (pageIndex > 0 && cardIndexInPage === 0) {
-                doc.addPage();
-                console.log(`Adicionando página ${pageIndex + 1}`);
-            }
             
             // Calcular coordenadas
             const col = cardIndexInPage % cols;
@@ -562,81 +733,206 @@ async function generatePDF() {
             const x = marginX + (col * (cardWidth + spacingX));
             const y = marginY + (row * (cardHeight + spacingY));
             
-            // Buscar imagem
-            try {
-                const imageUrl = card.image_uri_png || card.image_uri_normal;
-                if (!imageUrl) {
-                    console.warn(`Carta sem imagem: ${card.name}`);
-                    continue;
+            // Inicializar coordenadas da página se não existirem
+            if (!pageCoordinates.has(pageIndex)) {
+                pageCoordinates.set(pageIndex, { xCoords: new Set(), yCoords: new Set() });
+            }
+            
+            const coords = pageCoordinates.get(pageIndex);
+            
+            // Adicionar coordenadas das bordas da carta (onde as linhas devem passar)
+            coords.xCoords.add(x);                    // Borda esquerda
+            coords.xCoords.add(x + cardWidth);        // Borda direita
+            coords.yCoords.add(y);                    // Borda superior
+            coords.yCoords.add(y + cardHeight);       // Borda inferior
+            
+            console.log(`📍 Carta ${i + 1}: Página ${pageIndex + 1}, Coords (${x.toFixed(1)}, ${y.toFixed(1)})`);
+        }
+        
+        console.log(`📊 Coordenadas coletadas para ${pageCoordinates.size} páginas`);
+        console.groupEnd();
+        
+        // ================================================================================
+        // PASSADA 2: DESENHO DE PÁGINAS COMPLETAS (Background Lines + Cartas + Elementos)
+        // ================================================================================
+        console.group('🎨 Passada 2: Desenho de Páginas Completas');
+        
+        for (let pageIndex = 0; pageIndex < Math.ceil(currentCards.length / cardsPerPage); pageIndex++) {
+            if (isGenerationCancelled) { break; }
+            
+            console.log(`📄 Processando Página ${pageIndex + 1}/${Math.ceil(currentCards.length / cardsPerPage)}`);
+            
+            // === NAVEGAÇÃO DE PÁGINAS ===
+            if (pageIndex > 0) {
+                doc.addPage();
+                console.log(`➕ Adicionando nova página: ${pageIndex + 1}`);
+            }
+            doc.setPage(pageIndex + 1);
+            console.log(`🎯 Página ativa: ${pageIndex + 1}`);
+            
+            // === DESENHO DAS BACKGROUND LINES (SE ATIVADO) ===
+            if (settings.cropMarks && pageCoordinates.has(pageIndex)) {
+                console.log('✂️ Desenhando Background Lines...');
+                const coords = pageCoordinates.get(pageIndex);
+                
+                // Resetar cor para cor do usuário
+                doc.setDrawColor(r, g, b);
+                doc.setLineWidth(0.1);
+                
+                // Desenhar linhas horizontais (atravessam a página inteira)
+                for (const y of coords.yCoords) {
+                    doc.line(0, y, pageWidth, y); // De ponta a ponta
+                    console.log(`➖ Linha horizontal em y=${y.toFixed(1)}mm`);
                 }
                 
-                console.log(`Processando carta ${i + 1}/${currentCards.length}: ${card.name}`);
-                
-                // Fazer fetch da imagem
-                const response = await fetch(imageUrl);
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
+                // Desenhar linhas verticais (atravessam a página inteira)
+                for (const x of coords.xCoords) {
+                    doc.line(x, 0, x, pageHeight); // De ponta a ponta
+                    console.log(`| Linha vertical em x=${x.toFixed(1)}mm`);
                 }
+            }
+            
+            // === DESENHO DAS CARTAS DESTA PÁGINA ===
+            const startCardIndex = pageIndex * cardsPerPage;
+            const endCardIndex = Math.min(startCardIndex + cardsPerPage, currentCards.length);
+            
+            console.log(`🃏 Desenhando cartas ${startCardIndex + 1}-${endCardIndex} da página ${pageIndex + 1}`);
+            
+            for (let i = startCardIndex; i < endCardIndex; i++) {
+                if (isGenerationCancelled) { break; }
+                const card = currentCards[i];
                 
-                // Converter para Blob e depois para DataURL
-                const blob = await response.blob();
-                const dataUrl = await blobToDataUrl(blob);
+                // === ATUALIZAÇÃO DE PROGRESSO ===
+                const progressPercentage = ((i + 1) / currentCards.length) * 90;
+                const currentPage = pageIndex + 1;
+                updateProgress(progressPercentage, 'Baixando imagens...', i + 1, currentCards.length, currentPage);
                 
-                // Adicionar imagem ao PDF
-                doc.addImage(dataUrl, 'JPEG', x, y, cardWidth, cardHeight);
+                // === CÁLCULO DE POSIÇÃO ===
+                const cardIndexInPage = i % cardsPerPage;
+                const col = cardIndexInPage % cols;
+                const row = Math.floor(cardIndexInPage / cols);
+                const x = marginX + (col * (cardWidth + spacingX));
+                const y = marginY + (row * (cardHeight + spacingY));
                 
-                // Função auxiliar para converter HEX para RGB
-                const hex2rgb = (hex) => {
-                    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-                    return result ? [
-                        parseInt(result[1], 16),
-                        parseInt(result[2], 16),
-                        parseInt(result[3], 16)
-                    ] : [255, 255, 255];
-                };
-                const [r, g, b] = hex2rgb(settings.guideColor);
+                console.log(`📍 Carta ${i + 1}: Coords (${x.toFixed(1)}, ${y.toFixed(1)})`);
+                
+                // === BUSCA E PROCESSAMENTO DE IMAGEM ===
+                try {
+                    console.log(`🔄 Baixando imagem da carta: ${card.name}`);
+                    const imageUrl = card.image_uri_png || card.image_uri_normal;
+                    if (!imageUrl) {
+                        console.warn(`⚠️ Carta sem imagem: ${card.name}`);
+                        continue;
+                    }
+                    
+                    // === FETCH DA IMAGEM ===
+                    console.log(`🌐 Fazendo fetch da imagem: ${imageUrl}`);
+                    const response = await fetch(imageUrl);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    console.log(`✅ Download bem-sucedido: ${card.name}`);
+                    
+                    // === CONVERSÃO PARA BLOB ===
+                    const blob = await response.blob();
+                    
+                    // === CÁLCULO DE DIMENSÕES ESPECIAIS ===
+                    // O tamanho da sangria é exatamente metade do gap (se ativado)
+                    const bleedSize = (settings.bleed && settings.gapSpacing > 0) ? (settings.gapSpacing / 2) : 0;
+                    
+                    // O tamanho da borda preta é exatamente metade do gap (se ativado)
+                    const blackBorderSize = (settings.blackCorners && settings.gapSpacing > 0) ? (settings.gapSpacing / 2) : 0;
+                
+                // === PROCESSAMENTO DE IMAGEM ===
+                    let dataUrl;
+                    if (bleedSize > 0) {
+                        console.log(`🩸 Aplicando sangria de ${bleedSize}mm`);
+                        dataUrl = await processImageWithBleed(blob, bleedSize);
+                    } else {
+                        console.log(`🖼️ Processando imagem normal`);
+                        dataUrl = await blobToDataUrl(blob);
+                    }
+                    
+                    // === DESENHO DE ELEMENTOS VISUAIS ===
+                    // Lógica clara para os três cenários: Borda Preta vs Sangria vs Normal
+                    if (blackBorderSize > 0) {
+                        // === CENÁRIO 1: BORDA PRETA ===
+                        // Fundo preto + carta normal no centro (gap preenchido)
+                        console.log(`⚫ Desenhando borda preta de ${blackBorderSize}mm`);
+                        doc.setFillColor(0, 0, 0); // Preto
+                        doc.rect(x - blackBorderSize, y - blackBorderSize, cardWidth + (blackBorderSize * 2), cardHeight + (blackBorderSize * 2), 'F');
+                        // Carta no tamanho normal, centralizada no retângulo preto
+                        doc.addImage(dataUrl, 'JPEG', x, y, cardWidth, cardHeight);
+                    } else if (bleedSize > 0) {
+                        // === CENÁRIO 2: SANGRIA (BLEED) ===
+                        // Carta esticada para preencher o gap (extensão da arte)
+                        console.log(`🩸 Desenhando carta com sangria`);
+                        doc.addImage(dataUrl, 'JPEG', x - bleedSize, y - bleedSize, cardWidth + (bleedSize * 2), cardHeight + (bleedSize * 2));
+                    } else {
+                        // === CENÁRIO 3: NORMAL ===
+                        // Carta no tamanho original sem esticar
+                        console.log(`🖼️ Desenhando carta normal`);
+                        doc.addImage(dataUrl, 'JPEG', x, y, cardWidth, cardHeight);
+                    }
 
-                // 1. Bordas Coloridas (Black Corners -> agora "Colored Borders")
-                if (settings.blackCorners) {
-                    doc.setDrawColor(r, g, b); // Usa a cor selecionada
-                    doc.setLineWidth(0.5);
-                    doc.rect(x, y, cardWidth, cardHeight);
+                    // === CRUZES DE CORTE (FOREGROUND CROSSES) ===
+                    // Desenha 4 cruzes nos cantos de cada carta para guia de corte
+                    if (settings.cropMarks) {
+                        console.log(`✂️ Desenhando cruzes de corte para: ${card.name}`);
+                        const c = 2; // Tamanho da haste da cruz em mm
+                        
+                        // === RESET DE CORES (ANTI-STATE LEAKAGE) ===
+                        // Importante: Resetar cores para evitar vazamento da Borda Preta
+                        doc.setDrawColor(r, g, b);     // Reset cor de desenho para cor do usuário
+                        doc.setFillColor(r, g, b);     // Reset cor de preenchimento
+                        doc.setLineWidth(0.1);         // Linha fina
+
+                        // === FUNÇÃO DE DESENHO DE CRUZ ===
+                        const drawCross = (cx, cy) => {
+                            doc.line(cx - c, cy, cx + c, cy); // Horizontal
+                            doc.line(cx, cy - c, cx, cy + c); // Vertical
+                        };
+
+                        // === DESENHAR AS 4 CRUZES ===
+                        drawCross(x, y); // Superior Esquerdo
+                        drawCross(x + cardWidth, y); // Superior Direito
+                        drawCross(x, y + cardHeight); // Inferior Esquerdo
+                        drawCross(x + cardWidth, y + cardHeight); // Inferior Direito
+                    }
+                    
+                } catch (error) {
+                    console.error(`❌ Erro ao processar carta ${card.name}:`, error);
+                    // Continuar com as próximas cartas mesmo se esta falhar
                 }
-
-                // 2. Marcas de Corte Contínuas (Guilhotina)
-                if (settings.cropMarks) {
-                    doc.setDrawColor(r, g, b); // Usa a cor selecionada
-                    doc.setLineWidth(0.2); // Linha fina
-
-                    // Linhas Horizontais cruzando toda a largura da página
-                    doc.line(0, y, pageWidth, y); // Topo da carta
-                    doc.line(0, y + cardHeight, pageWidth, y + cardHeight); // Base da carta
-
-                    // Linhas Verticais cruzando toda a altura da página
-                    doc.line(x, 0, x, pageHeight); // Esquerda da carta
-                    doc.line(x + cardWidth, 0, x + cardWidth, pageHeight); // Direita da carta
-                }
-                
-            } catch (error) {
-                console.error(`Erro ao processar carta ${card.name}:`, error);
-                // Continuar com as próximas cartas mesmo se esta falhar
             }
         }
         
-        // Salvar PDF
-        console.log('Salvando PDF...');
+        console.groupEnd(); // Fecha o grupo da Passada 2
+        
+        // === SALVAMENTO DO PDF ===
+        console.log('💾 Salvando PDF...');
         updateProgress(100, 'Concluído!', currentCards.length, currentCards.length, Math.ceil(currentCards.length / cardsPerPage));
         doc.save('decklist.pdf');
         
-        console.log('PDF gerado com sucesso!');
+        console.log('✅ PDF gerado com sucesso!');
+        console.groupEnd(); // Fecha o grupo principal da geração de PDF
         
     } catch (error) {
-        console.error('Erro ao gerar PDF:', error);
+        console.error('❌ Erro ao gerar PDF:', error);
+        console.groupEnd(); // Garante que o grupo seja fechado mesmo em erro
         showError('Erro ao gerar PDF. Tente novamente.');
     } finally {
+        // === RESTAURAÇÃO DO ESTADO ===
+        console.log('🔄 Restaurando estado da interface...');
+        
         // Restaurar estado do botão
         elements.generatePdfBtn.disabled = false;
         elements.generatePdfBtn.innerHTML = originalText;
+        
+        // Garantir que o modal de progresso sempre suma
+        hideProgressModal();
+        
+        console.log('🏁 Geração de PDF finalizada');
     }
 }
 

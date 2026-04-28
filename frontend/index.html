@@ -1,35 +1,43 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+<!-- ================================================================================
+     DECK FILL - GERADOR DE PDF PARA MAGIC: THE GATHERING
+     Arquitetura: Frontend Vanilla JS + Tailwind CSS + jsPDF
+     Responsabilidades: Interface do usuário, configurações de impressão, modais
+     ================================================================================ -->
 <head>
+    <!-- === METADADOS E CONFIGURAÇÃO === -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Deck Fill - Gerador de PDF para Magic: The Gathering</title>
     
-    <!-- Tailwind CSS via CDN -->
+    <!-- === DEPENDÊNCIAS EXTERNAS === -->
+    <!-- Tailwind CSS via CDN - Framework de estilos -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- jsPDF via CDN -->
+    <!-- jsPDF via CDN - Biblioteca de geração de PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
-    <!-- Configuração Tailwind customizada -->
+    <!-- === CONFIGURAÇÃO TAILWIND CUSTOMIZADA === -->
+    <!-- Cores oficiais do Magic: The Gathering para branding consistente -->
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        'mtg-blue': '#0066CC',
-                        'mtg-gold': '#FFD700',
-                        'mtg-black': '#1A1A1A',
-                        'mtg-white': '#F5F5F5'
+                        'mtg-blue': '#0066CC',    // Azul oficial MTG
+                        'mtg-gold': '#FFD700',    // Dourado MTG (raro)
+                        'mtg-black': '#1A1A1A',   // Preto MTG
+                        'mtg-white': '#F5F5F5'    // Branco MTG
                     }
                 }
             }
         }
     </script>
     
-    <!-- Estilos customizados -->
+    <!-- === ESTILOS CUSTOMIZADOS === -->
     <style>
-        /* Animações para cards */
+        /* Animações suaves para cards e elementos da interface */
         .fade-in {
             animation: fadeIn 0.3s ease-in-out;
         }
@@ -39,14 +47,14 @@
             to { opacity: 1; transform: translateY(0); }
         }
         
-        /* Grid responsivo para cards */
+        /* Grid responsivo para cards - se adapta a diferentes tamanhos de tela */
         .cards-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 1rem;
         }
         
-        /* Loading spinner */
+        /* Loading spinner para feedback visual durante operações assíncronas */
         .spinner {
             border: 3px solid #f3f3f3;
             border-top: 3px solid #0066CC;
@@ -72,11 +80,16 @@
         }
     </style>
 </head>
+<!-- ================================================================================
+     CORPO DA APLICAÇÃO - INTERFACE PRINCIPAL
+     ================================================================================ -->
 <body class="bg-gray-50 min-h-screen">
-    <!-- Header -->
+    <!-- === HEADER DA APLICAÇÃO === -->
+    <!-- Branding e status da API com cores oficiais MTG -->
     <header class="bg-gradient-to-r from-mtg-blue to-blue-700 text-white shadow-lg">
         <div class="container mx-auto px-4 py-6">
             <div class="flex items-center justify-between">
+                <!-- Logo e título -->
                 <div class="flex items-center space-x-3">
                     <div class="w-10 h-10 bg-mtg-gold rounded-full flex items-center justify-center">
                         <span class="text-mtg-black font-bold text-lg">DF</span>
@@ -86,6 +99,7 @@
                         <p class="text-blue-100 text-sm">Gerador de PDF para Magic: The Gathering</p>
                     </div>
                 </div>
+                <!-- Status da API -->
                 <div class="flex items-center space-x-4">
                     <span id="status-badge" class="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">
                         🟢 API Online
@@ -95,9 +109,11 @@
         </div>
     </header>
 
-    <!-- Main Content -->
+    <!-- === CONTEÚDO PRINCIPAL === -->
     <main class="container mx-auto px-4 py-8">
-        <!-- Input Section -->
+        <!-- ================================================================================
+             SEÇÃO 1: INPUT DO DECKLIST
+             ================================================================================ -->
         <section class="bg-white rounded-lg shadow-md p-6 mb-8">
             <div class="mb-6">
                 <h2 class="text-xl font-bold text-gray-800 mb-2">📝 Cole seu Decklist</h2>
@@ -115,7 +131,7 @@
                     <textarea 
                         id="decklist-input" 
                         rows="8" 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mtg-blue focus:border-transparent resize-none"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mtg-blue focus:border-transparent resize-none max-h-64 overflow-y-auto"
                         placeholder="4x Lightning Bolt
 2 Island  
 1 Thantis, the Warweaver
@@ -161,7 +177,7 @@
 
         <!-- Results Section (escondido por padrão) -->
         <section id="results-section" class="hidden bg-white rounded-lg shadow-md p-6">
-            <div class="mb-6">
+            <section class="mb-6">
                 <h2 class="text-xl font-bold text-gray-800 mb-2">🎴 Cartas Encontradas</h2>
                 <div class="flex items-center justify-between">
                     <p id="results-summary" class="text-gray-600 text-sm"></p>
@@ -177,9 +193,11 @@
                     </div>
                 </div>
                 
-                <!-- Print Settings Panel -->
+                <!-- ================================================================================
+             SEÇÃO 2: CONFIGURAÇÕES DE IMPRESSÃO (ACCORDION)
+             ================================================================================ -->
                 <div class="mt-6 border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                    <!-- Accordion Header -->
+                    <!-- === HEADER DO ACCORDION === -->
                     <button 
                         id="print-settings-toggle" 
                         class="w-full px-4 py-3 bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 transition-all duration-200 flex items-center justify-between text-left">
@@ -199,11 +217,14 @@
                         </svg>
                     </button>
                     
-                    <!-- Accordion Content -->
+                    <!-- === CONTEÚDO DO ACCORDION === -->
                     <div id="print-settings-content" class="hidden">
                         <div class="bg-white p-6 space-y-6">
                             
-                            <!-- Categoria 1: Layout & Geometria -->
+                            <!-- ================================================================================
+                                 CATEGORIA 1: LAYOUT & GEOMETRIA (AZUL)
+                                 Responsabilidades: Tamanho da folha, escala das cartas, espaçamento
+                                 ================================================================================ -->
                             <div class="border border-gray-100 rounded-lg p-4 bg-gradient-to-br from-blue-50 to-indigo-50">
                                 <div class="flex items-center space-x-2 mb-4">
                                     <div class="w-6 h-6 bg-blue-500 rounded flex items-center justify-center">
@@ -239,10 +260,10 @@
                                                 min="0" 
                                                 max="5" 
                                                 step="0.5" 
-                                                value="0" 
+                                                value="2.0" 
                                                 class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500"
                                             />
-                                            <span id="gap-value" class="text-sm font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded min-w-[3rem] text-center">0.0 mm</span>
+                                            <span id="gap-value" class="text-sm font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded min-w-[3rem] text-center">2.0 mm</span>
                                         </div>
                                         <p class="text-xs text-gray-500 mt-1">Espaço entre as cartas. Limite: 0 a 5mm.</p>
                                     </div>
@@ -261,7 +282,10 @@
                                 </div>
                             </div>
                             
-                            <!-- Categoria 2: Guias de Impressão -->
+                            <!-- ================================================================================
+                                 CATEGORIA 2: GUIAS DE IMPRESSÃO (LARANJA/AMARELA)
+                                 Responsabilidades: Marcas de corte, bordas pretas, sangria, cor das guias
+                                 ================================================================================ -->
                             <div class="border border-gray-100 rounded-lg p-4 bg-gradient-to-br from-orange-50 to-yellow-50">
                                 <div class="flex items-center space-x-2 mb-4">
                                     <div class="w-6 h-6 bg-orange-500 rounded flex items-center justify-center">
@@ -282,11 +306,11 @@
                                             <span class="text-sm text-gray-700">Marcas de Corte</span>
                                         </div>
                                         <div class="flex items-center gap-3">
-                                            <input type="color" id="guide-color" value="#FFFFFF" 
+                                            <input type="color" id="guide-color" value="#f97316" 
                                                    class="w-8 h-8 rounded cursor-pointer bg-transparent border-0 p-0" 
                                                    title="Escolher cor da linha">
                                             <label class="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" id="crop-marks" class="sr-only peer">
+                                                <input type="checkbox" id="crop-marks" class="sr-only peer" checked>
                                                 <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500"></div>
                                             </label>
                                         </div>
@@ -318,13 +342,17 @@
                                             </div>
                                         </div>
                                         <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" id="bleed" class="sr-only peer">
+                                            <input type="checkbox" id="bleed" class="sr-only peer" checked>
                                             <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500"></div>
                                         </label>
                                     </div>
                             </div>
+                            </div> <!-- Fecha Categoria 2 (Guias de Impressão) -->
                             
-                            <!-- Categoria 3: Funcionalidades Inteligentes -->
+                            <!-- ================================================================================
+                                 CATEGORIA 3: FUNCIONALIDADES INTELIGENTES (ROXA/ROSA)
+                                 Responsabilidades: Filtros inteligentes, auto-detecção, preenchimento
+                                 ================================================================================ -->
                             <div class="border border-gray-100 rounded-lg p-4 bg-gradient-to-br from-purple-50 to-pink-50">
                                 <div class="flex items-center space-x-2 mb-4">
                                     <div class="w-6 h-6 bg-purple-500 rounded flex items-center justify-center">
@@ -350,33 +378,13 @@
                                         </label>
                                     </div>
                                     
-                                    <!-- Autodetectar Fichas -->
+                                    <!-- Imprimir Dupla Face -->
                                     <div class="flex items-center justify-between p-3 bg-white rounded-md border border-gray-200">
                                         <div class="flex items-center space-x-3">
                                             <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 16h4m10 0h4"></path>
                                             </svg>
-                                            <div>
-                                                <span class="text-sm text-gray-700">Autodetectar Fichas (Tokens)</span>
-                                                <p class="text-xs text-gray-500">Adiciona fichas geradas pelo deck no final.</p>
-                                            </div>
-                                        </div>
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" id="autodetect-tokens" class="sr-only peer">
-                                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
-                                        </label>
-                                    </div>
-                                    
-                                    <!-- Imprimir Dupla-Face -->
-                                    <div class="flex items-center justify-between p-3 bg-white rounded-md border border-gray-200">
-                                        <div class="flex items-center space-x-3">
-                                            <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
-                                            </svg>
-                                            <div>
-                                                <span class="text-sm text-gray-700">Imprimir Dupla-Face (MDFCs)</span>
-                                                <p class="text-xs text-gray-500">Gera o verso das cartas que transformam.</p>
-                                            </div>
+                                            <span class="text-sm text-gray-700">Imprimir Dupla Face</span>
                                         </div>
                                         <label class="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" id="print-double-faced" class="sr-only peer">
@@ -384,20 +392,37 @@
                                         </label>
                                     </div>
                                     
-                                    <!-- Preenchimento Inteligente -->
-                                    <div class="p-3 bg-white rounded-md border border-gray-200">
-                                        <div class="flex items-center space-x-3 mb-2">
+                                    <!-- Auto-detectar Tokens -->
+                                    <div class="flex items-center justify-between p-3 bg-white rounded-md border border-gray-200">
+                                        <div class="flex items-center space-x-3">
                                             <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                                             </svg>
-                                            <span class="text-sm text-gray-700">Preenchimento Inteligente (Smart Fill)</span>
+                                            <span class="text-sm text-gray-700">Auto-detectar Tokens</span>
                                         </div>
-                                        <select id="smart-fill" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-sm">
-                                            <option value="none">Não preencher (Deixar branco)</option>
-                                            <option value="classic-back">Preencher com Verso Clássico</option>
-                                            <option value="black-lotus">Preencher com Pântano (Black Lotus test)</option>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="autodetect-tokens" class="sr-only peer">
+                                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
+                                        </label>
+                                    </div>
+                                    
+                                    <!-- Smart Fill -->
+                                    <div class="flex items-center justify-between p-3 bg-white rounded-md border border-gray-200">
+                                        <div class="flex items-center space-x-3">
+                                            <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                            </svg>
+                                            <div>
+                                                <span class="text-sm text-gray-700">Smart Fill</span>
+                                                <p class="text-xs text-gray-500 mt-0.5">Preenche os espaços vazios da última página.</p>
+                                            </div>
+                                        </div>
+                                        <select id="smart-fill" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white">
+                                            <option value="none">Desativado</option>
+                                            <option value="basic">Terrenos Básicos</option>
+                                            <option value="tokens">Tokens</option>
+                                            <option value="both">Ambos</option>
                                         </select>
-                                        <p class="text-xs text-gray-500 mt-1">Preenche os espaços vazios da última página.</p>
                                     </div>
                                 </div>
                             </div>
@@ -408,7 +433,7 @@
             </div>
             
             <!-- Cards Grid -->
-            <div id="cards-grid" class="cards-grid">
+            <div id="cards-grid" class="cards-grid mt-8">
                 <!-- Cards serão inseridos aqui dinamicamente -->
             </div>
             

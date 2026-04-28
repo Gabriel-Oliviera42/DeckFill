@@ -7,13 +7,150 @@
 - **Backend:** Python com FastAPI
 - **Banco de Dados:** SQLite (embutido, rápido para buscas locais)
 - **Frontend:** HTML puro, Vanilla JavaScript e Tailwind CSS via CDN
-- **PDF Generation:** Client-side usando `pdf-lib` ou `jsPDF`
+- **PDF Generation:** Client-side usando `jsPDF v2.5.1`
 
 ## Architecture Principles
 - **Performance, estabilidade e ausência de rate limits**
 - **NÃO fazer chamadas à API do Scryfall em tempo real**
 - **Usar Scryfall Bulk Data com banco de dados local**
 - **Imagens carregadas pelo client-side via CDN**
+
+## Arquitetura do Sistema
+
+### Backend (FastAPI)
+- **Servidor:** Roda em http://localhost:8000
+- **Banco de Dados:** SQLite com 109.762 cartas MTG
+- **Endpoints:**
+  - `POST /parse-deck` - Processa decklists e retorna cartas
+  - `GET /search/{card_name}` - Busca cartas por nome
+  - `GET /printings/{card_name}` - Retorna todas as impressões de uma carta
+  - `GET /health` - Health check da API
+  - `GET /stats` - Estatísticas do banco
+
+### Frontend (Vanilla JS + Tailwind)
+- **Servidor:** Roda em http://localhost:3000
+- **Arquitetura:** Single-page application sem frameworks
+- **Estrutura Modular:** Funções organizadas por responsabilidade
+- **Estado Global:** Variáveis compartilhadas para coordenação
+
+### Comunicação Frontend-Backend
+- **Protocolo:** HTTP/HTTPS com fetch API
+- **Formato:** JSON para troca de dados
+- **CORS:** Configurado para desenvolvimento local
+- **Error Handling:** Tratamento de erros amigável com feedback visual
+
+## Fluxo de Geração de PDF
+
+### Arquitetura de Duas Passadas (Simplificada)
+O sistema usa uma arquitetura de **passada única otimizada** após limpeza cirúrgica:
+
+#### Passada Única: Loop Integrado
+1. **Navegação de Páginas:** `doc.addPage()` quando necessário
+2. **Garantia de Página Ativa:** `doc.setPage(pageIndex + 1)` ou `doc.setPage(1)`
+3. **Desenho de Borda Preta:** `doc.setFillColor(0, 0, 0)` + `doc.rect()` (se ativado)
+4. **Download de Imagem:** Fetch + Blob + DataURL para conversão segura
+5. **Processamento de Sangria:** `processImageWithBleed()` (se ativado)
+6. **Desenho da Carta:** `doc.addImage()` com coordenadas precisas
+7. **Cruzes de Corte:** `doc.setDrawColor(r, g, b)` + `drawCross()` (se ativado)
+
+### Gestão de Cores e Estado
+- **Cor do Usuário:** Capturada com `hex2rgb(settings.guideColor)`
+- **Anti-State Leakage:** Reset explícito de cores antes das cruzes
+- **Três Cenários de Desenho:**
+  - **Borda Preta:** Fundo preto + carta normal
+  - **Sangria:** Carta esticada para preencher gap
+  - **Normal:** Carta no tamanho original
+
+### Cálculos de Layout
+- **Dimensões MTG:** 63x88mm (base) com escala variável
+- **Otimização de Orientação:** Testa retrato vs paisagem
+- **Centralização Perfeita:** `(pageWidth - totalCardsWidth) / 2`
+- **Gap Dinâmico:** Espaçamento configurável entre cartas
+
+## Estrutura de UI/HTML
+
+### Layout Principal
+- **Header:** Branding MTG com status da API
+- **Main Content:** Container responsivo com seções organizadas
+- **Input Section:** Textarea para decklist com validação
+- **Results Section:** Grid de cartas com preview visual
+
+### Accordion de Configurações (3 Categorias)
+
+#### Categoria 1: Layout & Geometria (Azul)
+- **Responsabilidades:** Tamanho da folha, escala das cartas, espaçamento
+- **Elementos:**
+  - `page-size`: Seleção de formato (A4, Letter, etc)
+  - `gap-spacing`: Slider para espaçamento entre cartas
+  - `scale`: Select para escala (small, normal, large, giant)
+
+#### Categoria 2: Guias de Impressão (Laranja/Amarela)
+- **Responsabilidades:** Marcas de corte, bordas pretas, sangria, cor das guias
+- **Elementos:**
+  - `crop-marks`: Toggle para cruzes de corte
+  - `guide-color`: Color picker para cor das marcas
+  - `black-corners`: Toggle para bordas pretas
+  - `bleed`: Toggle para sangria (extensão da arte)
+
+#### Categoria 3: Funcionalidades Inteligentes (Roxa/Rosa)
+- **Responsabilidades:** Filtros inteligentes, auto-detecção, preenchimento
+- **Elementos:**
+  - `skip-basic-lands`: Ignorar terrenos básicos
+  - `autodetect-tokens`: Auto-detectar tokens
+  - `print-double-faced`: Imprimir dupla face
+  - `smart-fill`: Preenchimento inteligente
+
+### Modal de Escolha de Artes
+- **Estrutura:** Modal overlay com backdrop
+- **Componentes:**
+  - `art-modal`: Container principal
+  - `modal-card-name`: Nome da carta no header
+  - `close-modal-btn`: Botão de fechar
+  - `modal-loading`: Loading de artes
+  - `modal-art-grid`: Grid de opções de arte
+  - `modal-error`: Mensagem de erro
+- **Integração:** Conectado com endpoint `/printings`
+
+### Modal de Progresso
+- **Finalidade:** Feedback visual durante geração de PDF
+- **Elementos:** Barra de progresso, contadores, botão cancelar
+
+## Gestão de Estado
+
+### Variáveis Globais (app.js)
+```javascript
+let currentCards = [];              // Cartas processadas pela API
+let isGenerationCancelled = false;  // Flag para cancelar PDF
+let isProcessing = false;           // Flag para evitar processamento duplo
+let currentModalCardIndex = null;   // Índice da carta no modal de artes
+```
+
+### Cache de Elementos DOM
+- **Performance:** Cache de referências para elementos frequentemente acessados
+- **Organização:** Agrupado por funcionalidade (principal, modal, configurações)
+- **Compatibilidade:** Elementos legados mantidos para backward compatibility
+
+### Estado da Interface
+- **Loading States:** Feedback visual para operações assíncronas
+- **Error Handling:** Exibição amigável de erros
+- **Progress Tracking:** Atualização em tempo real do progresso
+
+## Dívida Técnica e Código Morto
+
+### Elementos Legados (Mantidos para Compatibilidade)
+- **TODO (Dead Code):** `printDecklist` - Removido do HTML mas mantido no JS
+- **TODO (Dead Code):** `playtestWatermark` - Removido do HTML mas mantido no JS
+- **Motivo:** Evitar quebras de funcionalidade durante migração
+
+### Implementações Removidas
+- **Passada 1.5 (Background Lines):** Sistema duplicado de marcas de corte removido
+- **Coleta de Coordenadas (pageLines):** Estrutura complexa simplificada
+- **State Leakage Issues:** Corrigidos com reset explícito de cores
+
+### Possíveis Otimizações Futuras
+- **Lazy Loading:** Carregar imagens apenas quando necessário
+- **Web Workers:** Processamento de PDF em thread separado
+- **Cache Local:** Armazenar imagens processadas localmente
 
 ## Execution Phases
 
