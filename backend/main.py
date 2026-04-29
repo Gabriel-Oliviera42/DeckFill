@@ -27,6 +27,8 @@ class CardResponse(BaseModel):
     collector_number: str
     image_uri_normal: Optional[str] = None
     image_uri_png: Optional[str] = None
+    image_uri_back_normal: Optional[str] = None
+    image_uri_back_png: Optional[str] = None
     lang: str = "en"
 
 class DeckParseRequest(BaseModel):
@@ -103,8 +105,10 @@ def parse_decklist(decklist: str) -> List[Dict[str, Any]]:
     
     for line_num, line in enumerate(lines, 1):
         line = line.strip()
+        # Remove pontos finais no fim da linha (ex: "Phyrexian Ingester.")
+        line = line.rstrip('.')
         
-        # Ignorar linhas vazias e comentários
+        # Ignorar linvas vazias e comentários
         if not line or line.startswith('//') or line.startswith('#'):
             continue
         
@@ -191,10 +195,23 @@ def search_cards(parsed_cards: List[Dict[str, Any]]) -> Dict[str, List[Dict[str,
             
             # 1. Tenta busca exata
             cursor.execute("""
-                SELECT id, name, set_code, collector_number, image_uri_normal, image_uri_png, lang
+                SELECT id, name, set_code, collector_number, image_uri_normal, image_uri_png, image_uri_back_normal, image_uri_back_png, lang
                 FROM cards 
                 WHERE name = ? COLLATE NOCASE
-                ORDER BY set_code DESC, collector_number ASC
+                ORDER BY 
+                    CASE 
+                        WHEN set_code = 'SLD' THEN 1
+                        WHEN set_code = 'MPS' THEN 2
+                        WHEN set_code = 'EXP' THEN 3
+                        WHEN set_code = 'STA' THEN 4
+                        WHEN set_code = '2X2' THEN 5
+                        WHEN set_code = 'MH3' THEN 6
+                        WHEN set_code = 'MH2' THEN 7
+                        WHEN set_code = 'PRM' THEN 8
+                        ELSE 9 
+                    END ASC,
+                    set_code DESC,
+                    CAST(collector_number AS INTEGER) ASC
                 LIMIT 10
             """, (card_name,))
             
@@ -206,14 +223,25 @@ def search_cards(parsed_cards: List[Dict[str, Any]]) -> Dict[str, List[Dict[str,
                 # 2. Só tenta parcial se a exata falhar
                 search_name = f"%{card_name}%"
                 cursor.execute("""
-                    SELECT id, name, set_code, collector_number, image_uri_normal, image_uri_png, lang
+                    SELECT id, name, set_code, collector_number, image_uri_normal, image_uri_png, image_uri_back_normal, image_uri_back_png, lang
                     FROM cards 
                     WHERE name LIKE ? COLLATE NOCASE
                     ORDER BY 
                         CASE WHEN name LIKE ? THEN 1 ELSE 2 END,
+                        CASE 
+                            WHEN set_code = 'SLD' THEN 1
+                            WHEN set_code = 'MPS' THEN 2
+                            WHEN set_code = 'EXP' THEN 3
+                            WHEN set_code = 'STA' THEN 4
+                            WHEN set_code = '2X2' THEN 5
+                            WHEN set_code = 'MH3' THEN 6
+                            WHEN set_code = 'MH2' THEN 7
+                            WHEN set_code = 'PRM' THEN 8
+                            ELSE 9 
+                        END ASC,
                         name ASC,
                         set_code DESC,
-                        collector_number ASC
+                        CAST(collector_number AS INTEGER) ASC
                     LIMIT 10
                 """, (search_name, f"{card_name}%"))
                 
@@ -306,7 +334,8 @@ async def parse_deck(request: DeckParseRequest):
                 
                 # Adiciona a quantidade para cada cópia
                 for _ in range(quantity):
-                    response_cards.append(CardResponse(**card_data))
+                    front_card = dict(card_data)
+                    response_cards.append(CardResponse(**front_card))
             else:
                 not_found.append(f"{quantity}x {card_name}")
         
@@ -371,7 +400,7 @@ async def search_card(card_name: str, limit: int = 10):
             detail=f"Erro ao buscar carta: {str(e)}"
         )
 
-@app.get("/printings/{card_name}")
+@app.get("/printings/{card_name:path}")
 async def get_card_printings(card_name: str):
     """
     Retorna todas as impressões de uma carta específica.
@@ -382,16 +411,19 @@ async def get_card_printings(card_name: str):
         with contextlib.closing(get_db_connection()) as conn:
             cursor = conn.cursor()
             
+            # Pega apenas a frente do nome (antes do //) para a busca
+            search_name = card_name.split('//')[0].strip()
+            
             # Buscar todas as impressões da carta, ignorando maiúsculas/minúsculas
             # Filtrando apenas cartas que têm imagem
             cursor.execute("""
-                SELECT id, name, set_code, collector_number, image_uri_normal, image_uri_png
+                SELECT id, name, set_code, collector_number, image_uri_normal, image_uri_png, image_uri_back_normal, image_uri_back_png
                 FROM cards 
-                WHERE name = ? COLLATE NOCASE 
+                WHERE name LIKE ? COLLATE NOCASE 
                 AND image_uri_normal IS NOT NULL 
                 AND image_uri_normal != ''
                 ORDER BY set_code DESC, collector_number ASC
-            """, (card_name,))
+            """, (search_name + '%',))
             
             results = [dict(row) for row in cursor.fetchall()]
             

@@ -94,10 +94,13 @@ def create_database() -> sqlite3.Connection:
         CREATE TABLE IF NOT EXISTS cards (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
+            layout TEXT,
             set_code TEXT NOT NULL,
             collector_number TEXT NOT NULL,
             image_uri_normal TEXT,
             image_uri_png TEXT,
+            image_uri_back_normal TEXT,
+            image_uri_back_png TEXT,
             lang TEXT DEFAULT 'en'
         )
     ''')
@@ -117,14 +120,29 @@ def create_database() -> sqlite3.Connection:
     return conn
 
 def extract_card_data(card: Dict[str, Any]) -> Dict[str, Any]:
-    """Extrai apenas os dados necessários de uma carta."""
+    # Usa 'or {}' para garantir que se o Scryfall mandar null, vira um dicionário vazio
+    image_uris = card.get('image_uris') or {}
+    back_image_uris = {}
+    
+    if 'card_faces' in card and len(card['card_faces']) > 1:
+        # Pega a face 0 de forma segura
+        face0 = card['card_faces'][0]
+        image_uris = face0.get('image_uris') or image_uris
+        
+        # Pega a face 1 de forma segura
+        face1 = card['card_faces'][1]
+        back_image_uris = face1.get('image_uris') or {}
+
     return {
         'id': card.get('id'),
         'name': card.get('name'),
+        'layout': card.get('layout', 'normal'),
         'set_code': card.get('set', '').upper(),
-        'collector_number': card.get('collector_number', ''),
-        'image_uri_normal': card.get('image_uris', {}).get('normal'),
-        'image_uri_png': card.get('image_uris', {}).get('png'),
+        'collector_number': str(card.get('collector_number', '')),
+        'image_uri_normal': image_uris.get('normal'),
+        'image_uri_png': image_uris.get('png'),
+        'image_uri_back_normal': back_image_uris.get('normal'),
+        'image_uri_back_png': back_image_uris.get('png'),
         'lang': card.get('lang', 'en')
     }
 
@@ -155,19 +173,30 @@ def process_cards_file(file_path: str, conn: sqlite3.Connection) -> None:
                     card = json.loads(clean_line)
                     card_data = extract_card_data(card)
                     
-                    # Verificar se temos todos os campos necessários
-                    if all(card_data.values()):
+                    # Verificar se temos os campos essenciais (pelo menos ID, nome e uma imagem)
+                    has_essential_fields = (
+                        card_data['id'] and 
+                        card_data['name'] and 
+                        card_data['set_code'] and
+                        (card_data['image_uri_normal'] or card_data['image_uri_png'] or 
+                         card_data['image_uri_back_normal'] or card_data['image_uri_back_png'])
+                    )
+                    
+                    if has_essential_fields:
                         cursor.execute('''
                             INSERT OR REPLACE INTO cards 
-                            (id, name, set_code, collector_number, image_uri_normal, image_uri_png, lang)
-                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                            (id, name, layout, set_code, collector_number, image_uri_normal, image_uri_png, image_uri_back_normal, image_uri_back_png, lang)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         ''', (
                             card_data['id'],
                             card_data['name'],
+                            card_data['layout'],
                             card_data['set_code'],
                             card_data['collector_number'],
                             card_data['image_uri_normal'],
                             card_data['image_uri_png'],
+                            card_data['image_uri_back_normal'],
+                            card_data['image_uri_back_png'],
                             card_data['lang']
                         ))
                         cards_inserted += 1
