@@ -146,7 +146,8 @@ def parse_decklist(decklist: str) -> List[Dict[str, Any]]:
                         set_code = None
                         collector_number = None
                     
-                    # Limpar nome da carta (remover extras)
+                    # Limpar nome da carta (remover extras e //)
+                    card_name = card_name.split('//')[0].strip()
                     card_name = re.sub(r'\s+', ' ', card_name).strip()
                     
                     # DEBUG - Raio-X: Parser extraiu quantidade e nome
@@ -188,65 +189,74 @@ def search_cards(parsed_cards: List[Dict[str, Any]]) -> Dict[str, List[Dict[str,
         
         for card in parsed_cards:  # INÍCIO DO LOOP
             card_name = card["name"]
+            set_code = card.get("set_code")
+            collector_number = card.get("collector_number")
             found_cards = []
             
             # DEBUG - Raio-X: Buscando carta
-            print(f"🔍 DEBUG - Buscando no banco: '{card_name}'")
+            print(f"DEBUG - Buscando no banco: '{card_name}' (Set: {set_code}, Num: {collector_number})")
             
-            # 1. Tenta busca exata
-            cursor.execute("""
-                SELECT id, name, set_code, collector_number, image_uri_normal, image_uri_png, image_uri_back_normal, image_uri_back_png, lang
-                FROM cards 
-                WHERE name = ? COLLATE NOCASE
-                ORDER BY 
-                    CASE 
-                        WHEN set_code = 'SLD' THEN 1
-                        WHEN set_code = 'MPS' THEN 2
-                        WHEN set_code = 'EXP' THEN 3
-                        WHEN set_code = 'STA' THEN 4
-                        WHEN set_code = '2X2' THEN 5
-                        WHEN set_code = 'MH3' THEN 6
-                        WHEN set_code = 'MH2' THEN 7
-                        WHEN set_code = 'PRM' THEN 8
-                        ELSE 9 
-                    END ASC,
-                    set_code DESC,
-                    CAST(collector_number AS INTEGER) ASC
-                LIMIT 10
-            """, (card_name,))
-            
-            exact_rows = cursor.fetchall()
-            if exact_rows:
-                found_cards = [dict(row) for row in exact_rows]
-                print(f"🔍 DEBUG - Busca exata encontrou {len(found_cards)} cartas para '{card_name}'")
-            else:
-                # 2. Só tenta parcial se a exata falhar
-                search_name = f"%{card_name}%"
+            # 1. Se temos set e number, tenta busca exata específica PRIMEIRO
+            if set_code and collector_number:
                 cursor.execute("""
                     SELECT id, name, set_code, collector_number, image_uri_normal, image_uri_png, image_uri_back_normal, image_uri_back_png, lang
                     FROM cards 
-                    WHERE name LIKE ? COLLATE NOCASE
+                    WHERE name LIKE ? COLLATE NOCASE AND set_code COLLATE NOCASE = ? COLLATE NOCASE AND CAST(collector_number AS TEXT) = ?
+                    LIMIT 1
+                """, (f"{card_name}%", set_code, str(collector_number)))
+                
+                exact_match_rows = cursor.fetchall()
+                print(f"DEBUG SQL - Buscando: {card_name} | {set_code} | {collector_number} -> Retornou {len(exact_match_rows)} cartas")
+                if exact_match_rows:
+                    found_cards = [dict(row) for row in exact_match_rows]
+                    print(f"DEBUG - Match EXATO (set+num) encontrado para '{card_name}' ({set_code} #{collector_number})")
+                else:
+                    print(f"DEBUG - Match EXATO (set+num) NÃO encontrado para '{card_name}' ({set_code} #{collector_number})")
+            
+            # 2. Se não encontrou match exato ou não tem set/num, tenta busca por nome apenas
+            if not found_cards:
+                cursor.execute("""
+                    SELECT id, name, set_code, collector_number, image_uri_normal, image_uri_png, image_uri_back_normal, image_uri_back_png, lang
+                    FROM cards 
+                    WHERE name = ? COLLATE NOCASE
                     ORDER BY 
-                        CASE WHEN name LIKE ? THEN 1 ELSE 2 END,
-                        CASE 
-                            WHEN set_code = 'SLD' THEN 1
-                            WHEN set_code = 'MPS' THEN 2
-                            WHEN set_code = 'EXP' THEN 3
-                            WHEN set_code = 'STA' THEN 4
-                            WHEN set_code = '2X2' THEN 5
-                            WHEN set_code = 'MH3' THEN 6
-                            WHEN set_code = 'MH2' THEN 7
-                            WHEN set_code = 'PRM' THEN 8
-                            ELSE 9 
-                        END ASC,
-                        name ASC,
                         set_code DESC,
                         CAST(collector_number AS INTEGER) ASC
                     LIMIT 10
-                """, (search_name, f"{card_name}%"))
+                """, (card_name,))
                 
-                partial_rows = cursor.fetchall()
-                found_cards = [dict(row) for row in partial_rows]
+                exact_rows = cursor.fetchall()
+                if exact_rows:
+                    found_cards = [dict(row) for row in exact_rows]
+                    print(f"DEBUG - Busca por nome encontrou {len(found_cards)} cartas para '{card_name}'")
+                else:
+                    # 3. Só tenta parcial se a exata falhar
+                    search_name = f"%{card_name}%"
+                    cursor.execute("""
+                        SELECT id, name, set_code, collector_number, image_uri_normal, image_uri_png, image_uri_back_normal, image_uri_back_png, lang
+                        FROM cards 
+                        WHERE name LIKE ? COLLATE NOCASE
+                        ORDER BY 
+                            CASE WHEN name LIKE ? THEN 1 ELSE 2 END,
+                            CASE 
+                                WHEN set_code = 'SLD' THEN 1
+                                WHEN set_code = 'MPS' THEN 2
+                                WHEN set_code = 'EXP' THEN 3
+                                WHEN set_code = 'STA' THEN 4
+                                WHEN set_code = '2X2' THEN 5
+                                WHEN set_code = 'MH3' THEN 6
+                                WHEN set_code = 'MH2' THEN 7
+                                WHEN set_code = 'PRM' THEN 8
+                                ELSE 9 
+                            END ASC,
+                            name ASC,
+                            set_code DESC,
+                            CAST(collector_number AS INTEGER) ASC
+                            LIMIT 10
+                    """, (search_name, f"{card_name}%"))
+                    
+                    partial_rows = cursor.fetchall()
+                    found_cards = [dict(row) for row in partial_rows]
                 print(f"🔍 DEBUG - Busca parcial encontrou {len(found_cards)} cartas para '{card_name}'")
                 
             # 3. SALVA DENTRO DO LOOP
