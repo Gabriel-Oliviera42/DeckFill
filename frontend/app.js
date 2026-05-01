@@ -47,6 +47,14 @@ const elements = {
   // === UPLOAD DE IMAGENS PERSONALIZADAS ===
   customImageUpload: document.getElementById("custom-image-upload"), // Input de upload
   uploadPreview: document.getElementById("upload-preview"), // Container do preview
+
+  // === MODAL DE VERSO GLOBAL ===
+  globalBackModal: document.getElementById("global-back-modal"), // Container do modal de verso global
+  closeGlobalBackModal: document.getElementById("close-global-back-modal"), // Botão fechar modal
+  globalBackBtn: document.getElementById("global-back-btn"), // Botão para abrir modal
+  globalBackPreviewLarge: document.getElementById("global-back-preview-large"), // Preview grande da arte
+  globalBackUploadModal: document.getElementById("global-back-upload-modal"), // Input de upload
+  clearGlobalBackModal: document.getElementById("clear-global-back-modal"), // Botão remover
   uploadPreviewImg: document.getElementById("upload-preview-img"), // Imagem de preview
   clearCustomImage: document.getElementById("clear-custom-image"), // Botão remover imagem
   // Upload do verso (DFCs)
@@ -77,7 +85,6 @@ const elements = {
   skipBasicLands: document.getElementById("skip-basic-lands"), // Ignorar terrenos básicos
   autodetectTokens: document.getElementById("autodetect-tokens"), // Auto-detectar tokens
   printDoubleFaced: document.getElementById("print-double-faced"), // Imprimir dupla face
-  smartFill: document.getElementById("smart-fill"), // Preenchimento inteligente
 
   // === MODAL DE PROGRESSO (GERAÇÃO DE PDF) ===
   progressModal: document.getElementById("progress-modal"), // Container do modal
@@ -162,6 +169,20 @@ function initializeEventListeners() {
   );
   elements.clearCustomImageBack.addEventListener("click", clearCustomImageBack);
 
+  // Upload do verso global
+  if (elements.globalBackUpload) {
+    elements.globalBackUpload.addEventListener(
+      "change",
+      handleGlobalBackUpload,
+    );
+  }
+
+  // Botão de limpar verso global
+  const clearGlobalBackBtn = document.getElementById("clear-global-back");
+  if (clearGlobalBackBtn) {
+    clearGlobalBackBtn.addEventListener("click", clearGlobalBackImage);
+  }
+
   // Fechar modal clicando no backdrop
   elements.artModal.addEventListener("click", (e) => {
     if (e.target === elements.artModal) {
@@ -191,51 +212,93 @@ function initializeEventListeners() {
     });
   }
 
+  // Event listeners para o modal de verso global
+  console.log("Status do botão Global Back:", !!elements.globalBackBtn);
+
+  if (elements.globalBackBtn) {
+    elements.globalBackBtn.addEventListener("click", openGlobalBackModal);
+    console.log("✅ Event listener do botão Global Back adicionado");
+  }
+
+  if (elements.closeGlobalBackModal) {
+    elements.closeGlobalBackModal.addEventListener(
+      "click",
+      closeGlobalBackModal,
+    );
+  }
+
+  if (elements.globalBackUploadModal) {
+    elements.globalBackUploadModal.addEventListener(
+      "change",
+      handleGlobalBackUploadModal,
+    );
+  }
+
+  if (elements.clearGlobalBackModal) {
+    elements.clearGlobalBackModal.addEventListener(
+      "click",
+      clearGlobalBackModal,
+    );
+  }
+
+  // Clique na imagem do verso padrão MTG para resetar
+  if (elements.globalBackPreviewLarge) {
+    elements.globalBackPreviewLarge.addEventListener("click", function () {
+      const currentBack = AppState.getGlobalCustomBackImage();
+
+      // Se já tiver imagem customizada, permite resetar
+      if (currentBack) {
+        console.log("🔄 Resetando verso para padrão MTG");
+
+        // Limpar do estado
+        AppState.setGlobalCustomBackImage(null);
+
+        // Limpar preview
+        elements.globalBackPreviewLarge.src = window.AppConfig.MTG_BACK_URL;
+
+        // Atualizar botão
+        updateGlobalBackButton();
+
+        // Fechar modal
+        setTimeout(() => {
+          closeGlobalBackModal();
+        }, 300);
+      }
+    });
+  }
+
+  // Fechar modal clicando no backdrop
+  if (elements.globalBackModal) {
+    elements.globalBackModal.addEventListener("click", (e) => {
+      if (e.target === elements.globalBackModal) {
+        closeGlobalBackModal();
+      }
+    });
+  }
+
+  // Fechar modal com ESC
+  document.addEventListener("keydown", (e) => {
+    if (
+      e.key === "Escape" &&
+      !elements.globalBackModal.classList.contains("hidden")
+    ) {
+      closeGlobalBackModal();
+    }
+  });
+
   // Inicializa delegação de eventos para cliques nas cartas
   initializeCardClickDelegation();
 
-  // Listener para switch de impressão dupla face
-  const printDoubleFacedCheckbox =
-    document.getElementById("print-double-faced");
-  const doubleFaceSettings = document.getElementById("double-face-settings");
-  const globalBackType = document.getElementById("global-back-type");
-  const globalBackUploadSection = document.getElementById(
-    "global-back-upload-section",
-  );
-  const globalBackUpload = document.getElementById("global-back-upload");
-  const globalBackFilename = document.getElementById("global-back-filename");
-
-  if (printDoubleFacedCheckbox && doubleFaceSettings) {
-    printDoubleFacedCheckbox.addEventListener("change", (e) => {
-      if (e.target.checked) {
-        doubleFaceSettings.classList.remove("hidden");
-      } else {
-        doubleFaceSettings.classList.add("hidden");
-      }
-    });
-  }
-
-  // Listener para tipo de verso global
-  if (globalBackType && globalBackUploadSection) {
-    globalBackType.addEventListener("change", (e) => {
-      if (e.target.value === "custom-global") {
-        globalBackUploadSection.classList.remove("hidden");
-      } else {
-        globalBackUploadSection.classList.add("hidden");
-      }
-    });
-  }
-
   // Listener para upload do verso global
-  if (globalBackUpload && globalBackFilename) {
-    globalBackUpload.addEventListener("change", (e) => {
+  if (elements.globalBackUpload && elements.globalBackFilename) {
+    elements.globalBackUpload.addEventListener("change", (e) => {
       const file = e.target.files[0];
       if (file) {
         if (file.type.startsWith("image/")) {
           const reader = new FileReader();
           reader.onload = function (event) {
             AppState.globalCustomBackImage = event.target.result;
-            globalBackFilename.textContent = file.name;
+            elements.globalBackFilename.textContent = file.name;
           };
           reader.readAsDataURL(file);
         } else {
@@ -483,6 +546,7 @@ function getPrintSettings() {
     // Novos campos inteligentes (com fallbacks seguros)
     autodetectTokens: elements.autodetectTokens?.checked || false,
     printDoubleFaced: elements.printDoubleFaced?.checked || false,
+    backFaceType: elements.backFaceType?.value || "standard",
     smartFill: elements.smartFill?.value || "none",
     // Cor das guias
     guideColor: elements.guideColor?.value || "#FFFFFF",
@@ -558,6 +622,60 @@ function getCardImageUrl(cardIndex, card) {
 }
 
 /**
+ * Lida com o upload da imagem do verso global
+ */
+function handleGlobalBackUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  console.log("🔍 Upload do verso global iniciado!");
+
+  // Validar tipo de arquivo
+  if (!file.type.startsWith("image/")) {
+    alert("Por favor, selecione um arquivo de imagem válido.");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const imageUrl = e.target.result;
+
+    // Salvar no estado global
+    AppState.setGlobalCustomBackImage(imageUrl);
+    console.log("✅ Verso global armazenado no AppState");
+
+    // Mostrar preview
+    const previewContainer = document.getElementById("global-back-preview");
+    const imgElement = document.getElementById("global-back-preview-img");
+
+    if (previewContainer && imgElement) {
+      previewContainer.classList.remove("hidden");
+      imgElement.src = imageUrl;
+    }
+  };
+
+  reader.readAsDataURL(file);
+}
+
+/**
+ * Limpa a imagem do verso global
+ */
+function clearGlobalBackImage() {
+  // Limpar do estado
+  AppState.setGlobalCustomBackImage(null);
+  console.log("✅ Verso global removido do AppState");
+
+  // Limpar preview
+  const previewContainer = document.getElementById("global-back-preview");
+  const imgElement = document.getElementById("global-back-preview-img");
+  const fileInput = document.getElementById("global-back-upload");
+
+  if (previewContainer) previewContainer.classList.add("hidden");
+  if (imgElement) imgElement.src = "";
+  if (fileInput) fileInput.value = "";
+}
+
+/**
  * Two-Way Data Binding: Atualiza o textarea do decklist com base nas cartas atuais
  */
 function updateDecklistTextarea() {
@@ -582,6 +700,134 @@ function updateDecklistTextarea() {
   }
 }
 
+/**
+ * Abre o modal de verso global
+ */
+function openGlobalBackModal() {
+  console.log("🔍 Abrindo modal de verso global");
+  elements.globalBackModal.classList.remove("hidden");
+  updateGlobalBackButton();
+}
+
+/**
+ * Fecha o modal de verso global
+ */
+function closeGlobalBackModal() {
+  console.log("🔍 Fechando modal de verso global");
+  elements.globalBackModal.classList.add("hidden");
+}
+
+/**
+ * Atualiza o texto e estilo do botão de verso global
+ */
+function updateGlobalBackButton() {
+  const currentBack = AppState.getGlobalCustomBackImage();
+  const buttonText = elements.globalBackBtn;
+
+  if (currentBack) {
+    buttonText.textContent = "Customizado";
+    buttonText.classList.remove(
+      "bg-slate-600",
+      "hover:bg-slate-500",
+      "text-slate-300",
+    );
+    buttonText.classList.add(
+      "bg-emerald-600",
+      "hover:bg-emerald-500",
+      "text-white",
+      "border-2",
+      "border-emerald-400",
+    );
+  } else {
+    buttonText.textContent = "Padrão";
+    buttonText.classList.remove(
+      "bg-emerald-600",
+      "hover:bg-emerald-500",
+      "text-white",
+      "border-2",
+      "border-emerald-400",
+    );
+    buttonText.classList.add(
+      "bg-slate-600",
+      "hover:bg-slate-500",
+      "text-slate-300",
+    );
+  }
+}
+
+/**
+ * Lida com o upload da imagem do verso global
+ */
+function handleGlobalBackUploadModal(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  console.log("🔍 Upload do verso global iniciado!");
+
+  // Validar tipo de arquivo
+  if (!file.type.startsWith("image/")) {
+    alert("Por favor, selecione um arquivo de imagem válido.");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const imageUrl = e.target.result;
+
+    const customSlot = document.getElementById("custom-back-slot");
+    const customImg = document.getElementById("custom-back-preview-img");
+
+    if (customSlot && customImg) {
+      // Update the custom slot image and show it
+      customImg.src = imageUrl;
+      customSlot.setAttribute("data-url", imageUrl);
+      customSlot.classList.remove("hidden");
+
+      // Manually trigger selection without closing modal
+      const options = document.querySelectorAll(".back-option-card");
+      options.forEach((opt) => {
+        opt.classList.remove("border-purple-500");
+        opt.classList.add("border-transparent");
+        // Hide all selected overlays
+        const overlay = opt.querySelector(".selected-overlay");
+        if (overlay) overlay.classList.add("hidden");
+      });
+
+      // Highlight the custom slot
+      customSlot.classList.remove("border-transparent");
+      customSlot.classList.add("border-purple-500");
+
+      // Show selected overlay
+      const overlay = customSlot.querySelector(".selected-overlay");
+      if (overlay) overlay.classList.remove("hidden");
+    }
+  };
+
+  reader.onerror = function (error) {
+    console.error("❌ Erro ao ler arquivo:", error);
+    alert("Ocorreu um erro ao processar a imagem. Tente novamente.");
+  };
+
+  reader.readAsDataURL(file);
+}
+
+/**
+ * Limpa a imagem do verso global
+ */
+function clearGlobalBackModal() {
+  // Limpar do estado
+  AppState.setGlobalCustomBackImage(null);
+  console.log("✅ Verso global removido do AppState");
+
+  // Limpar preview
+  const imgElement = elements.globalBackPreviewLarge;
+
+  imgElement.src = window.AppConfig.MTG_BACK_URL;
+
+  // Atualizar botão
+  updateGlobalBackButton();
+}
+
 // Função toggleCardFace movida para ./js/deck/card-renderer.js
 
 // Exportar funções para debug (console)
@@ -593,11 +839,81 @@ function updateDecklistTextarea() {
 // - renderResults, createCardElement, toggleCardFace → ./js/deck/card-renderer.js
 // - generatePDF, blobToDataUrl → ./js/pdf/pdf-engine.js
 // - checkApiHealth → ./js/api/api-client.js
+
 window.deckFillApp = {
   // Funções movidas para módulos especializados - mantendo apenas estado e configuração
   currentCards: AppState.currentCards,
   showProgressMock, // Função de teste
   getPrintSettings,
 };
+
+function initializeGlobalBackGallery() {
+  const options = document.querySelectorAll(".back-option-card");
+  if (!options.length) return;
+
+  let clickCount = 0;
+  let lastClickedCard = null;
+
+  options.forEach((option) => {
+    option.addEventListener("click", function () {
+      const currentTime = Date.now();
+
+      // Check for double click
+      if (lastClickedCard === this && currentTime - clickCount < 300) {
+        // Double click - confirm selection and close modal
+        const selectedUrl = this.getAttribute("data-url");
+        AppState.setGlobalCustomBackImage(selectedUrl);
+        if (typeof updateGlobalBackButton === "function")
+          updateGlobalBackButton();
+        setTimeout(() => {
+          if (typeof closeGlobalBackModal === "function")
+            closeGlobalBackModal();
+        }, 300);
+        return;
+      }
+
+      clickCount = currentTime;
+      lastClickedCard = this;
+
+      // Single click - just update selection visual
+      options.forEach((opt) => {
+        opt.classList.remove("border-purple-500");
+        opt.classList.add("border-transparent");
+        // Hide all selected overlays
+        const overlay = opt.querySelector(".selected-overlay");
+        if (overlay) overlay.classList.add("hidden");
+      });
+
+      // Highlight selected option
+      this.classList.remove("border-transparent");
+      this.classList.add("border-purple-500");
+
+      // Show selected overlay
+      const overlay = this.querySelector(".selected-overlay");
+      if (overlay) overlay.classList.remove("hidden");
+    });
+  });
+
+  // Add confirm button listener
+  const confirmBtn = document.getElementById("confirm-global-back-selection");
+  if (confirmBtn) {
+    confirmBtn.addEventListener("click", function () {
+      const selectedOption = document.querySelector(
+        ".back-option-card.border-purple-500",
+      );
+      if (selectedOption) {
+        const selectedUrl = selectedOption.getAttribute("data-url");
+        AppState.setGlobalCustomBackImage(selectedUrl);
+        if (typeof updateGlobalBackButton === "function")
+          updateGlobalBackButton();
+        setTimeout(() => {
+          if (typeof closeGlobalBackModal === "function")
+            closeGlobalBackModal();
+        }, 300);
+      }
+    });
+  }
+}
+document.addEventListener("DOMContentLoaded", initializeGlobalBackGallery);
 
 console.log("Deck Fill App initialized");

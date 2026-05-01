@@ -20,6 +20,27 @@ async function generatePDF() {
     return;
   }
 
+  // === FILTRAGEM DE TERRENOS BÁSICOS ===
+  let cardsToProcess = [...AppState.currentCards];
+  if (elements.skipBasicLands && elements.skipBasicLands.checked) {
+    const basicLands = [
+      "Plains",
+      "Island",
+      "Swamp",
+      "Mountain",
+      "Forest",
+      "Wastes",
+    ];
+    const originalCount = cardsToProcess.length;
+    cardsToProcess = cardsToProcess.filter(
+      (card) => !basicLands.includes(card.name),
+    );
+    const filteredCount = originalCount - cardsToProcess.length;
+    if (filteredCount > 0) {
+      console.log(`🏔️ Filtrados ${filteredCount} terrenos básicos do PDF`);
+    }
+  }
+
   // === ESTADO DA INTERFACE ===
   showProgressModal();
 
@@ -148,7 +169,7 @@ async function generatePDF() {
     console.log(
       `📏 Margens: X=${marginX.toFixed(1)}mm, Y=${marginY.toFixed(1)}mm`,
     );
-    console.log(`🃏 Processando ${AppState.currentCards.length} cartas...`);
+    console.log(`🃏 Processando ${cardsToProcess.length} cartas...`);
 
     // ================================================================================
     // LÓGICA DE IMPRESSÃO DUPLA FACE
@@ -166,21 +187,100 @@ async function generatePDF() {
     // Criar array de cartas para impressão
     const cardsToPrint = [];
 
+    // Array de terrenos básicos para filtro (normalizado para minúsculas)
+    const basicLands = [
+      "plains",
+      "island",
+      "swamp",
+      "mountain",
+      "forest",
+      "snow-covered plains",
+      "snow-covered island",
+      "snow-covered swamp",
+      "snow-covered mountain",
+      "snow-covered forest",
+      "wastes",
+    ];
+
+    let skipBasicLands = false;
+    try {
+      // Tenta pegar via app global
+      const printSettings = window.deckFillApp?.getPrintSettings();
+      if (
+        printSettings &&
+        typeof printSettings.skipBasicLands !== "undefined"
+      ) {
+        skipBasicLands = printSettings.skipBasicLands;
+      } else {
+        // Fallback blindado: lê direto do DOM
+        const cb = document.getElementById("skip-basic-lands");
+        if (cb) skipBasicLands = cb.checked;
+      }
+    } catch (e) {
+      console.error("Erro ao ler checkbox de terrenos:", e);
+    }
+
+    console.log(
+      `Filtro de Terrenos Básicos: ${skipBasicLands ? "ATIVADO" : "DESATIVADO"}`,
+    );
+
     if (isDoubleFacedPrint) {
       // MODO DUPLO: Não duplicar DFCs, usar apenas as cartas originais
-      cardsToPrint.push(...AppState.currentCards);
+      for (const card of cardsToProcess) {
+        // Normalizar nome da carta para comparação
+        const normalizedName = card.name.trim().toLowerCase();
+
+        // Log de investigação extrema
+        console.warn(
+          "GERANDO PDF -> Skip Lands está:",
+          skipBasicLands,
+          " | Avaliando carta:",
+          card.name,
+          " | Normalizado:",
+          normalizedName,
+        );
+
+        // Pular terrenos básicos se o filtro estiver ativo
+        if (skipBasicLands && basicLands.includes(normalizedName)) {
+          console.log(`✅ IGNORANDO terreno básico: ${card.name}`);
+          continue;
+        }
+        console.log(`➡️ ADICIONANDO carta: ${card.name}`);
+        cardsToPrint.push(card);
+      }
       console.log(
-        `📊 Modo Duplo Face: ${cardsToPrint.length} cartas (sem duplicação)`,
+        `Modo Duplo Face: ${cardsToPrint.length} cartas (sem duplicação)`,
       );
     } else {
       // MODO NORMAL: Duplicar DFCs como versos separados
-      for (let i = 0; i < AppState.currentCards.length; i++) {
-        const card = AppState.currentCards[i];
+      for (let i = 0; i < cardsToProcess.length; i++) {
+        const card = cardsToProcess[i];
+
+        // Normalizar nome da carta para comparação
+        const normalizedName = card.name.trim().toLowerCase();
+
+        // Log de investigação extrema
+        console.warn(
+          "GERANDO PDF -> Skip Lands está:",
+          skipBasicLands,
+          " | Avaliando carta:",
+          card.name,
+          " | Normalizado:",
+          normalizedName,
+        );
+
+        // Pular terrenos básicos se o filtro estiver ativo
+        if (skipBasicLands && basicLands.includes(normalizedName)) {
+          console.log(`✅ IGNORANDO terreno básico: ${card.name}`);
+          continue;
+        }
+
+        console.log(`➡️ ADICIONANDO carta: ${card.name}`);
         cardsToPrint.push(card);
 
         // Se for DFC, duplicar para o verso
         if (card.image_uri_back_normal || card.image_uri_back_png) {
-          console.log(`🔄 Duplicando DFC: ${card.name}`);
+          console.log(`Duplicando DFC: ${card.name}`);
           const backCard = { ...card };
           backCard.image_uri_normal =
             card.image_uri_back_normal || card.image_uri_png;
@@ -190,7 +290,7 @@ async function generatePDF() {
         }
       }
       console.log(
-        `📊 Modo Normal: ${cardsToPrint.length} cartas (com duplicação)`,
+        `Modo Normal: ${cardsToPrint.length} cartas (com duplicação)`,
       );
     }
     console.groupEnd();
@@ -249,9 +349,11 @@ async function generatePDF() {
     // ================================================================================
     console.group("🎨 Passada 2: Desenho de Páginas Completas");
 
+    let currentPdfPage = 1;
+
     for (
       let pageIndex = 0;
-      pageIndex < Math.ceil(AppState.currentCards.length / cardsPerPage);
+      pageIndex < Math.ceil(cardsToProcess.length / cardsPerPage);
       pageIndex++
     ) {
       if (AppState.isGenerationCancelled) {
@@ -259,16 +361,16 @@ async function generatePDF() {
       }
 
       console.log(
-        `📄 Processando Página ${pageIndex + 1}/${Math.ceil(AppState.currentCards.length / cardsPerPage)}`,
+        `📄 Processando Página ${pageIndex + 1}/${Math.ceil(cardsToProcess.length / cardsPerPage)}`,
       );
 
       // === NAVEGAÇÃO DE PÁGINAS ===
       if (pageIndex > 0) {
         doc.addPage();
-        console.log(`➕ Adicionando nova página: ${pageIndex + 1}`);
+        currentPdfPage++;
       }
-      doc.setPage(pageIndex + 1);
-      console.log(`🎯 Página ativa: ${pageIndex + 1}`);
+      doc.setPage(currentPdfPage);
+      console.log(`🎯 Página ativa frente: ${currentPdfPage}`);
 
       // === DESENHO DAS BACKGROUND LINES (SE ATIVADO) ===
       if (settings.cropMarks && pageCoordinates.has(pageIndex)) {
@@ -303,6 +405,7 @@ async function generatePDF() {
         `🃏 Desenhando cartas ${startCardIndex + 1}-${endCardIndex} da página ${pageIndex + 1}`,
       );
 
+      // A. PRIMEIRO LOOP: DESENHA AS FRENTES NA PÁGINA ATUAL
       for (let i = startCardIndex; i < endCardIndex; i++) {
         if (AppState.isGenerationCancelled) {
           break;
@@ -316,25 +419,21 @@ async function generatePDF() {
           progressPercentage,
           "Baixando imagens...",
           i + 1,
-          cardsToPrint.length,
-          currentPage,
+          cardsToProcess.length,
+          cardsToProcess.length,
+          Math.ceil(cardsToProcess.length / cardsPerPage),
         );
 
-        // === CÁLCULO DE POSIÇÃO ===
+        // Lógica normal: calcula X, Y sem espelhar, pega a imageUrl da FRENTE
+        const imageUrl = getCardImageUrl(i, card);
         const cardIndexInPage = i % cardsPerPage;
         const col = cardIndexInPage % cols;
         const row = Math.floor(cardIndexInPage / cols);
         const x = marginX + col * (cardWidth + spacingX);
         const y = marginY + row * (cardHeight + spacingY);
 
-        console.log(
-          `📍 Carta ${i + 1}: Coords (${x.toFixed(1)}, ${y.toFixed(1)})`,
-        );
-
         // === BUSCA E PROCESSAMENTO DE IMAGEM ===
         try {
-          // Obter URL da imagem (prioriza imagem personalizada)
-          const imageUrl = getCardImageUrl(i, card);
           if (!imageUrl) {
             console.warn(`⚠️ Carta sem imagem: ${card.name}`);
             continue;
@@ -444,6 +543,135 @@ async function generatePDF() {
           // Continuar com as próximas cartas mesmo se esta falhar
         }
       }
+
+      // B. SE FOR DUPLA FACE: CRIA NOVA PÁGINA E DESENHA OS VERSOS
+      if (isDoubleFacedPrint) {
+        console.log(`📄 Criando página de versos para página ${pageIndex + 1}`);
+        doc.addPage();
+        currentPdfPage++;
+        doc.setPage(currentPdfPage);
+        console.log(`🎯 Página ativa verso: ${currentPdfPage}`);
+
+        // ATENÇÃO: Redesenhe as marcas de corte/sangria nesta nova página se estiverem ativadas
+        if (settings.cropMarks && pageCoordinates.has(pageIndex)) {
+          console.log("✂️ Desenhando Background Lines na página de versos...");
+          const coords = pageCoordinates.get(pageIndex);
+
+          // Resetar cor para cor do usuário
+          doc.setDrawColor(r, g, b);
+          doc.setLineWidth(0.1);
+
+          // Desenhar linhas horizontais (atravessam a página inteira)
+          for (const y of coords.yCoords) {
+            doc.line(0, y, pageWidth, y);
+            console.log(`➖ Linha horizontal verso em y=${y.toFixed(1)}mm`);
+          }
+
+          // Desenhar linhas verticais (atravessam a página inteira)
+          for (const x of coords.xCoords) {
+            doc.line(x, 0, x, pageHeight);
+            console.log(`| Linha vertical verso em x=${x.toFixed(1)}mm`);
+          }
+        }
+
+        // SEGUNDO LOOP: DESENHA OS VERSOS
+        for (let i = startCardIndex; i < endCardIndex; i++) {
+          if (AppState.isGenerationCancelled) {
+            break;
+          }
+          const card = cardsToPrint[i];
+
+          console.log(`🔄 Desenhando verso espelhado: ${card.name}`);
+
+          // Cálculo das coordenadas espelhadas
+          const cardIndexInPage = i % cardsPerPage;
+          const row = Math.floor(cardIndexInPage / cols);
+          const colFrente = cardIndexInPage % cols;
+
+          // Espelhamento matemático
+          const colVerso = cols - 1 - colFrente;
+          const x = marginX + colVerso * (cardWidth + spacingX);
+          const y = marginY + row * (cardHeight + spacingY);
+
+          // Define a imagem do verso (Prioridade: 1º DFC Nativo, 2º Custom, 3º Padrão MTG)
+          let backImageUrl = window.AppConfig.MTG_BACK_URL;
+
+          if (card.image_uri_back_normal) {
+            backImageUrl = card.image_uri_back_normal;
+            console.log(`🔄 Usando verso DFC para: ${card.name}`);
+          } else if (
+            AppState.getGlobalCustomBackImage &&
+            AppState.getGlobalCustomBackImage()
+          ) {
+            backImageUrl = AppState.getGlobalCustomBackImage();
+            console.log(
+              `🎨 Usando verso customizado global para: ${card.name}`,
+            );
+          } else {
+            console.log(`🎴 Usando verso padrão MTG para: ${card.name}`);
+          }
+
+          // Lógica de desenhar a imagem do verso
+          try {
+            if (!backImageUrl) {
+              console.warn(`⚠️ Verso sem imagem: ${card.name}`);
+              continue;
+            }
+
+            // Fetch da imagem do verso
+            const response = await fetch(backImageUrl);
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+
+            const blob = await response.blob();
+
+            // O Segredo: Versos oficiais têm borda preta nativa.
+            // Em vez de esticar a imagem com processImageWithBleed (o que puxa bordas sujas de jpeg),
+            // preenchemos o gap com preto puro absoluto e colamos a arte normal por cima!
+
+            const backX = doc.internal.pageSize.getWidth() - x - cardWidth;
+            const bleedOffset =
+              settings.gapSpacing > 0 ? settings.gapSpacing / 2 + 0.5 : 0; // +0.5mm para sobreposição segura
+
+            // 1. Desenha o sangramento PRETO atrás da carta (cobre totalmente as frestas)
+            if (settings.gapSpacing > 0) {
+              doc.setFillColor(0, 0, 0);
+              doc.rect(
+                backX - bleedOffset,
+                y - bleedOffset,
+                cardWidth + bleedOffset * 2,
+                cardHeight + bleedOffset * 2,
+                "F",
+              );
+            }
+
+            // 2. Converte o blob diretamente e desenha a arte no tamanho EXATO por cima do fundo
+            const dataUrl = await blobToDataUrl(blob);
+            doc.addImage(dataUrl, "JPEG", backX, y, cardWidth, cardHeight);
+
+            // Desenhar cruzes de corte no verso se ativado
+            if (settings.cropMarks) {
+              const c = 2; // Tamanho da haste da cruz em mm
+              doc.setDrawColor(r, g, b);
+              doc.setLineWidth(0.1);
+
+              const drawCross = (cx, cy) => {
+                doc.line(cx - c, cy, cx + c, cy); // Horizontal
+                doc.line(cx, cy - c, cx, cy + c); // Vertical
+              };
+
+              drawCross(x, y); // Superior Esquerdo
+              drawCross(x + cardWidth, y); // Superior Direito
+              drawCross(x, y + cardHeight); // Inferior Esquerdo
+              drawCross(x + cardWidth, y + cardHeight); // Inferior Direito
+            }
+          } catch (error) {
+            console.error(`❌ Erro ao processar verso ${card.name}:`, error);
+            // Continuar com as próximas cartas mesmo se esta falhar
+          }
+        }
+      }
     }
 
     console.groupEnd(); // Fecha o grupo da Passada 2
@@ -453,9 +681,9 @@ async function generatePDF() {
     updateProgress(
       100,
       "Concluído!",
-      AppState.currentCards.length,
-      AppState.currentCards.length,
-      Math.ceil(AppState.currentCards.length / cardsPerPage),
+      cardsToProcess.length,
+      cardsToProcess.length,
+      Math.ceil(cardsToProcess.length / cardsPerPage),
     );
     doc.save("decklist.pdf");
 

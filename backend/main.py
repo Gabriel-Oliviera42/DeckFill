@@ -85,19 +85,19 @@ def parse_decklist(decklist: str) -> List[Dict[str, Any]]:
     
     # Regex patterns para diferentes formatos
     patterns = [
-        # Quantidade + nome + set + número (ex: "1x Demonic Tutor (UMA) 93")
-        r'^\s*(\d+)\s*x\s*(.+?)\s*\(([A-Z0-9]{3,4})\)\s*(\d+)\s*$',
-        # Quantidade + nome + set + número (ex: "1 Demonic Tutor (UMA) 93")
-        r'^\s*(\d+)\s+(.+?)\s*\(([A-Z0-9]{3,4})\)\s*(\d+)\s*$',
-        # Quantidade + nome + set (ex: "1x Demonic Tutor (UMA)")
-        r'^\s*(\d+)\s*x\s*(.+?)\s*\(([A-Z0-9]{3,4})\)\s*$',
-        # Quantidade + nome + set (ex: "1 Demonic Tutor (UMA)")
-        r'^\s*(\d+)\s+(.+?)\s*\(([A-Z0-9]{3,4})\)\s*$',
-        # Quantidade + nome (com "x")
-        r'^\s*(\d+)\s*x\s*(.+?)\s*$',
-        # Quantidade + nome (sem "x")
-        r'^\s*(\d+)\s+(.+?)\s*$',
-        # Apenas nome (assume quantidade 1)
+        # 1. Formato com tudo no parênteses (ex: "1 Black Lotus (YDMU #35)" ou "1x Lotus (YDMU 35)")
+        r'^\s*(\d+)\s*[xX]?\s*(.+?)\s*\(\s*([A-Za-z0-9]{3,5})\s*(?:#|/|-)?\s*([A-Za-z0-9\-]+)\s*\)\s*$',
+        
+        # 2. Formato original Arena (ex: "1 Black Lotus (YDMU) 35" ou "1x Lotus (YDMU) #35")
+        r'^\s*(\d+)\s*[xX]?\s*(.+?)\s*\(\s*([A-Za-z0-9]{3,5})\s*\)\s*#?\s*([A-Za-z0-9\-]+)\s*$',
+        
+        # 3. Formato apenas com Set (ex: "1 Demonic Tutor (UMA)")
+        r'^\s*(\d+)\s*[xX]?\s*(.+?)\s*\(\s*([A-Za-z0-9]{3,5})\s*\)\s*$',
+        
+        # 4. Formato sem set/numero (ex: "1x Demonic Tutor" ou "1 Demonic Tutor")
+        r'^\s*(\d+)\s*[xX]?\s+(.+?)\s*$',
+        
+        # 5. Apenas o nome (assume quantidade 1)
         r'^\s*(.+?)\s*$'
     ]
     
@@ -201,9 +201,10 @@ def search_cards(parsed_cards: List[Dict[str, Any]]) -> Dict[str, List[Dict[str,
                 cursor.execute("""
                     SELECT id, name, set_code, collector_number, image_uri_normal, image_uri_png, image_uri_back_normal, image_uri_back_png, lang
                     FROM cards 
-                    WHERE name LIKE ? COLLATE NOCASE AND set_code COLLATE NOCASE = ? COLLATE NOCASE AND CAST(collector_number AS TEXT) = ?
+                    WHERE set_code COLLATE NOCASE = ? COLLATE NOCASE 
+                      AND CAST(collector_number AS TEXT) COLLATE NOCASE = ? COLLATE NOCASE
                     LIMIT 1
-                """, (f"{card_name}%", set_code, str(collector_number)))
+                """, (set_code, str(collector_number)))
                 
                 exact_match_rows = cursor.fetchall()
                 print(f"DEBUG SQL - Buscando: {card_name} | {set_code} | {collector_number} -> Retornou {len(exact_match_rows)} cartas")
@@ -231,7 +232,10 @@ def search_cards(parsed_cards: List[Dict[str, Any]]) -> Dict[str, List[Dict[str,
                     print(f"DEBUG - Busca por nome encontrou {len(found_cards)} cartas para '{card_name}'")
                 else:
                     # 3. Só tenta parcial se a exata falhar
-                    search_name = f"%{card_name}%"
+                    import re
+                    # Substitui vogais e caracteres não-alfanuméricos por '_' (coringa de 1 caractere do SQL)
+                    loose_name = re.sub(r'[aeiouAEIOU\-.,\']', '_', card_name)
+                    search_name = f"%{loose_name}%"
                     cursor.execute("""
                         SELECT id, name, set_code, collector_number, image_uri_normal, image_uri_png, image_uri_back_normal, image_uri_back_png, lang
                         FROM cards 

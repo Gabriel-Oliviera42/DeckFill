@@ -5,7 +5,7 @@
 
 // Constante do verso padrão do Magic
 const MTG_BACK_URL =
-  "https://cards.scryfall.io/normal/back/0/a/0aeebaf5-8c7d-4636-9e82-8c27447861f7.jpg";
+  "https://upload.wikimedia.org/wikipedia/en/a/aa/Magic_the_gathering-card_back.jpg";
 
 // Configuração da API
 const API_BASE = "http://localhost:8000";
