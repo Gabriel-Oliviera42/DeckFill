@@ -8,7 +8,7 @@ const MTG_BACK_URL =
   "https://upload.wikimedia.org/wikipedia/en/a/aa/Magic_the_gathering-card_back.jpg";
 
 // Configuração da API
-const API_BASE = "http://localhost:8000";
+const API_BASE = "https://deck-fill-api.onrender.com";
 
 // Decklist de exemplo para demonstração e testes
 const SAMPLE_DECKLIST = `1 Black Lotus (YDMU) 35
