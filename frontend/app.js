@@ -329,33 +329,6 @@ function initializeEventListeners() {
       hideErrors();
     }
   });
-
-  // Botão de doação Pix - copia chave para área de transferência
-  const btnDonate = document.getElementById("btn-donate-pix");
-  if (btnDonate) {
-    btnDonate.addEventListener("click", () => {
-      // SUBSTITUA A CHAVE ABAIXO PELA SUA CHAVE PIX ALEATÓRIA REAL
-      const chavePix = "COLE-SUA-CHAVE-ALEATORIA-AQUI";
-
-      navigator.clipboard
-        .writeText(chavePix)
-        .then(() => {
-          alert(
-            "Chave Pix copiada com sucesso!\n\nChave: " +
-              chavePix +
-              "\n\nMuito obrigado pelo apoio ao projeto! 🚀",
-          );
-        })
-        .catch((err) => {
-          console.error("Erro ao copiar PIX: ", err);
-          alert(
-            "A tua chave Pix é: " +
-              chavePix +
-              "\n\n(Copia este código manualmente no teu banco)",
-          );
-        });
-    });
-  }
 }
 
 // Função checkApiHealth movida para ./js/api/api-client.js
