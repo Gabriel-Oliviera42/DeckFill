@@ -329,6 +329,33 @@ function initializeEventListeners() {
       hideErrors();
     }
   });
+
+  // Botão de doação Pix - copia chave para área de transferência
+  const btnDonate = document.getElementById("btn-donate-pix");
+  if (btnDonate) {
+    btnDonate.addEventListener("click", () => {
+      // SUBSTITUA A CHAVE ABAIXO PELA SUA CHAVE PIX ALEATÓRIA REAL
+      const chavePix = "COLE-SUA-CHAVE-ALEATORIA-AQUI";
+
+      navigator.clipboard
+        .writeText(chavePix)
+        .then(() => {
+          alert(
+            "Chave Pix copiada com sucesso!\n\nChave: " +
+              chavePix +
+              "\n\nMuito obrigado pelo apoio ao projeto! 🚀",
+          );
+        })
+        .catch((err) => {
+          console.error("Erro ao copiar PIX: ", err);
+          alert(
+            "A tua chave Pix é: " +
+              chavePix +
+              "\n\n(Copia este código manualmente no teu banco)",
+          );
+        });
+    });
+  }
 }
 
 // Função checkApiHealth movida para ./js/api/api-client.js
@@ -914,6 +941,79 @@ function initializeGlobalBackGallery() {
     });
   }
 }
+
+// About Project Modal functionality
+function initializeAboutModal() {
+  const donateBtn = document.getElementById("btn-donate-pix");
+  const aboutModal = document.getElementById("about-project-modal");
+  const closeAboutModal = document.getElementById("close-about-modal");
+  const copyPixBtn = document.getElementById("copy-pix-btn");
+  const pixKeyInput = document.getElementById("pix-key");
+
+  // Open modal
+  if (donateBtn) {
+    donateBtn.addEventListener("click", function () {
+      if (aboutModal) {
+        aboutModal.classList.remove("hidden");
+        aboutModal.classList.add("flex");
+      }
+    });
+  }
+
+  // Close modal
+  if (closeAboutModal) {
+    closeAboutModal.addEventListener("click", function () {
+      if (aboutModal) {
+        aboutModal.classList.add("hidden");
+        aboutModal.classList.remove("flex");
+      }
+    });
+  }
+
+  // Close modal on backdrop click
+  if (aboutModal) {
+    aboutModal.addEventListener("click", function (e) {
+      if (e.target === aboutModal) {
+        aboutModal.classList.add("hidden");
+        aboutModal.classList.remove("flex");
+      }
+    });
+  }
+
+  // Copy Pix key functionality
+  if (copyPixBtn && pixKeyInput) {
+    copyPixBtn.addEventListener("click", async function () {
+      const pixKey = pixKeyInput.value;
+
+      try {
+        await navigator.clipboard.writeText(pixKey);
+
+        // Show success notification
+        if (typeof showSuccess === "function") {
+          showSuccess("Chave Pix copiada com sucesso!");
+        } else {
+          // Fallback notification
+          const originalText = copyPixBtn.textContent;
+          copyPixBtn.textContent = "Copiado!";
+          copyPixBtn.classList.add("bg-green-600");
+
+          setTimeout(() => {
+            copyPixBtn.textContent = originalText;
+            copyPixBtn.classList.remove("bg-green-600");
+          }, 2000);
+        }
+      } catch (err) {
+        console.error("Failed to copy Pix key:", err);
+
+        // Show error notification
+        if (typeof showError === "function") {
+          showError("Falha ao copiar chave Pix. Tente novamente.");
+        }
+      }
+    });
+  }
+}
+
 document.addEventListener("DOMContentLoaded", initializeGlobalBackGallery);
 
 console.log("Deck Fill App initialized");

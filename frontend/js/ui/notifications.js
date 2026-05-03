@@ -106,5 +106,9 @@ function updateProgress(
   elements.progressPercentage.textContent = `${roundedPercentage}%`;
   elements.progressStatus.textContent = `Status: ${status}`;
   elements.progressCards.textContent = `Carta: ${currentCard} de ${totalCards}`;
-  elements.progressPages.textContent = `Página atual: ${currentPage}`;
+
+  // Calcular página atual usando Math.ceil(cartasProcessadas / 9)
+  // Se não tiver cartas processadas, mostra página 1
+  const calculatedPage = currentCard === 0 ? 1 : Math.ceil(currentCard / 9);
+  elements.progressPages.textContent = `Página atual: ${calculatedPage}`;
 }

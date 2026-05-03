@@ -76,9 +76,9 @@
      CORPO DA APLICAÇÃO - INTERFACE PRINCIPAL
      ================================================================================ -->
 <body class="bg-slate-900 min-h-screen text-gray-100">
-    <!-- === HEADER DA APLICAÇÃO === -->
-    <!-- Branding e status da API com cores oficiais MTG -->
-    <header class="bg-gradient-to-r from-slate-800 to-slate-700 text-white shadow-sm">
+        <!-- === HEADER DA APLICAÇÃO === -->
+        <!-- Branding e status da API com cores oficiais MTG -->
+        <header class="bg-gradient-to-r from-slate-800 to-slate-700 text-white shadow-sm">
         <div class="container mx-auto px-4 py-6">
             <div class="flex items-center justify-between">
                 <!-- Logo e título -->
@@ -93,9 +93,10 @@
                 </div>
                 <!-- Status da API -->
                 <div class="flex items-center space-x-4">
-                    <a href="LINK_DO_SEU_KOFI_OU_PIX_AQUI" target="_blank" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 transition-all shadow-[0_0_15px_rgba(168,85,247,0.4)] border border-purple-400">
-                        <span>☕ Pagar um Café</span>
-                    </a>
+                    <button id="btn-donate-pix" class="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer border-none shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" x2="6" y1="2" y2="4"/><line x1="10" x2="10" y1="2" y2="4"/><line x1="14" x2="14" y1="2" y2="4"/></svg>
+                        Apoie o Projeto
+                    </button>
                     <span id="status-badge" class="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">
                         🟢 API Online
                     </span>
@@ -469,44 +470,47 @@
             <p class="text-slate-300 mb-4 text-sm">Esta arte será usada como o verso de todas as cartas no modo Dupla Face (a menos que a carta seja uma DFC nativa).</p>
             
             <div class="grid grid-cols-2 md:grid-cols-3 gap-4" id="global-back-options">
-                <div class="back-option-card cursor-pointer border-4 border-purple-500 rounded-xl overflow-hidden transition-all shadow-lg aspect-[63/88] relative group" data-url="https://cards.scryfall.io/normal/back/0/a/0aeebaf5-8c7d-4636-9e82-8c27447861f7.jpg">
-        <img src="https://cards.scryfall.io/normal/back/0/a/0aeebaf5-8c7d-4636-9e82-8c27447861f7.jpg" class="w-full h-full object-fill" alt="Verso Oficial HQ">
-        <div class="selected-overlay hidden absolute inset-0 bg-purple-600/20 flex items-center justify-center">
-            <div class="bg-purple-600 text-white rounded-full p-1"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"></path></svg></div>
-        </div>
+<div class="back-option-card cursor-pointer border-4 border-purple-500 rounded-xl overflow-hidden transition-all shadow-lg aspect-[63/88] relative group" data-url="https://i.postimg.cc/P5g4Hbnb/Fundo-0.jpg">
+    <img src="https://i.postimg.cc/P5g4Hbnb/Fundo-0.jpg" class="w-full h-full object-fill" alt="Fundo 0">
+    <div class="selected-overlay absolute inset-0 bg-purple-600/20 flex items-center justify-center">
+        <div class="bg-purple-600 text-white rounded-full p-1"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"></path></svg></div>
     </div>
-                
-                <div class="back-option-card cursor-pointer border-4 border-transparent hover:border-purple-400 rounded-xl overflow-hidden transition-all shadow-lg aspect-[63/88] relative group" data-url="https://i.imgur.com/jgkENLQ.png">
-        <img src="https://i.imgur.com/jgkENLQ.png" class="w-full h-full object-fill" alt="Verso Arena">
-        <div class="selected-overlay hidden absolute inset-0 bg-purple-600/20 flex items-center justify-center">
-            <div class="bg-purple-600 text-white rounded-full p-1"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"></path></svg></div>
-        </div>
+</div>
+
+<div class="back-option-card cursor-pointer border-4 border-transparent hover:border-purple-400 rounded-xl overflow-hidden transition-all shadow-lg aspect-[63/88] relative group" data-url="https://i.postimg.cc/3xsBhjQ9/Fundo-1.jpg">
+    <img src="https://i.postimg.cc/3xsBhjQ9/Fundo-1.jpg" class="w-full h-full object-fill" alt="Fundo 1">
+    <div class="selected-overlay hidden absolute inset-0 bg-purple-600/20 flex items-center justify-center">
+        <div class="bg-purple-600 text-white rounded-full p-1"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"></path></svg></div>
     </div>
+</div>
 
-                <div class="back-option-card cursor-pointer border-4 border-transparent hover:border-purple-400 rounded-xl overflow-hidden transition-all shadow-lg aspect-[63/88] relative group" data-url="https://upload.wikimedia.org/wikipedia/en/a/aa/Magic_the_gathering-card_back.jpg">
-        <img src="https://upload.wikimedia.org/wikipedia/en/a/aa/Magic_the_gathering-card_back.jpg" class="w-full h-full object-fill" alt="Verso Clássico">
-        <div class="selected-overlay hidden absolute inset-0 bg-purple-600/20 flex items-center justify-center">
-            <div class="bg-purple-600 text-white rounded-full p-1"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"></path></svg></div>
-        </div>
+<div class="back-option-card cursor-pointer border-4 border-transparent hover:border-purple-400 rounded-xl overflow-hidden transition-all shadow-lg aspect-[63/88] relative group" data-url="https://i.postimg.cc/L8cTSkFy/Fundo-2.webp">
+    <img src="https://i.postimg.cc/L8cTSkFy/Fundo-2.webp" class="w-full h-full object-fill" alt="Fundo 2">
+    <div class="selected-overlay hidden absolute inset-0 bg-purple-600/20 flex items-center justify-center">
+        <div class="bg-purple-600 text-white rounded-full p-1"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"></path></svg></div>
     </div>
+</div>
 
-                <div class="back-option-card cursor-pointer border-4 border-transparent hover:border-purple-400 rounded-xl overflow-hidden transition-all shadow-lg aspect-[63/88] relative group" data-url="https://upload.wikimedia.org/wikipedia/en/a/aa/Magic_the_gathering-card_back.jpg">
-                    <img src="https://upload.wikimedia.org/wikipedia/en/a/aa/Magic_the_gathering-card_back.jpg" class="w-full h-full object-fill" alt="Verso">
-                    <div class="selected-overlay hidden absolute inset-0 bg-purple-600/20 flex items-center justify-center">
-                        <div class="bg-purple-600 text-white rounded-full p-1">
-                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"></path></svg>
-                        </div>
-                    </div>
-                </div>
+<div class="back-option-card cursor-pointer border-4 border-transparent hover:border-purple-400 rounded-xl overflow-hidden transition-all shadow-lg aspect-[63/88] relative group" data-url="https://i.postimg.cc/13kHS01v/Fundo-3.jpg">
+    <img src="https://i.postimg.cc/13kHS01v/Fundo-3.jpg" class="w-full h-full object-fill" alt="Fundo 3">
+    <div class="selected-overlay hidden absolute inset-0 bg-purple-600/20 flex items-center justify-center">
+        <div class="bg-purple-600 text-white rounded-full p-1"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"></path></svg></div>
+    </div>
+</div>
 
-                <div id="custom-back-slot" class="hidden back-option-card cursor-pointer border-4 border-transparent hover:border-purple-400 rounded-xl overflow-hidden transition-all shadow-lg aspect-[63/88] relative group" data-url="">
-                    <img id="custom-back-preview-img" src="" class="w-full h-full object-fill" alt="Verso">
-                    <div class="selected-overlay hidden absolute inset-0 bg-purple-600/20 flex items-center justify-center">
-                        <div class="bg-purple-600 text-white rounded-full p-1">
-                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"></path></svg>
-                        </div>
-                    </div>
-                </div>
+<div class="back-option-card cursor-pointer border-4 border-transparent hover:border-purple-400 rounded-xl overflow-hidden transition-all shadow-lg aspect-[63/88] relative group" data-url="https://i.postimg.cc/L8cTSkFT/Fundo-4.png">
+    <img src="https://i.postimg.cc/L8cTSkFT/Fundo-4.png" class="w-full h-full object-fill" alt="Fundo 4">
+    <div class="selected-overlay hidden absolute inset-0 bg-purple-600/20 flex items-center justify-center">
+        <div class="bg-purple-600 text-white rounded-full p-1"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"></path></svg></div>
+    </div>
+</div>
+
+<div id="custom-back-slot" class="hidden back-option-card cursor-pointer border-4 border-transparent hover:border-purple-400 rounded-xl overflow-hidden transition-all shadow-lg aspect-[63/88] relative group" data-url="">
+    <img id="custom-back-preview-img" src="" class="w-full h-full object-fill" alt="Verso">
+    <div class="selected-overlay hidden absolute inset-0 bg-purple-600/20 flex items-center justify-center">
+        <div class="bg-purple-600 text-white rounded-full p-1"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"></path></svg></div>
+    </div>
+</div>
             </div>
         </div>
 
@@ -542,9 +546,10 @@
             <!-- Header -->
             <div class="text-center mb-6">
                 <div class="inline-flex items-center justify-center w-12 h-12 bg-mtg-blue rounded-full mb-4">
-                    <svg class="w-6 h-6 text-white animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                    </svg>
+                    <svg class="animate-spin h-6 w-6 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+</svg>
                 </div>
                 <h2 class="text-xl font-bold text-gray-800">Gerando seu PDF...</h2>
             </div>
@@ -613,5 +618,176 @@
     <script src="./js/deck/deck-processor.js"></script>
     <script src="./js/pdf/pdf-engine.js"></script>
     <script src="app.js"></script>
+
+    <!-- About Project Modal -->
+    <div id="about-project-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden border border-slate-700">
+            <!-- Header -->
+            <div class="bg-slate-900 text-slate-200 p-4 flex justify-between items-center border-b border-slate-700">
+                <h2 class="text-xl font-bold">Apoie o Deck Fill & Próximos Passos</h2>
+                <button id="close-about-modal" class="text-slate-300 hover:text-slate-100 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Conteúdo -->
+            <div class="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+                <!-- Introdução -->
+                <div class="mb-6">
+                    <p class="text-slate-300 leading-relaxed">
+                        Este projeto nasceu para uso pessoal e se tornou uma paixão. Meu objetivo é melhorar meu portfólio enquanto crio ferramentas úteis para a comunidade.
+                    </p>
+                </div>
+
+                <!-- Roadmap -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-slate-200 mb-3 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                        </svg>
+                        Futuras Funcionalidades
+                    </h3>
+                    <ul class="space-y-2 text-slate-300">
+                        <li class="flex items-start">
+                            <svg class="w-4 h-4 mr-2 text-emerald-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            Suporte para Pokémon TCG
+                        </li>
+                        <li class="flex items-start">
+                            <svg class="w-4 h-4 mr-2 text-emerald-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            Suporte para Yu-Gi-Oh!
+                        </li>
+                        <li class="flex items-start">
+                            <svg class="w-4 h-4 mr-2 text-emerald-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            Galeria de Artes da Comunidade
+                        </li>
+                        <li class="flex items-start">
+                            <svg class="w-4 h-4 mr-2 text-emerald-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            Novos layouts de impressão
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Contato -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-slate-200 mb-3 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        Conecte-se Comigo
+                    </h3>
+                    <div class="flex flex-wrap gap-3">
+                        <a href="https://www.linkedin.com/in/gabriel-lourenco-ab7893273/" target="_blank" class="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                            </svg>
+                            LinkedIn
+                        </a>
+                        <a href="https://github.com/Gabriel-Oliviera42" target="_blank" class="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                            </svg>
+                            GitHub
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Área PIX -->
+                <div class="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                    <h3 class="text-lg font-semibold text-slate-200 mb-3 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                        Apoie com Pix
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-2">
+                            <input 
+                                type="text" 
+                                id="pix-key" 
+                                readonly 
+                                value="9db48d2d-3908-42be-aaa3-6064e6d6be29" 
+                                class="flex-1 px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-300 font-mono text-sm"
+                            >
+                            <button 
+                                id="copy-pix-btn" 
+                                class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors font-medium"
+                            >
+                                Copiar Chave
+                            </button>
+                        </div>
+                        <p class="text-xs text-slate-400">
+                            Clique em "Copiar Chave" para copiar a chave Pix para a área de transferência
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const btnDonate = document.getElementById('btn-donate-pix');
+    const modalAbout = document.getElementById('about-project-modal');
+    const btnCloseAbout = document.getElementById('close-about-modal');
+    const btnCopyPix = document.getElementById('copy-pix-btn');
+    const pixKeyInput = document.getElementById('pix-key');
+
+    // 1. Abrir Modal
+    if(btnDonate && modalAbout) {
+        btnDonate.addEventListener('click', () => {
+            modalAbout.classList.remove('hidden');
+        });
+    }
+
+    // 2. Fechar Modal (Botão X)
+    if(btnCloseAbout && modalAbout) {
+        btnCloseAbout.addEventListener('click', () => {
+            modalAbout.classList.add('hidden');
+        });
+    }
+
+    // 3. Fechar Modal (Clicando fora)
+    if(modalAbout) {
+        modalAbout.addEventListener('click', (e) => {
+            if (e.target === modalAbout) {
+                modalAbout.classList.add('hidden');
+            }
+        });
+    }
+
+    // 4. Copiar Chave PIX com feedback visual no botão
+    if(btnCopyPix && pixKeyInput) {
+        btnCopyPix.addEventListener('click', () => {
+            navigator.clipboard.writeText(pixKeyInput.value).then(() => {
+                const originalText = btnCopyPix.innerHTML;
+                
+                // Muda a cor e o texto para dar feedback ao usuário
+                btnCopyPix.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
+                btnCopyPix.classList.add('bg-purple-600', 'hover:bg-purple-700');
+                btnCopyPix.innerHTML = '✅ Chave Copiada!';
+                
+                // Volta ao normal depois de 2 segundos
+                setTimeout(() => {
+                    btnCopyPix.classList.remove('bg-purple-600', 'hover:bg-purple-700');
+                    btnCopyPix.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
+                    btnCopyPix.innerHTML = originalText;
+                }, 2000);
+            }).catch(err => {
+                console.error('Erro ao copiar Pix: ', err);
+            });
+        });
+    }
+});
+</script>
 </body>
 </html>

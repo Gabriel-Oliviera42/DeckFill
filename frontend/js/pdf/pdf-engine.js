@@ -414,14 +414,13 @@ async function generatePDF() {
 
         // === ATUALIZAÇÃO DE PROGRESSO ===
         const progressPercentage = ((i + 1) / cardsToPrint.length) * 90;
-        const currentPage = pageIndex + 1;
+        const currentPage = Math.ceil((i + 1) / cardsPerPage);
         updateProgress(
           progressPercentage,
           "Baixando imagens...",
           i + 1,
           cardsToProcess.length,
-          cardsToProcess.length,
-          Math.ceil(cardsToProcess.length / cardsPerPage),
+          currentPage,
         );
 
         // Lógica normal: calcula X, Y sem espelhar, pega a imageUrl da FRENTE
