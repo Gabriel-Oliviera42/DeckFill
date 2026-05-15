@@ -22,14 +22,40 @@ PORT = 8000
 # Modelos Pydantic
 class CardResponse(BaseModel):
     id: str
+    oracle_id: Optional[str] = None
+
     name: str
+    printed_name: Optional[str] = None
+    lang: str = "en"
+    layout: Optional[str] = None
+
     set_code: str
+    set_name: Optional[str] = None
     collector_number: str
+    released_at: Optional[str] = None
+    rarity: Optional[str] = None
+
+    type_line: Optional[str] = None
+    printed_type_line: Optional[str] = None
+    oracle_text: Optional[str] = None
+    printed_text: Optional[str] = None
+
     image_uri_normal: Optional[str] = None
     image_uri_png: Optional[str] = None
+    image_uri_art_crop: Optional[str] = None
+
     image_uri_back_normal: Optional[str] = None
     image_uri_back_png: Optional[str] = None
-    lang: str = "en"
+    image_uri_back_art_crop: Optional[str] = None
+
+    back_name: Optional[str] = None
+    back_printed_name: Optional[str] = None
+    back_type_line: Optional[str] = None
+    back_oracle_text: Optional[str] = None
+    back_printed_text: Optional[str] = None
+
+    all_parts_json: Optional[str] = None
+    card_faces_json: Optional[str] = None
 
 class DeckParseRequest(BaseModel):
     decklist: str
@@ -67,6 +93,43 @@ def get_db_connection() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_FILE, check_same_thread=False)
     conn.row_factory = sqlite3.Row  # Para acessar colunas por nome
     return conn
+
+CARD_SELECT_COLUMNS = """
+    id,
+    oracle_id,
+    name,
+    printed_name,
+    lang,
+    layout,
+
+    set_code,
+    set_name,
+    collector_number,
+    released_at,
+    rarity,
+
+    type_line,
+    printed_type_line,
+    oracle_text,
+    printed_text,
+
+    image_uri_normal,
+    image_uri_png,
+    image_uri_art_crop,
+
+    image_uri_back_normal,
+    image_uri_back_png,
+    image_uri_back_art_crop,
+
+    back_name,
+    back_printed_name,
+    back_type_line,
+    back_oracle_text,
+    back_printed_text,
+
+    all_parts_json,
+    card_faces_json
+"""
 
 def parse_decklist(decklist: str) -> List[Dict[str, Any]]:
     """
@@ -198,11 +261,11 @@ def search_cards(parsed_cards: List[Dict[str, Any]]) -> Dict[str, List[Dict[str,
             
             # 1. Se temos set e number, tenta busca exata específica PRIMEIRO
             if set_code and collector_number:
-                cursor.execute("""
-                    SELECT id, name, set_code, collector_number, image_uri_normal, image_uri_png, image_uri_back_normal, image_uri_back_png, lang
+                cursor.execute(f"""
+                    SELECT {CARD_SELECT_COLUMNS}
                     FROM cards 
                     WHERE set_code COLLATE NOCASE = ? COLLATE NOCASE 
-                      AND CAST(collector_number AS TEXT) COLLATE NOCASE = ? COLLATE NOCASE
+                    AND CAST(collector_number AS TEXT) COLLATE NOCASE = ? COLLATE NOCASE
                     LIMIT 1
                 """, (set_code, str(collector_number)))
                 
@@ -216,8 +279,8 @@ def search_cards(parsed_cards: List[Dict[str, Any]]) -> Dict[str, List[Dict[str,
             
             # 2. Se não encontrou match exato ou não tem set/num, tenta busca por nome apenas
             if not found_cards:
-                cursor.execute("""
-                    SELECT id, name, set_code, collector_number, image_uri_normal, image_uri_png, image_uri_back_normal, image_uri_back_png, lang
+                cursor.execute(f"""
+                    SELECT {CARD_SELECT_COLUMNS}
                     FROM cards 
                     WHERE name = ? COLLATE NOCASE
                     ORDER BY 
@@ -236,8 +299,8 @@ def search_cards(parsed_cards: List[Dict[str, Any]]) -> Dict[str, List[Dict[str,
                     # Substitui vogais e caracteres não-alfanuméricos por '_' (coringa de 1 caractere do SQL)
                     loose_name = re.sub(r'[aeiouAEIOU\-.,\']', '_', card_name)
                     search_name = f"%{loose_name}%"
-                    cursor.execute("""
-                        SELECT id, name, set_code, collector_number, image_uri_normal, image_uri_png, image_uri_back_normal, image_uri_back_png, lang
+                    cursor.execute(f"""
+                        SELECT {CARD_SELECT_COLUMNS}
                         FROM cards 
                         WHERE name LIKE ? COLLATE NOCASE
                         ORDER BY 
@@ -256,7 +319,7 @@ def search_cards(parsed_cards: List[Dict[str, Any]]) -> Dict[str, List[Dict[str,
                             name ASC,
                             set_code DESC,
                             CAST(collector_number AS INTEGER) ASC
-                            LIMIT 10
+                        LIMIT 10
                     """, (search_name, f"{card_name}%"))
                     
                     partial_rows = cursor.fetchall()
@@ -388,8 +451,8 @@ async def search_card(card_name: str, limit: int = 10):
             
             # Busca flexível
             search_name = f"%{card_name}%"
-            cursor.execute("""
-                SELECT id, name, set_code, collector_number, image_uri_normal, image_uri_png, lang
+            cursor.execute(f"""
+                SELECT {CARD_SELECT_COLUMNS}
                 FROM cards 
                 WHERE name LIKE ? 
                 ORDER BY 
@@ -399,7 +462,7 @@ async def search_card(card_name: str, limit: int = 10):
                     collector_number ASC
                 LIMIT ?
             """, (search_name, f"{card_name}%", limit))
-            
+                        
             results = [dict(row) for row in cursor.fetchall()]
             
             return {
@@ -430,10 +493,11 @@ async def get_card_printings(card_name: str):
             
             # Buscar todas as impressões da carta, ignorando maiúsculas/minúsculas
             # Filtrando apenas cartas que têm imagem
-            cursor.execute("""
-                SELECT id, name, set_code, collector_number, image_uri_normal, image_uri_png, image_uri_back_normal, image_uri_back_png
+            cursor.execute(f"""
+                SELECT {CARD_SELECT_COLUMNS}
                 FROM cards 
-                WHERE name LIKE ? COLLATE NOCASE 
+                WHERE name LIKE ?
+                COLLATE NOCASE
                 AND image_uri_normal IS NOT NULL 
                 AND image_uri_normal != ''
                 ORDER BY set_code DESC, collector_number ASC
