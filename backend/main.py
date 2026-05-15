@@ -515,6 +515,73 @@ async def get_card_printings(card_name: str):
             detail=f"Erro ao buscar impressões: {str(e)}"
         )
 
+@app.get("/cards/{card_id}/printings")
+async def get_card_printings_by_id(card_id: str):
+    """
+    Retorna todas as impressões relacionadas à mesma carta usando oracle_id.
+
+    Esse endpoint é mais confiável do que buscar por nome, especialmente para:
+    - cartas dupla-face
+    - nomes com //
+    - versões promocionais
+    - cartas com nomes parecidos
+    """
+    try:
+        with contextlib.closing(get_db_connection()) as conn:
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                SELECT oracle_id
+                FROM cards
+                WHERE id = ?
+                LIMIT 1
+            """, (card_id,))
+
+            row = cursor.fetchone()
+
+            if not row or not row["oracle_id"]:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Carta não encontrada ou sem oracle_id."
+                )
+
+            oracle_id = row["oracle_id"]
+
+            cursor.execute(f"""
+                SELECT {CARD_SELECT_COLUMNS}
+                FROM cards
+                WHERE oracle_id = ?
+                  AND image_uri_normal IS NOT NULL
+                  AND image_uri_normal != ''
+                  AND layout != 'art_series'
+                ORDER BY
+                    CASE
+                        WHEN lang = 'en' THEN 1
+                        WHEN lang = 'pt' THEN 2
+                        ELSE 3
+                    END ASC,
+                    released_at DESC,
+                    set_code ASC,
+                    CAST(collector_number AS INTEGER) ASC
+            """, (oracle_id,))
+
+            results = [dict(row) for row in cursor.fetchall()]
+
+            return {
+                "card_id": card_id,
+                "oracle_id": oracle_id,
+                "count": len(results),
+                "results": results
+            }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao buscar impressões por id: {str(e)}"
+        )
+
 @app.get("/stats")
 async def get_stats():
     """Retorna estatísticas do banco de dados."""

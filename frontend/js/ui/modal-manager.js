@@ -38,15 +38,18 @@ async function openArtModal(card, cardIndex) {
     console.log(`Buscando artes para: ${card.name}`);
 
     // Buscar todas as impressões da carta
-    const response = await fetch(
-      `${AppConfig.API_BASE}/printings/${encodeURIComponent(card.name)}`,
-    );
+    const printingsUrl = card.id
+      ? `${AppConfig.API_BASE}/cards/${encodeURIComponent(card.id)}/printings`
+      : `${AppConfig.API_BASE}/printings/${encodeURIComponent(card.name)}`;
+
+    const response = await fetch(printingsUrl);
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
 
-    const printings = await response.json();
+    const data = await response.json();
+    const printings = Array.isArray(data) ? data : data.results;
 
     if (!printings || printings.length === 0) {
       throw new Error("Nenhuma arte encontrada");
@@ -54,7 +57,6 @@ async function openArtModal(card, cardIndex) {
 
     console.log(`Encontradas ${printings.length} artes para ${card.name}`);
 
-    // Renderizar artes no grid
     renderArtOptions(printings, card);
   } catch (error) {
     console.error("Erro ao buscar artes:", error);
