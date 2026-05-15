@@ -45,23 +45,14 @@ function handleCustomImageUpload(event) {
 
     // Armazenar a imagem personalizada
     if (AppState.currentModalCardIndex !== null) {
-      // Obter imagens existentes ou criar novo objeto
-      const existingImages =
-        AppState.customImages.get(AppState.currentModalCardIndex) || {};
-      AppState.customImages.set(AppState.currentModalCardIndex, {
-        ...existingImages,
-        front: imageUrl,
-      });
-      console.log(
-        "✅ Imagem da frente armazenada no Map AppState.customImages",
+      CardImageResolver.setCustomFrontImage(
+        AppState.currentModalCardIndex,
+        imageUrl,
       );
 
-      // Atualizar a carta no array principal
-      AppState.currentCards[AppState.currentModalCardIndex] = {
-        ...AppState.currentCards[AppState.currentModalCardIndex],
-        image_uri_normal: imageUrl,
-        image_uri_png: imageUrl,
-      };
+      console.log(
+        "✅ Imagem da frente armazenada via CardImageResolver",
+      );
 
       // Mostrar preview
       showUploadPreview(imageUrl);
@@ -92,25 +83,10 @@ function handleCustomImageUploadBack(event) {
 
     if (AppState.currentModalCardIndex !== null) {
       // Pega o estado atual (se houver imagem da frente já salva)
-      const existingImages = AppState.customImages.get(
+      CardImageResolver.setCustomBackImage(
         AppState.currentModalCardIndex,
-      ) || {
-        front: null,
-        back: null,
-      };
-
-      // Salva a nova imagem do verso
-      AppState.customImages.set(AppState.currentModalCardIndex, {
-        ...existingImages,
-        back: imageUrl,
-      });
-
-      // Atualizar a carta no array principal
-      AppState.currentCards[AppState.currentModalCardIndex] = {
-        ...AppState.currentCards[AppState.currentModalCardIndex],
-        image_uri_back_normal: imageUrl,
-        image_uri_back_png: imageUrl,
-      };
+        imageUrl,
+      );
 
       // Mostra o preview visual
       if (typeof showUploadPreviewBack === "function") {
@@ -137,15 +113,9 @@ function handleCustomImageUploadBack(event) {
 
 function clearCustomImageBack() {
   if (AppState.currentModalCardIndex !== null) {
-    const existingImages = AppState.customImages.get(
+    CardImageResolver.clearCustomBackImageForCard(
       AppState.currentModalCardIndex,
     );
-    if (existingImages) {
-      AppState.customImages.set(AppState.currentModalCardIndex, {
-        ...existingImages,
-        back: null,
-      });
-    }
 
     const previewContainer = document.getElementById("upload-preview-back");
     const imgElement = document.getElementById("upload-preview-img-back");
@@ -192,12 +162,7 @@ function resetUploadSection() {
  */
 function clearCustomImage() {
   if (AppState.currentModalCardIndex !== null) {
-    const existingImages =
-      AppState.customImages.get(AppState.currentModalCardIndex) || {};
-    AppState.customImages.set(AppState.currentModalCardIndex, {
-      ...existingImages,
-      front: null,
-    });
+    CardImageResolver.clearCustomFrontImage(AppState.currentModalCardIndex);
 
     // Restaurar imagem original
     restoreOriginalImage(AppState.currentModalCardIndex);

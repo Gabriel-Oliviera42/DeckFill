@@ -605,20 +605,7 @@ function restoreOriginalImage(cardIndex) {
  * Obtém a URL da imagem para usar no PDF (prioriza imagem personalizada)
  */
 function getCardImageUrl(cardIndex, card) {
-  // Se existe imagem personalizada, usar ela
-  if (AppState.customImages.has(cardIndex)) {
-    const customImagesData = AppState.customImages.get(cardIndex);
-    console.log(
-      `📸 Usando imagem personalizada para carta ${cardIndex}:`,
-      customImagesData,
-    );
-    return (
-      customImagesData.front || card.image_uri_png || card.image_uri_normal
-    );
-  }
-
-  // Senão, usar imagem original
-  return card.image_uri_png || card.image_uri_normal;
+  return CardImageResolver.getResolvedFrontImageUrl(card, cardIndex);
 }
 
 /**

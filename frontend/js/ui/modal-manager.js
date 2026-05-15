@@ -25,7 +25,7 @@ async function openArtModal(card, cardIndex) {
   resetUploadSection();
 
   // Verificar se é DFC para mostrar upload do verso
-  const isDFC = card.image_uri_back_normal || card.image_uri_back_png;
+  const isDFC = CardImageResolver.isDoubleFacedCard(card);
   if (isDFC) {
     console.log("🔄 Carta é DFC, mostrando upload do verso");
     elements.uploadBackSection.classList.remove("hidden");
@@ -120,15 +120,11 @@ function selectArt(newPrinting, currentCard) {
   );
 
   // Atualizar o objeto da carta no array principal
-  AppState.currentCards[AppState.currentModalCardIndex] = {
-    ...AppState.currentCards[AppState.currentModalCardIndex],
-    image_uri_normal: newPrinting.image_uri_normal,
-    image_uri_png: newPrinting.image_uri_png,
-    image_uri_back_normal: newPrinting.image_uri_back_normal || null,
-    image_uri_back_png: newPrinting.image_uri_back_png || null,
-    set_code: newPrinting.set_code,
-    collector_number: newPrinting.collector_number,
-  };
+  AppState.currentCards[AppState.currentModalCardIndex] =
+    CardImageResolver.applyPrintingToCard(
+      AppState.currentCards[AppState.currentModalCardIndex],
+      newPrinting,
+    );
 
   // Atualizar apenas o elemento específico no DOM
   updateCardElement(AppState.currentModalCardIndex);
