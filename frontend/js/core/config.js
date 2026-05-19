@@ -5,7 +5,7 @@
 
 // Constante do verso padrão do Magic
 const MTG_BACK_URL =
-  "https://upload.wikimedia.org/wikipedia/en/a/aa/Magic_the_gathering-card_back.jpg";
+  "https://i.postimg.cc/8zG5xDLY/Magic-the-gathering-card-back.jpg";
 
 // Configuração da API
 const IS_LOCAL_FRONTEND =
