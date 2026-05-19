@@ -21,24 +21,18 @@ async function generatePDF() {
   }
 
   // === FILTRAGEM DE TERRENOS BÁSICOS ===
-  let cardsToProcess = [...AppState.currentCards];
-  if (elements.skipBasicLands && elements.skipBasicLands.checked) {
-    const basicLands = [
-      "Plains",
-      "Island",
-      "Swamp",
-      "Mountain",
-      "Forest",
-      "Wastes",
-    ];
-    const originalCount = cardsToProcess.length;
-    cardsToProcess = cardsToProcess.filter(
-      (card) => !basicLands.includes(card.name),
-    );
-    const filteredCount = originalCount - cardsToProcess.length;
-    if (filteredCount > 0) {
-      console.log(`🏔️ Filtrados ${filteredCount} terrenos básicos do PDF`);
-    }
+  const resolvedSettings = PrintSettingsResolver.getResolvedPrintSettings();
+
+  const printableCardItems = PdfCardList.buildPrintableCardList(
+    AppState.currentCards,
+    resolvedSettings,
+  );
+
+  const cardsToProcess = printableCardItems.map((item) => item.card);
+
+  if (cardsToProcess.length === 0) {
+    showError("Nenhuma carta disponível para gerar PDF.");
+    return;
   }
 
   // === ESTADO DA INTERFACE ===
@@ -169,130 +163,31 @@ async function generatePDF() {
     console.log(
       `📏 Margens: X=${marginX.toFixed(1)}mm, Y=${marginY.toFixed(1)}mm`,
     );
-    console.log(`🃏 Processando ${cardsToProcess.length} cartas...`);
+    console.log(`🃏 Processando ${printableCardItems.length} cartas...`);
 
     // ================================================================================
-    // LÓGICA DE IMPRESSÃO DUPLA FACE
+    // LISTA FINAL DE CARTAS PARA IMPRESSÃO
     // ================================================================================
-    console.group("🔄 Impressão Dupla Face");
+    console.group("🃏 Lista de Cartas para Impressão");
 
-    // Verificar status do switch de dupla-face
-    const isDoubleFacedPrint =
-      document.getElementById("print-double-faced").checked;
-    const globalBackType =
-      document.getElementById("global-back-type")?.value || "mtg-back";
-    console.log("🔧 Switch Imprimir Dupla Face:", isDoubleFacedPrint);
-    console.log("🔧 Tipo de Verso Global:", globalBackType);
+    const isDoubleFacedPrint = Boolean(settings.printDoubleFaced);
 
-    // Criar array de cartas para impressão
-    const cardsToPrint = [];
+    const cardsToPrintItems = printableCardItems;
+    const cardsToPrint = cardsToPrintItems.map((item) => item.card);
 
-    // Array de terrenos básicos para filtro (normalizado para minúsculas)
-    const basicLands = [
-      "plains",
-      "island",
-      "swamp",
-      "mountain",
-      "forest",
-      "snow-covered plains",
-      "snow-covered island",
-      "snow-covered swamp",
-      "snow-covered mountain",
-      "snow-covered forest",
-      "wastes",
-    ];
-
-    let skipBasicLands = false;
-    try {
-      // Tenta pegar via app global
-      const printSettings = window.deckFillApp?.getPrintSettings();
-      if (
-        printSettings &&
-        typeof printSettings.skipBasicLands !== "undefined"
-      ) {
-        skipBasicLands = printSettings.skipBasicLands;
-      } else {
-        // Fallback blindado: lê direto do DOM
-        const cb = document.getElementById("skip-basic-lands");
-        if (cb) skipBasicLands = cb.checked;
-      }
-    } catch (e) {
-      console.error("Erro ao ler checkbox de terrenos:", e);
-    }
-
-    console.log(
-      `Filtro de Terrenos Básicos: ${skipBasicLands ? "ATIVADO" : "DESATIVADO"}`,
+    console.log("🔧 Modo dupla face:", isDoubleFacedPrint);
+    console.log(`🃏 Cartas imprimíveis: ${cardsToPrint.length}`);
+    console.table(
+      cardsToPrintItems.map((item, index) => ({
+        printIndex: index,
+        originalIndex: item.originalIndex,
+        name: item.card.name,
+        isDoubleFaced: item.isDoubleFaced,
+        hasFront: Boolean(item.frontImageUrl),
+        hasBack: Boolean(item.backImageUrl),
+      })),
     );
 
-    if (isDoubleFacedPrint) {
-      // MODO DUPLO: Não duplicar DFCs, usar apenas as cartas originais
-      for (const card of cardsToProcess) {
-        // Normalizar nome da carta para comparação
-        const normalizedName = card.name.trim().toLowerCase();
-
-        // Log de investigação extrema
-        console.warn(
-          "GERANDO PDF -> Skip Lands está:",
-          skipBasicLands,
-          " | Avaliando carta:",
-          card.name,
-          " | Normalizado:",
-          normalizedName,
-        );
-
-        // Pular terrenos básicos se o filtro estiver ativo
-        if (skipBasicLands && basicLands.includes(normalizedName)) {
-          console.log(`✅ IGNORANDO terreno básico: ${card.name}`);
-          continue;
-        }
-        console.log(`➡️ ADICIONANDO carta: ${card.name}`);
-        cardsToPrint.push(card);
-      }
-      console.log(
-        `Modo Duplo Face: ${cardsToPrint.length} cartas (sem duplicação)`,
-      );
-    } else {
-      // MODO NORMAL: Duplicar DFCs como versos separados
-      for (let i = 0; i < cardsToProcess.length; i++) {
-        const card = cardsToProcess[i];
-
-        // Normalizar nome da carta para comparação
-        const normalizedName = card.name.trim().toLowerCase();
-
-        // Log de investigação extrema
-        console.warn(
-          "GERANDO PDF -> Skip Lands está:",
-          skipBasicLands,
-          " | Avaliando carta:",
-          card.name,
-          " | Normalizado:",
-          normalizedName,
-        );
-
-        // Pular terrenos básicos se o filtro estiver ativo
-        if (skipBasicLands && basicLands.includes(normalizedName)) {
-          console.log(`✅ IGNORANDO terreno básico: ${card.name}`);
-          continue;
-        }
-
-        console.log(`➡️ ADICIONANDO carta: ${card.name}`);
-        cardsToPrint.push(card);
-
-        // Se for DFC, duplicar para o verso
-        if (card.image_uri_back_normal || card.image_uri_back_png) {
-          console.log(`Duplicando DFC: ${card.name}`);
-          const backCard = { ...card };
-          backCard.image_uri_normal =
-            card.image_uri_back_normal || card.image_uri_png;
-          backCard.image_uri_png =
-            card.image_uri_back_png || card.image_uri_normal;
-          cardsToPrint.push(backCard);
-        }
-      }
-      console.log(
-        `Modo Normal: ${cardsToPrint.length} cartas (com duplicação)`,
-      );
-    }
     console.groupEnd();
 
     // ================================================================================
@@ -353,7 +248,7 @@ async function generatePDF() {
 
     for (
       let pageIndex = 0;
-      pageIndex < Math.ceil(cardsToProcess.length / cardsPerPage);
+      pageIndex < Math.ceil(cardsToPrint.length / cardsPerPage);
       pageIndex++
     ) {
       if (AppState.isGenerationCancelled) {
@@ -361,7 +256,7 @@ async function generatePDF() {
       }
 
       console.log(
-        `📄 Processando Página ${pageIndex + 1}/${Math.ceil(cardsToProcess.length / cardsPerPage)}`,
+        `📄 Processando Página ${pageIndex + 1}/${Math.ceil(cardsToPrint.length / cardsPerPage)}`,
       );
 
       // === NAVEGAÇÃO DE PÁGINAS ===
@@ -410,7 +305,8 @@ async function generatePDF() {
         if (AppState.isGenerationCancelled) {
           break;
         }
-        const card = cardsToPrint[i];
+        const printItem = cardsToPrintItems[i];
+        const card = printItem.card;
 
         // === ATUALIZAÇÃO DE PROGRESSO ===
         const progressPercentage = ((i + 1) / cardsToPrint.length) * 90;
@@ -419,12 +315,12 @@ async function generatePDF() {
           progressPercentage,
           "Baixando imagens...",
           i + 1,
-          cardsToProcess.length,
+          cardsToPrint.length,
           currentPage,
         );
 
         // Lógica normal: calcula X, Y sem espelhar, pega a imageUrl da FRENTE
-        const imageUrl = getCardImageUrl(i, card);
+        const imageUrl = printItem.frontImageUrl;
         const cardIndexInPage = i % cardsPerPage;
         const col = cardIndexInPage % cols;
         const row = Math.floor(cardIndexInPage / cols);
@@ -433,113 +329,27 @@ async function generatePDF() {
 
         // === BUSCA E PROCESSAMENTO DE IMAGEM ===
         try {
-          if (!imageUrl) {
-            console.warn(`⚠️ Carta sem imagem: ${card.name}`);
-            continue;
-          }
+          const isCustom = AppState.customImages.has(printItem.originalIndex);
 
-          // Verificar se é imagem personalizada para log apropriado
-          const isCustom = AppState.customImages.has(i);
           console.log(
-            `🔄 Baixando imagem da carta: ${card.name} ${isCustom ? "(📸 Personalizada)" : "(🌐 Original)"}`,
+            `🔄 Desenhando frente da carta: ${card.name} ${isCustom ? "(📸 Personalizada)" : "(🌐 Original)"}`,
           );
 
-          // === FETCH DA IMAGEM ===
-          console.log(`🌐 Fazendo fetch da imagem: ${imageUrl}`);
-          const response = await fetch(imageUrl);
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
-          console.log(`✅ Download bem-sucedido: ${card.name}`);
-
-          // === CONVERSÃO PARA BLOB ===
-          const blob = await response.blob();
-
-          // === CÁLCULO DE DIMENSÕES ESPECIAIS ===
-          // O tamanho da sangria é exatamente metade do gap (se ativado)
-          const bleedSize =
-            settings.bleed && settings.gapSpacing > 0
-              ? settings.gapSpacing / 2
-              : 0;
-
-          // O tamanho da borda preta é exatamente metade do gap (se ativado)
-          const blackBorderSize =
-            settings.blackCorners && settings.gapSpacing > 0
-              ? settings.gapSpacing / 2
-              : 0;
-
-          // === PROCESSAMENTO DE IMAGEM ===
-          let dataUrl;
-          if (bleedSize > 0) {
-            console.log(`🩸 Aplicando sangria de ${bleedSize}mm`);
-            dataUrl = await processImageWithBleed(blob, bleedSize);
-          } else {
-            console.log(`🖼️ Processando imagem normal`);
-            dataUrl = await blobToDataUrl(blob);
-          }
-
-          // === DESENHO DE ELEMENTOS VISUAIS ===
-          // Lógica clara para os três cenários: Borda Preta vs Sangria vs Normal
-          if (blackBorderSize > 0) {
-            // === CENÁRIO 1: BORDA PRETA ===
-            // Fundo preto + carta normal no centro (gap preenchido)
-            console.log(`⚫ Desenhando borda preta de ${blackBorderSize}mm`);
-            doc.setFillColor(0, 0, 0); // Preto
-            doc.rect(
-              x - blackBorderSize,
-              y - blackBorderSize,
-              cardWidth + blackBorderSize * 2,
-              cardHeight + blackBorderSize * 2,
-              "F",
-            );
-            // Carta no tamanho normal, centralizada no retângulo preto
-            doc.addImage(dataUrl, "JPEG", x, y, cardWidth, cardHeight);
-          } else if (bleedSize > 0) {
-            // === CENÁRIO 2: SANGRIA (BLEED) ===
-            // Carta esticada para preencher o gap (extensão da arte)
-            console.log(`🩸 Desenhando carta com sangria`);
-            doc.addImage(
-              dataUrl,
-              "JPEG",
-              x - bleedSize,
-              y - bleedSize,
-              cardWidth + bleedSize * 2,
-              cardHeight + bleedSize * 2,
-            );
-          } else {
-            // === CENÁRIO 3: NORMAL ===
-            // Carta no tamanho original sem esticar
-            console.log(`🖼️ Desenhando carta normal`);
-            doc.addImage(dataUrl, "JPEG", x, y, cardWidth, cardHeight);
-          }
-
-          // === CRUZES DE CORTE (FOREGROUND CROSSES) ===
-          // Desenha 4 cruzes nos cantos de cada carta para guia de corte
-          if (settings.cropMarks) {
-            console.log(`✂️ Desenhando cruzes de corte para: ${card.name}`);
-            const c = 2; // Tamanho da haste da cruz em mm
-
-            // === RESET DE CORES (ANTI-STATE LEAKAGE) ===
-            // Importante: Resetar cores para evitar vazamento da Borda Preta
-            doc.setDrawColor(r, g, b); // Reset cor de desenho para cor do usuário
-            doc.setFillColor(r, g, b); // Reset cor de preenchimento
-            doc.setLineWidth(0.1); // Linha fina
-
-            // === FUNÇÃO DE DESENHO DE CRUZ ===
-            const drawCross = (cx, cy) => {
-              doc.line(cx - c, cy, cx + c, cy); // Horizontal
-              doc.line(cx, cy - c, cx, cy + c); // Vertical
-            };
-
-            // === DESENHAR AS 4 CRUZES ===
-            drawCross(x, y); // Superior Esquerdo
-            drawCross(x + cardWidth, y); // Superior Direito
-            drawCross(x, y + cardHeight); // Inferior Esquerdo
-            drawCross(x + cardWidth, y + cardHeight); // Inferior Direito
-          }
+          await drawCardImageOnPdf({
+            doc,
+            imageUrl,
+            cardName: card.name,
+            x,
+            y,
+            cardWidth,
+            cardHeight,
+            settings,
+            r,
+            g,
+            b,
+          });
         } catch (error) {
           console.error(`❌ Erro ao processar carta ${card.name}:`, error);
-          // Continuar com as próximas cartas mesmo se esta falhar
         }
       }
 
@@ -578,7 +388,8 @@ async function generatePDF() {
           if (AppState.isGenerationCancelled) {
             break;
           }
-          const card = cardsToPrint[i];
+          const printItem = cardsToPrintItems[i];
+          const card = printItem.card;
 
           console.log(`🔄 Desenhando verso espelhado: ${card.name}`);
 
@@ -593,81 +404,30 @@ async function generatePDF() {
           const y = marginY + row * (cardHeight + spacingY);
 
           // Define a imagem do verso (Prioridade: 1º DFC Nativo, 2º Custom, 3º Padrão MTG)
-          let backImageUrl = window.AppConfig.MTG_BACK_URL;
+          let backImageUrl =
+            printItem.backImageUrl ||
+            AppState.getGlobalCustomBackImage?.() ||
+            window.AppConfig.MTG_BACK_URL;
 
-          if (card.image_uri_back_normal) {
-            backImageUrl = card.image_uri_back_normal;
-            console.log(`🔄 Usando verso DFC para: ${card.name}`);
-          } else if (
-            AppState.getGlobalCustomBackImage &&
-            AppState.getGlobalCustomBackImage()
-          ) {
-            backImageUrl = AppState.getGlobalCustomBackImage();
-            console.log(
-              `🎨 Usando verso customizado global para: ${card.name}`,
-            );
-          } else {
-            console.log(`🎴 Usando verso padrão MTG para: ${card.name}`);
-          }
+        console.log(`🔄 Verso resolvido para: ${card.name}`);
 
           // Lógica de desenhar a imagem do verso
           try {
-            if (!backImageUrl) {
-              console.warn(`⚠️ Verso sem imagem: ${card.name}`);
-              continue;
-            }
-
-            // Fetch da imagem do verso
-            const response = await fetch(backImageUrl);
-            if (!response.ok) {
-              throw new Error(`HTTP ${response.status}`);
-            }
-
-            const blob = await response.blob();
-
-            // O Segredo: Versos oficiais têm borda preta nativa.
-            // Em vez de esticar a imagem com processImageWithBleed (o que puxa bordas sujas de jpeg),
-            // preenchemos o gap com preto puro absoluto e colamos a arte normal por cima!
-
-            const backX = doc.internal.pageSize.getWidth() - x - cardWidth;
-            const bleedOffset =
-              settings.gapSpacing > 0 ? settings.gapSpacing / 2 + 0.5 : 0; // +0.5mm para sobreposição segura
-
-            // 1. Desenha o sangramento PRETO atrás da carta (cobre totalmente as frestas)
-            if (settings.gapSpacing > 0) {
-              doc.setFillColor(0, 0, 0);
-              doc.rect(
-                backX - bleedOffset,
-                y - bleedOffset,
-                cardWidth + bleedOffset * 2,
-                cardHeight + bleedOffset * 2,
-                "F",
-              );
-            }
-
-            // 2. Converte o blob diretamente e desenha a arte no tamanho EXATO por cima do fundo
-            const dataUrl = await blobToDataUrl(blob);
-            doc.addImage(dataUrl, "JPEG", backX, y, cardWidth, cardHeight);
-
-            // Desenhar cruzes de corte no verso se ativado
-            if (settings.cropMarks) {
-              const c = 2; // Tamanho da haste da cruz em mm
-              doc.setDrawColor(r, g, b);
-              doc.setLineWidth(0.1);
-
-              const drawCross = (cx, cy) => {
-                doc.line(cx - c, cy, cx + c, cy); // Horizontal
-                doc.line(cx, cy - c, cx, cy + c); // Vertical
-              };
-
-              drawCross(x, y); // Superior Esquerdo
-              drawCross(x + cardWidth, y); // Superior Direito
-              drawCross(x, y + cardHeight); // Inferior Esquerdo
-              drawCross(x + cardWidth, y + cardHeight); // Inferior Direito
-            }
+            await drawCardImageOnPdf({
+              doc,
+              imageUrl: backImageUrl,
+              cardName: `${card.name} - verso`,
+              x,
+              y,
+              cardWidth,
+              cardHeight,
+              settings,
+              r,
+              g,
+              b,
+            });
           } catch (error) {
             console.error(`❌ Erro ao processar verso ${card.name}:`, error);
-            // Continuar com as próximas cartas mesmo se esta falhar
           }
         }
       }
@@ -680,9 +440,9 @@ async function generatePDF() {
     updateProgress(
       100,
       "Concluído!",
-      cardsToProcess.length,
-      cardsToProcess.length,
-      Math.ceil(cardsToProcess.length / cardsPerPage),
+      cardsToPrint.length,
+      cardsToPrint.length,
+      Math.ceil(cardsToPrint.length / cardsPerPage),
     );
     doc.save("decklist.pdf");
 
@@ -704,6 +464,104 @@ async function generatePDF() {
     hideProgressModal();
 
     console.log("🏁 Geração de PDF finalizada");
+  }
+}
+
+async function drawCardImageOnPdf({
+  doc,
+  imageUrl,
+  cardName,
+  x,
+  y,
+  cardWidth,
+  cardHeight,
+  settings,
+  r,
+  g,
+  b,
+}) {
+  if (!imageUrl) {
+    console.warn(`⚠️ Carta sem imagem: ${cardName}`);
+    return;
+  }
+
+  console.log(`🌐 Fazendo fetch da imagem: ${imageUrl}`);
+
+  const response = await fetch(imageUrl);
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  console.log(`✅ Download bem-sucedido: ${cardName}`);
+
+  const blob = await response.blob();
+
+  const bleedSize =
+    settings.bleed && settings.gapSpacing > 0
+      ? settings.gapSpacing / 2
+      : 0;
+
+  const blackBorderSize =
+    settings.blackCorners && settings.gapSpacing > 0
+      ? settings.gapSpacing / 2
+      : 0;
+
+  let dataUrl;
+
+  if (bleedSize > 0) {
+    console.log(`🩸 Aplicando sangria de ${bleedSize}mm em: ${cardName}`);
+    dataUrl = await processImageWithBleed(blob, bleedSize);
+  } else {
+    console.log(`🖼️ Processando imagem normal: ${cardName}`);
+    dataUrl = await blobToDataUrl(blob);
+  }
+
+  if (blackBorderSize > 0) {
+    console.log(`⚫ Desenhando borda preta de ${blackBorderSize}mm em: ${cardName}`);
+
+    doc.setFillColor(0, 0, 0);
+    doc.rect(
+      x - blackBorderSize,
+      y - blackBorderSize,
+      cardWidth + blackBorderSize * 2,
+      cardHeight + blackBorderSize * 2,
+      "F",
+    );
+
+    doc.addImage(dataUrl, "JPEG", x, y, cardWidth, cardHeight);
+  } else if (bleedSize > 0) {
+    console.log(`🩸 Desenhando carta com sangria: ${cardName}`);
+
+    doc.addImage(
+      dataUrl,
+      "JPEG",
+      x - bleedSize,
+      y - bleedSize,
+      cardWidth + bleedSize * 2,
+      cardHeight + bleedSize * 2,
+    );
+  } else {
+    console.log(`🖼️ Desenhando carta normal: ${cardName}`);
+    doc.addImage(dataUrl, "JPEG", x, y, cardWidth, cardHeight);
+  }
+
+  if (settings.cropMarks) {
+    const c = 2;
+
+    doc.setDrawColor(r, g, b);
+    doc.setFillColor(r, g, b);
+    doc.setLineWidth(0.1);
+
+    const drawCross = (cx, cy) => {
+      doc.line(cx - c, cy, cx + c, cy);
+      doc.line(cx, cy - c, cx, cy + c);
+    };
+
+    drawCross(x, y);
+    drawCross(x + cardWidth, y);
+    drawCross(x, y + cardHeight);
+    drawCross(x + cardWidth, y + cardHeight);
   }
 }
 
