@@ -1030,6 +1030,13 @@ function setElementDisabled(element, disabled) {
   element.disabled = disabled;
   element.classList.toggle("opacity-50", disabled);
   element.classList.toggle("cursor-not-allowed", disabled);
+
+  if (disabled) {
+    element.title =
+      "Esta opção é controlada automaticamente no modo de impressão profissional.";
+  } else {
+    element.removeAttribute("title");
+  }
 }
 
 function applyProfessionalPrintPreset() {
