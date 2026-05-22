@@ -230,7 +230,6 @@ async function generatePDF() {
         PdfRegistrationMarks.drawProfessionalRegistrationMarks({
           doc,
           layout,
-          registration: 3,
         });
       }
 
@@ -332,7 +331,6 @@ async function generatePDF() {
           PdfRegistrationMarks.drawProfessionalRegistrationMarks({
             doc,
             layout,
-            registration: 3,
           });
         }
 

@@ -27,6 +27,10 @@ function calculateCenteredGridMargins({
   cardHeight,
   spacingX,
   spacingY,
+  areaX = 0,
+  areaY = 0,
+  areaWidth = pageWidth,
+  areaHeight = pageHeight,
 }) {
   const totalSpacingX = (cols - 1) * spacingX;
   const totalSpacingY = (rows - 1) * spacingY;
@@ -35,8 +39,8 @@ function calculateCenteredGridMargins({
   const totalCardsHeight = rows * cardHeight + totalSpacingY;
 
   return {
-    marginX: (pageWidth - totalCardsWidth) / 2,
-    marginY: (pageHeight - totalCardsHeight) / 2,
+    marginX: areaX + (areaWidth - totalCardsWidth) / 2,
+    marginY: areaY + (areaHeight - totalCardsHeight) / 2,
     totalCardsWidth,
     totalCardsHeight,
   };
@@ -144,6 +148,29 @@ function calculateProfessionalPdfLayout(settings) {
   const pageWidth = finalDoc.internal.pageSize.getWidth();
   const pageHeight = finalDoc.internal.pageSize.getHeight();
 
+  const registrationMarks = {
+    type: "silhouette-basic",
+    registration: 3,
+    insetMm: 10,
+    lengthMm: 18,
+    thicknessMm: 0.8,
+    squareSizeMm: 5,
+    };
+
+    /**
+     * Área segura inicial para o modo profissional.
+     *
+     * O objetivo é manter o grid das cartas longe das marcas de registro.
+     * Esses valores ainda são conservadores e devem ser ajustados com feedback real
+     * da gráfica/cortadora.
+     */
+    const safeArea = {
+    x: 18,
+    y: 15,
+    width: pageWidth - 36,
+    height: pageHeight - 30,
+    };
+
   const margins = calculateCenteredGridMargins({
     pageWidth,
     pageHeight,
@@ -153,7 +180,11 @@ function calculateProfessionalPdfLayout(settings) {
     cardHeight,
     spacingX,
     spacingY,
-  });
+    areaX: safeArea.x,
+    areaY: safeArea.y,
+    areaWidth: safeArea.width,
+    areaHeight: safeArea.height,
+    });
 
   return {
     mode: "professional",
@@ -172,6 +203,8 @@ function calculateProfessionalPdfLayout(settings) {
     marginY: margins.marginY,
     totalCardsWidth: margins.totalCardsWidth,
     totalCardsHeight: margins.totalCardsHeight,
+    safeArea,
+    registrationMarks,
   };
 }
 

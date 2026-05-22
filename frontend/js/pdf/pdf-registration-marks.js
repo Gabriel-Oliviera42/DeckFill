@@ -27,10 +27,13 @@ function drawCornerLMark({ doc, x, y, horizontalDirection, verticalDirection, le
 }
 
 function drawProfessionalRegistrationMarks({ doc, layout, registration = 3 }) {
-  const inset = 10;
-  const length = 18;
-  const thickness = 0.8;
-  const squareSize = 5;
+  const markSettings = layout.registrationMarks || {};
+
+  const inset = markSettings.insetMm ?? 10;
+  const length = markSettings.lengthMm ?? 18;
+  const thickness = markSettings.thicknessMm ?? 0.8;
+  const squareSize = markSettings.squareSizeMm ?? 5;
+  const markCount = markSettings.registration ?? registration;
 
   const pageWidth = layout.pageWidth;
   const pageHeight = layout.pageHeight;
@@ -65,7 +68,7 @@ function drawProfessionalRegistrationMarks({ doc, layout, registration = 3 }) {
   });
 
   // Opcional: padrão de 4 cantos.
-  if (registration === 4) {
+  if (markCount === 4) {
     drawCornerLMark({
       doc,
       x: pageWidth - inset,
