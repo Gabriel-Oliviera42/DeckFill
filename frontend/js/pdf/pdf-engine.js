@@ -55,6 +55,7 @@ async function generatePDF() {
     // === CAPTURA DE CONFIGURAÇÕES ===
     const settings = getPrintSettings();
     console.log("⚙️ Configurações de Impressão Detectadas:", settings);
+    const activeResolvedSettings = PrintSettingsResolver.getResolvedPrintSettings();
     console.log("🩸 Status da Sangria:", settings.bleed);
     console.log("✂️ Status das Marcas de Corte:", settings.cropMarks);
     console.log("⚫ Status das Bordas Pretas:", settings.blackCorners);
@@ -78,86 +79,36 @@ async function generatePDF() {
     // === INICIALIZAÇÃO DO JSPDF ===
     const { jsPDF } = window.jspdf;
 
-    // === CÁLCULO DE DIMENSÕES DAS CARTAS ===
-    // Mapeamento de escala: small(75%), normal(100%), large(125%), giant(150%)
-    const scaleMultipliers = {
-      small: 0.75,
-      normal: 1,
-      large: 1.25,
-      giant: 1.5,
-    };
-    const scaleMult = scaleMultipliers[settings.scale] || 1;
-    const cardWidth = 63 * scaleMult; // Base: 63mm (dimensão MTG oficial)
-    const cardHeight = 88 * scaleMult; // Base: 88mm (dimensão MTG oficial)
+    // === CÁLCULO DE LAYOUT DO PDF ===
+    const layout = PdfLayout.calculatePdfLayout(settings, activeResolvedSettings);
 
-    // === CÁLCULO DE ESPAÇAMENTO (GAP) ===
-    // Gap é o espaço entre as cartas para facilitar corte
-    const spacingX = parseFloat(settings.gapSpacing) || 0;
-    const spacingY = parseFloat(settings.gapSpacing) || 0;
+    const cardWidth = layout.cardWidth;
+    const cardHeight = layout.cardHeight;
+    const spacingX = layout.spacingX;
+    const spacingY = layout.spacingY;
+    const bestOrientation = layout.orientation;
+    const cols = layout.cols;
+    const rows = layout.rows;
+    const cardsPerPage = layout.cardsPerPage;
 
-    // === OBTENÇÃO DE DIMENSÕES DA FOLHA ===
-    // Cria documento temporário apenas para ler dimensões reais do formato selecionado
-    const tempDoc = new window.jspdf.jsPDF({
-      format: settings.pageSize || "a4",
-      orientation: "portrait",
-      unit: "mm",
-    });
-    const basePageW = tempDoc.internal.pageSize.getWidth();
-    const basePageH = tempDoc.internal.pageSize.getHeight();
-
-    // === FUNÇÃO DE OTIMIZAÇÃO DE LAYOUT ===
-    // Calcula quantas cartas cabem na página considerando o gap
-    const calculateFit = (pageW, pageH) => {
-      const cols = Math.floor((pageW + spacingX) / (cardWidth + spacingX));
-      const rows = Math.floor((pageH + spacingY) / (cardHeight + spacingY));
-      return {
-        cols: Math.max(1, cols),
-        rows: Math.max(1, rows),
-        total: cols * rows,
-      };
-    };
-
-    // === OTIMIZAÇÃO DE ORIENTAÇÃO ===
-    // Testa qual orientação (retrato vs paisagem) comporta mais cartas
-    const portraitFit = calculateFit(basePageW, basePageH);
-    const landscapeFit = calculateFit(basePageH, basePageW);
-
-    // === ESCOLHA DA MELHOR ORIENTAÇÃO ===
-    let bestOrientation = "portrait";
-    let cols = portraitFit.cols;
-    let rows = portraitFit.rows;
-
-    if (landscapeFit.total > portraitFit.total) {
-      bestOrientation = "landscape";
-      cols = landscapeFit.cols;
-      rows = landscapeFit.rows;
-    }
-
-    const cardsPerPage = cols * rows;
+    console.log("📐 Layout calculado:", layout);
 
     // === CRIAÇÃO DO DOCUMENTO JSPDF FINAL ===
     // Inicializa o documento oficial com a melhor orientação encontrada
     const doc = new window.jspdf.jsPDF({
-      orientation: bestOrientation,
+      orientation: layout.orientation,
       unit: "mm",
-      format: settings.pageSize || "a4",
+      format: layout.pageSize,
     });
 
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
 
     // === CÁLCULO DE MARGENS E CENTRALIZAÇÃO ===
-    // Calcular o espaço total consumido pelos gaps (ex: 3 colunas têm 2 gaps entre elas)
-    const totalSpacingX = (cols - 1) * spacingX;
-    const totalSpacingY = (rows - 1) * spacingY;
-
-    // Calcular a largura e altura REAIS do grid inteiro
-    const totalCardsWidth = cols * cardWidth + totalSpacingX;
-    const totalCardsHeight = rows * cardHeight + totalSpacingY;
-
-    // Recalcular as margens perfeitas para centralizar tudo
-    const marginX = (pageWidth - totalCardsWidth) / 2;
-    const marginY = (pageHeight - totalCardsHeight) / 2;
+    const marginX = layout.marginX;
+    const marginY = layout.marginY;
+    const totalCardsWidth = layout.totalCardsWidth;
+    const totalCardsHeight = layout.totalCardsHeight;
 
     console.log(`📐 Layout: ${cols}x${rows}, ${cardsPerPage} cartas/página`);
     console.log(
