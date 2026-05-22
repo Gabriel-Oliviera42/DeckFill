@@ -185,6 +185,48 @@
                     </div>
                 </div>
                 
+                <div class="mt-6 border border-slate-700 rounded-lg p-4 bg-slate-800">
+                    <div class="flex items-center justify-between gap-4 flex-wrap">
+                        <div>
+                            <h3 class="font-semibold text-gray-100">Modo de saída</h3>
+                            <p class="text-sm text-gray-400 mt-1">
+                                Escolha se você quer gerar um PDF para imprimir por conta própria ou preparar um arquivo para impressão profissional.
+                            </p>
+                        </div>
+
+                        <div class="flex bg-slate-900 border border-slate-700 rounded-lg p-1">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="output-mode" id="output-mode-manual" value="manual" class="sr-only peer" checked>
+                                <span class="block px-4 py-2 rounded-md text-sm font-medium text-slate-300 peer-checked:bg-mtg-gold peer-checked:text-mtg-black transition-colors">
+                                    Imprimir em casa
+                                </span>
+                            </label>
+
+                            <label class="cursor-pointer">
+                                <input type="radio" name="output-mode" id="output-mode-professional" value="professional" class="sr-only peer">
+                                <span class="block px-4 py-2 rounded-md text-sm font-medium text-slate-300 peer-checked:bg-purple-500 peer-checked:text-white transition-colors">
+                                    Impressão profissional
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="professional-print-panel" class="hidden mt-4 p-4 bg-purple-950/30 border border-purple-700/40 rounded-lg">
+                        <div class="flex items-start justify-between gap-4 flex-wrap">
+                            <div>
+                                <h4 class="font-semibold text-purple-200">Preparar para impressão profissional</h4>
+                                <p class="text-sm text-purple-100/80 mt-1">
+                                    Gere o PDF e envie para a gráfica/parceiro. Orçamento, acabamentos e envio são combinados diretamente com eles.
+                                </p>
+                            </div>
+
+                            <button id="whatsapp-print-btn" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200">
+                                Enviar mensagem no WhatsApp
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="mt-6 border border-gray-600 rounded-lg overflow-hidden shadow-sm">
                     <button id="print-settings-toggle" class="w-full px-4 py-3 bg-gradient-to-r from-slate-700 to-slate-600 hover:from-slate-600 hover:to-slate-500 transition-all duration-200 flex items-center justify-between text-left">
                         <div class="flex items-center space-x-3">

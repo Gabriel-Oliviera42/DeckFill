@@ -22,7 +22,9 @@ function readRawPrintSettings() {
     printDoubleFaced: Boolean(elements.printDoubleFaced?.checked),
 
     // Campos futuros. Ainda não existem todos na UI, mas já deixamos o modelo preparado.
-    outputMode: elements.outputMode?.value || "manual",
+    outputMode: elements.outputModeProfessional?.checked
+    ? "professional"
+    : "manual",
     edgeMode: elements.edgeMode?.value || null,
     backMode: elements.backMode?.value || null,
     includeInstructions: Boolean(elements.includeInstructions?.checked),

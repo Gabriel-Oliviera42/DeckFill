@@ -69,6 +69,12 @@ const elements = {
   printSettingsContent: document.getElementById("print-settings-content"), // Conteúdo do accordion
   printSettingsChevron: document.getElementById("print-settings-chevron"), // Ícone do accordion
 
+  // === MODO DE SAÍDA ===
+  outputModeManual: document.getElementById("output-mode-manual"),
+  outputModeProfessional: document.getElementById("output-mode-professional"),
+  professionalPrintPanel: document.getElementById("professional-print-panel"),
+  whatsappPrintBtn: document.getElementById("whatsapp-print-btn"),
+
   // === CATEGORIA 1: LAYOUT & GEOMETRIA ===
   pageSize: document.getElementById("page-size"), // Tamanho da folha
   gapSpacing: document.getElementById("gap-spacing"), // Espaçamento/gap
@@ -143,6 +149,19 @@ function initializeEventListeners() {
   // Print Settings Accordion
   elements.printSettingsToggle.addEventListener("click", togglePrintSettings);
 
+   if (elements.outputModeManual) {
+    elements.outputModeManual.addEventListener("change", updateOutputModeUI);
+  }
+
+  if (elements.outputModeProfessional) {
+    elements.outputModeProfessional.addEventListener("change", updateOutputModeUI);
+  }
+
+  if (elements.whatsappPrintBtn) {
+    elements.whatsappPrintBtn.addEventListener("click", openProfessionalPrintWhatsApp);
+  }
+
+  updateOutputModeUI();
   // Slider value updates
   elements.gapSpacing.addEventListener("input", updateGapValue);
 
@@ -975,5 +994,34 @@ function initializeAboutModal() {
 }
 
 document.addEventListener("DOMContentLoaded", initializeGlobalBackGallery);
+
+function getSelectedOutputMode() {
+  if (elements.outputModeProfessional?.checked) {
+    return "professional";
+  }
+
+  return "manual";
+}
+
+function updateOutputModeUI() {
+  const selectedMode = getSelectedOutputMode();
+
+  if (elements.professionalPrintPanel) {
+    elements.professionalPrintPanel.classList.toggle(
+      "hidden",
+      selectedMode !== "professional",
+    );
+  }
+}
+
+function openProfessionalPrintWhatsApp() {
+  const phoneNumber = "5535998458853";
+  const message =
+    "Olá! Gerei um PDF de proxies pelo DeckFill e gostaria de solicitar a impressão.";
+
+  const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+
+  window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+}
 
 console.log("Deck Fill App initialized");

@@ -61,7 +61,7 @@ function resolveBackMode(rawSettings) {
 }
 
 function resolveOutputMode(rawSettings) {
-  const allowedModes = ["manual", "silhouette"];
+  const allowedModes = ["manual", "professional"];
   return allowedModes.includes(rawSettings.outputMode)
     ? rawSettings.outputMode
     : "manual";
@@ -75,6 +75,8 @@ function resolvePrintSettings(rawSettings) {
 
   return {
     outputMode: resolveOutputMode(rawSettings),
+    partner: resolveOutputMode(rawSettings) === "professional" ? "marra-prints" : null,
+    cutMode: resolveOutputMode(rawSettings) === "professional" ? "silhouette" : "basic",
 
     paper: {
       size: rawSettings.pageSize || "a4",
