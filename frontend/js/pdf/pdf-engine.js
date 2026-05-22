@@ -56,6 +56,14 @@ async function generatePDF() {
     const settings = getPrintSettings();
     console.log("⚙️ Configurações de Impressão Detectadas:", settings);
     const activeResolvedSettings = PrintSettingsResolver.getResolvedPrintSettings();
+    const isProfessionalPrint =
+      activeResolvedSettings.outputMode === "professional";
+
+    const shouldDrawManualGuides =
+      settings.cropMarks && !isProfessionalPrint;
+
+    const shouldDrawProfessionalRegistrationMarks =
+      isProfessionalPrint && activeResolvedSettings.cutMode === "silhouette";
     console.log("🩸 Status da Sangria:", settings.bleed);
     console.log("✂️ Status das Marcas de Corte:", settings.cropMarks);
     console.log("⚫ Status das Bordas Pretas:", settings.blackCorners);
@@ -218,8 +226,16 @@ async function generatePDF() {
       doc.setPage(currentPdfPage);
       console.log(`🎯 Página ativa frente: ${currentPdfPage}`);
 
+      if (shouldDrawProfessionalRegistrationMarks) {
+        PdfRegistrationMarks.drawProfessionalRegistrationMarks({
+          doc,
+          layout,
+          registration: 3,
+        });
+      }
+
       // === DESENHO DAS BACKGROUND LINES (SE ATIVADO) ===
-      if (settings.cropMarks && pageCoordinates.has(pageIndex)) {
+      if (shouldDrawManualGuides && pageCoordinates.has(pageIndex)) {
         console.log("✂️ Desenhando Background Lines...");
         const coords = pageCoordinates.get(pageIndex);
 
@@ -298,6 +314,7 @@ async function generatePDF() {
             r,
             g,
             b,
+            drawCropMarks: shouldDrawManualGuides,
           });
         } catch (error) {
           console.error(`❌ Erro ao processar carta ${card.name}:`, error);
@@ -311,9 +328,16 @@ async function generatePDF() {
         currentPdfPage++;
         doc.setPage(currentPdfPage);
         console.log(`🎯 Página ativa verso: ${currentPdfPage}`);
+        if (shouldDrawProfessionalRegistrationMarks) {
+          PdfRegistrationMarks.drawProfessionalRegistrationMarks({
+            doc,
+            layout,
+            registration: 3,
+          });
+        }
 
         // ATENÇÃO: Redesenhe as marcas de corte/sangria nesta nova página se estiverem ativadas
-        if (settings.cropMarks && pageCoordinates.has(pageIndex)) {
+        if (shouldDrawManualGuides && pageCoordinates.has(pageIndex)) {
           console.log("✂️ Desenhando Background Lines na página de versos...");
           const coords = pageCoordinates.get(pageIndex);
 
@@ -360,7 +384,7 @@ async function generatePDF() {
             AppState.getGlobalCustomBackImage?.() ||
             window.AppConfig.MTG_BACK_URL;
 
-        console.log(`🔄 Verso resolvido para: ${card.name}`);
+          console.log(`🔄 Verso resolvido para: ${card.name}`);
 
           // Lógica de desenhar a imagem do verso
           try {
@@ -376,6 +400,7 @@ async function generatePDF() {
               r,
               g,
               b,
+              drawCropMarks: shouldDrawManualGuides,
             });
           } catch (error) {
             console.error(`❌ Erro ao processar verso ${card.name}:`, error);
@@ -430,6 +455,7 @@ async function drawCardImageOnPdf({
   r,
   g,
   b,
+  drawCropMarks = true,
 }) {
   if (!imageUrl) {
     console.warn(`⚠️ Carta sem imagem: ${cardName}`);
@@ -497,7 +523,7 @@ async function drawCardImageOnPdf({
     doc.addImage(dataUrl, "JPEG", x, y, cardWidth, cardHeight);
   }
 
-  if (settings.cropMarks) {
+  if (settings.cropMarks && drawCropMarks) {
     const c = 2;
 
     doc.setDrawColor(r, g, b);
