@@ -149,19 +149,19 @@ function initializeEventListeners() {
   // Print Settings Accordion
   elements.printSettingsToggle.addEventListener("click", togglePrintSettings);
 
-   if (elements.outputModeManual) {
-    elements.outputModeManual.addEventListener("change", updateOutputModeUI);
+  if (elements.outputModeManual) {
+    elements.outputModeManual.addEventListener("change", handleOutputModeChange);
   }
 
   if (elements.outputModeProfessional) {
-    elements.outputModeProfessional.addEventListener("change", updateOutputModeUI);
+    elements.outputModeProfessional.addEventListener("change", handleOutputModeChange);
   }
 
   if (elements.whatsappPrintBtn) {
     elements.whatsappPrintBtn.addEventListener("click", openProfessionalPrintWhatsApp);
   }
 
-  updateOutputModeUI();
+  handleOutputModeChange();
   // Slider value updates
   elements.gapSpacing.addEventListener("input", updateGapValue);
 
@@ -1022,6 +1022,63 @@ function openProfessionalPrintWhatsApp() {
   const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
 
   window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+}
+
+function setElementDisabled(element, disabled) {
+  if (!element) return;
+
+  element.disabled = disabled;
+  element.classList.toggle("opacity-50", disabled);
+  element.classList.toggle("cursor-not-allowed", disabled);
+}
+
+function applyProfessionalPrintPreset() {
+  if (elements.pageSize) {
+    elements.pageSize.value = "a4";
+  }
+
+  if (elements.scale) {
+    elements.scale.value = "normal";
+  }
+
+  if (elements.gapSpacing) {
+    elements.gapSpacing.value = "2";
+    updateGapValue();
+  }
+
+  if (elements.cropMarks) {
+    elements.cropMarks.checked = false;
+  }
+
+  if (elements.bleed) {
+    elements.bleed.checked = false;
+  }
+
+  if (elements.blackCorners) {
+    elements.blackCorners.checked = false;
+  }
+}
+
+function setProfessionalPrintControlsLocked(isLocked) {
+  setElementDisabled(elements.pageSize, isLocked);
+  setElementDisabled(elements.scale, isLocked);
+  setElementDisabled(elements.gapSpacing, isLocked);
+  setElementDisabled(elements.cropMarks, isLocked);
+  setElementDisabled(elements.bleed, isLocked);
+  setElementDisabled(elements.blackCorners, isLocked);
+}
+
+function handleOutputModeChange() {
+  const selectedMode = getSelectedOutputMode();
+
+  if (selectedMode === "professional") {
+    applyProfessionalPrintPreset();
+    setProfessionalPrintControlsLocked(true);
+  } else {
+    setProfessionalPrintControlsLocked(false);
+  }
+
+  updateOutputModeUI();
 }
 
 console.log("Deck Fill App initialized");
