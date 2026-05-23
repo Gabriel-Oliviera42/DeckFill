@@ -24,6 +24,28 @@ async function openArtModal(card, cardIndex) {
   // Resetar upload ao abrir modal
   resetUploadSection();
 
+  const selectedGame = AppState.getSelectedGame?.() || "magic";
+
+  if (selectedGame !== "magic") {
+    const gameConfig = GameConfigs.getGameConfig(selectedGame);
+
+    elements.artModal.classList.remove("hidden");
+    elements.modalCardName.textContent = card.name;
+    elements.modalLoading.classList.add("hidden");
+    elements.modalArtGrid.innerHTML = "";
+    elements.modalError.classList.remove("hidden");
+    elements.modalError.textContent =
+      `Troca de artes alternativas ainda não está disponível para ${gameConfig.label}.`;
+
+    if (elements.uploadBackSection) {
+      elements.uploadBackSection.classList.add("hidden");
+    }
+
+    if (typeof resetCustomImageUploadSection === "function") {
+      resetCustomImageUploadSection();
+    }
+    return;
+  }
   // Verificar se é DFC para mostrar upload do verso
   const isDFC = CardImageResolver.isDoubleFacedCard(card);
   if (isDFC) {
