@@ -45,7 +45,7 @@ const GAME_CONFIGS = {
     id: "yugioh",
     label: "Yu-Gi-Oh!",
     shortLabel: "Yu-Gi-Oh!",
-    status: "coming-soon",
+    status: "active",
     cardWidthMm: 59,
     cardHeightMm: 86,
     defaultBackUrl: null,

@@ -1132,6 +1132,7 @@ function handleGameChange() {
   }
 
   AppState.setSelectedGame(selectedGame);
+  clearDecklist();
   updateSelectedGameUI();
 }
 
