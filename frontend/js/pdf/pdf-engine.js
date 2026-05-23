@@ -441,6 +441,24 @@ async function generatePDF() {
   }
 }
 
+function getPdfFetchableImageUrl(imageUrl) {
+  if (!imageUrl) {
+    return imageUrl;
+  }
+
+  const shouldProxy =
+    imageUrl.includes("images.ygoprodeck.com") ||
+    imageUrl.includes("cards.scryfall.io") ||
+    imageUrl.includes("i.postimg.cc") ||
+    imageUrl.includes("upload.wikimedia.org");
+
+  if (!shouldProxy) {
+    return imageUrl;
+  }
+
+  return `${AppConfig.API_BASE}/image-proxy?url=${encodeURIComponent(imageUrl)}`;
+}
+
 async function drawCardImageOnPdf({
   doc,
   imageUrl,
@@ -460,9 +478,11 @@ async function drawCardImageOnPdf({
     return;
   }
 
-  console.log(`🌐 Fazendo fetch da imagem: ${imageUrl}`);
+  const fetchableImageUrl = getPdfFetchableImageUrl(imageUrl);
 
-  const response = await fetch(imageUrl);
+  console.log(`🌐 Fazendo fetch da imagem: ${fetchableImageUrl}`);
+
+  const response = await fetch(fetchableImageUrl);
 
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);

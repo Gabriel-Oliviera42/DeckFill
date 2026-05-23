@@ -3,6 +3,9 @@
 Deck Fill - Backend API
 FastAPI server para processar decklists e buscar cartas no banco de dados local.
 """
+import requests
+from fastapi.responses import Response
+from urllib.parse import urlparse
 
 import sqlite3
 import re
@@ -161,6 +164,59 @@ async def health_check():
         raise HTTPException(
             status_code=500,
             detail=f"Health check failed: {str(e)}"
+        )
+
+@app.get("/image-proxy")
+async def image_proxy(url: str):
+    """
+    Proxy simples para imagens externas usadas na geração de PDF.
+
+    Necessário porque algumas APIs permitem exibir a imagem em <img>,
+    mas bloqueiam fetch/canvas por CORS no navegador.
+    """
+    try:
+        parsed = urlparse(url)
+
+        allowed_hosts = {
+            "images.ygoprodeck.com",
+            "cards.scryfall.io",
+            "i.postimg.cc",
+            "upload.wikimedia.org",
+        }
+
+        if parsed.scheme not in {"http", "https"}:
+            raise HTTPException(status_code=400, detail="URL inválida.")
+
+        if parsed.netloc not in allowed_hosts:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Host de imagem não permitido: {parsed.netloc}",
+            )
+
+        response = requests.get(url, timeout=20)
+
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail="Não foi possível baixar a imagem.",
+            )
+
+        content_type = response.headers.get("content-type", "image/jpeg")
+
+        return Response(
+            content=response.content,
+            media_type=content_type,
+            headers={
+                "Cache-Control": "public, max-age=86400",
+            },
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao buscar imagem: {str(e)}",
         )
 
 @app.post("/parse-deck", response_model=DeckParseResponse)
