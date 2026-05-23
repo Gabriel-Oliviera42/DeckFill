@@ -14,6 +14,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from providers.magic_provider import parse_decklist as parse_magic_decklist, search_cards as search_magic_cards
 
 # Configurações
 DB_FILE = "cards.db"
@@ -392,7 +393,7 @@ async def parse_deck(request: DeckParseRequest):
     
     try:
         # 1. Parse do decklist
-        parsed_cards, parse_errors = parse_decklist(request.decklist)
+        parsed_cards, parse_errors = parse_magic_decklist(request.decklist)
         print(f"🔍 DEBUG - Parser retornou {len(parsed_cards)} cartas e {len(parse_errors)} erros")
         
         # 2. Buscar cartas no banco (agora com informações de set/number)
@@ -404,7 +405,7 @@ async def parse_deck(request: DeckParseRequest):
                 unique_parsed_cards.append(card)
                 seen_names.add(card['name'])
         
-        search_results = search_cards(unique_parsed_cards)
+        search_results = search_magic_cards(unique_parsed_cards)
         
         # 3. Montar resposta
         response_cards = []
