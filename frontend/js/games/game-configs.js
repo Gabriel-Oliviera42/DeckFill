@@ -48,7 +48,8 @@ const GAME_CONFIGS = {
     status: "active",
     cardWidthMm: 59,
     cardHeightMm: 86,
-    defaultBackUrl: null,
+    defaultBackUrl:
+        "https://images.ygoprodeck.com/images/assets/CardBack.jpg",
     sampleDecklist: `3 Blue-Eyes White Dragon
 1 Dark Magician
 1 Monster Reborn`,

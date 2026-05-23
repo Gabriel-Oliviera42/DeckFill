@@ -376,10 +376,13 @@ async function generatePDF() {
           const x = marginX + colVerso * (cardWidth + spacingX);
           const y = marginY + row * (cardHeight + spacingY);
 
+          const selectedGame = AppState.getSelectedGame?.() || "magic";
+          const gameConfig = GameConfigs.getGameConfig(selectedGame);
           // Define a imagem do verso (Prioridade: 1º DFC Nativo, 2º Custom, 3º Padrão MTG)
           let backImageUrl =
             printItem.backImageUrl ||
             AppState.getGlobalCustomBackImage?.() ||
+            gameConfig.defaultBackUrl ||
             window.AppConfig.MTG_BACK_URL;
 
           console.log(`🔄 Verso resolvido para: ${card.name}`);
