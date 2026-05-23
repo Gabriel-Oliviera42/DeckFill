@@ -59,6 +59,7 @@ class CardResponse(BaseModel):
 
 class DeckParseRequest(BaseModel):
     decklist: str
+    game: str = "magic"
 
 class DeckParseResponse(BaseModel):
     cards: List[CardResponse]
@@ -376,8 +377,17 @@ async def parse_deck(request: DeckParseRequest):
     ```
     """
     start_time = time.time()
+
+    game = (request.game or "magic").lower().strip()
+
+    if game != "magic":
+        raise HTTPException(
+            status_code=400,
+            detail=f"O jogo '{request.game}' ainda não está disponível."
+        )
     
     # DEBUG - Raio-X: Entrada do /parse-deck
+    print(f"🔍 DEBUG - Jogo recebido: {game}")
     print(f"🔍 DEBUG - Recebido do frontend: {repr(request.decklist)}")
     
     try:

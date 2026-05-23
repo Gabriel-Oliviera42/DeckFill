@@ -46,7 +46,10 @@ async function processDecklist() {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ decklist }),
+      body: JSON.stringify({
+        game: AppState.getSelectedGame(),
+        decklist,
+      }),
     });
 
     if (!response.ok) {
