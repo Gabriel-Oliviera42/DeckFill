@@ -55,8 +55,10 @@ function calculateManualPdfLayout(settings) {
   };
 
   const scaleMult = scaleMultipliers[settings.scale] || 1;
-  const cardWidth = 63 * scaleMult;
-  const cardHeight = 88 * scaleMult;
+  const selectedGame = AppState.getSelectedGame?.() || "magic";
+  const gameConfig = GameConfigs.getGameConfig(selectedGame);
+  const cardWidth = gameConfig.cardWidthMm * scaleMult;
+  const cardHeight = gameConfig.cardHeightMm * scaleMult;
 
   const spacingX = Number.parseFloat(settings.gapSpacing) || 0;
   const spacingY = Number.parseFloat(settings.gapSpacing) || 0;
@@ -106,6 +108,7 @@ function calculateManualPdfLayout(settings) {
 
   return {
     mode: "manual",
+    game: selectedGame,
     pageSize: settings.pageSize || "a4",
     orientation,
     pageWidth,
@@ -128,8 +131,11 @@ function calculateProfessionalPdfLayout(settings) {
   const pageSize = "a4";
   const orientation = "landscape";
 
-  const cardWidth = 63;
-  const cardHeight = 88;
+  const selectedGame = AppState.getSelectedGame?.() || "magic";
+  const gameConfig = GameConfigs.getGameConfig(selectedGame);
+
+  const cardWidth = gameConfig.cardWidthMm;
+  const cardHeight = gameConfig.cardHeightMm;
 
   /**
    * Primeira versão profissional:
@@ -188,6 +194,7 @@ function calculateProfessionalPdfLayout(settings) {
 
   return {
     mode: "professional",
+    game: selectedGame,
     pageSize,
     orientation,
     pageWidth,
