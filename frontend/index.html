@@ -116,6 +116,36 @@
                 <p class="text-gray-400 text-sm">
                     Formatos suportados: "4x Lightning Bolt", "1 Island", "Black Lotus"
                 </p>
+                <div class="mt-4">
+                    <label class="block text-sm font-medium text-gray-100 mb-2">
+                        Jogo
+                    </label>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="game-selector" id="game-magic" value="magic" class="sr-only peer" checked>
+                            <span class="block rounded-lg border border-mtg-gold bg-slate-700 px-4 py-3 text-sm font-medium text-gray-100 peer-checked:bg-mtg-gold peer-checked:text-mtg-black transition-colors">
+                                Magic: The Gathering
+                            </span>
+                        </label>
+
+                        <label class="cursor-not-allowed opacity-60">
+                            <input type="radio" name="game-selector" id="game-pokemon" value="pokemon" class="sr-only" disabled>
+                            <span class="block rounded-lg border border-slate-600 bg-slate-700 px-4 py-3 text-sm font-medium text-gray-300">
+                                Pokémon TCG
+                                <span class="block text-xs text-gray-400 mt-1">Em breve</span>
+                            </span>
+                        </label>
+
+                        <label class="cursor-not-allowed opacity-60">
+                            <input type="radio" name="game-selector" id="game-yugioh" value="yugioh" class="sr-only" disabled>
+                            <span class="block rounded-lg border border-slate-600 bg-slate-700 px-4 py-3 text-sm font-medium text-gray-300">
+                                Yu-Gi-Oh!
+                                <span class="block text-xs text-gray-400 mt-1">Em breve</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
             </div>
             
             <div class="space-y-4">
@@ -655,6 +685,7 @@
 
     <!-- JavaScript -->
     <script src="./js/core/config.js"></script>
+    <script src="./js/games/game-configs.js"></script>
     <script src="./js/core/state.js"></script>
     <script src="./js/cards/card-image-resolver.js"></script>
     <script src="./js/api/api-client.js"></script>

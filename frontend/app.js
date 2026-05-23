@@ -27,6 +27,11 @@ const elements = {
   loadSampleBtn: document.getElementById("load-sample-btn"), // Botão carregar exemplo
   generatePdfBtn: document.getElementById("generate-pdf-btn"), // Botão gerar PDF
 
+  // === SELETOR DE JOGO ===
+  gameMagic: document.getElementById("game-magic"),
+  gamePokemon: document.getElementById("game-pokemon"),
+  gameYugioh: document.getElementById("game-yugioh"),
+
   // === SEÇÕES DA INTERFACE ===
   loadingSection: document.getElementById("loading-section"), // Loading principal
   resultsSection: document.getElementById("results-section"), // Resultados
@@ -142,6 +147,20 @@ function initializeEventListeners() {
 
   // Botão Carregar Exemplo
   elements.loadSampleBtn.addEventListener("click", loadSampleDecklist);
+
+  if (elements.gameMagic) {
+    elements.gameMagic.addEventListener("change", handleGameChange);
+  }
+
+  if (elements.gamePokemon) {
+    elements.gamePokemon.addEventListener("change", handleGameChange);
+  }
+
+  if (elements.gameYugioh) {
+    elements.gameYugioh.addEventListener("change", handleGameChange);
+  }
+
+  updateSelectedGameUI();
 
   // Botão Gerar PDF
   elements.generatePdfBtn.addEventListener("click", generatePDF);
@@ -1086,6 +1105,45 @@ function handleOutputModeChange() {
   }
 
   updateOutputModeUI();
+}
+
+function getSelectedGameFromUI() {
+  if (elements.gamePokemon?.checked) {
+    return "pokemon";
+  }
+
+  if (elements.gameYugioh?.checked) {
+    return "yugioh";
+  }
+
+  return "magic";
+}
+
+function handleGameChange() {
+  const selectedGame = getSelectedGameFromUI();
+  const gameConfig = GameConfigs.getGameConfig(selectedGame);
+
+  if (gameConfig.status !== "active") {
+    showError(`${gameConfig.label} ainda não está disponível.`);
+    elements.gameMagic.checked = true;
+    AppState.setSelectedGame("magic");
+    updateSelectedGameUI();
+    return;
+  }
+
+  AppState.setSelectedGame(selectedGame);
+  updateSelectedGameUI();
+}
+
+function updateSelectedGameUI() {
+  const selectedGame = AppState.getSelectedGame();
+  const gameConfig = GameConfigs.getGameConfig(selectedGame);
+
+  if (elements.decklistInput) {
+    elements.decklistInput.placeholder = gameConfig.decklistPlaceholder;
+  }
+
+  console.log("🎮 Jogo selecionado:", gameConfig.label);
 }
 
 console.log("Deck Fill App initialized");

@@ -94,7 +94,10 @@ function loadSampleDecklist() {
   elements.decklistInput.style.height = "auto";
 
   // Inserir novo deck
-  elements.decklistInput.value = AppConfig.SAMPLE_DECKLIST;
+  const selectedGame = AppState.getSelectedGame();
+  const gameConfig = GameConfigs.getGameConfig(selectedGame);
+
+  elements.decklistInput.value = gameConfig.sampleDecklist;
   elements.decklistInput.style.height = "auto";
   elements.decklistInput.style.height =
     elements.decklistInput.scrollHeight + "px";

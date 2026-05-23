@@ -6,6 +6,8 @@
 // Estado da aplicação (variáveis globais compartilhadas)
 window.AppState = {
   // Array de cartas processadas pela API
+  // Jogo/TCG selecionado atualmente
+  selectedGame: "magic",
   currentCards: [],
   
   // Flag para cancelar geração de PDF
@@ -22,6 +24,14 @@ window.AppState = {
   
   // Armazena o DataURL do verso global personalizado
   globalCustomBackImage: null,
+  
+  setSelectedGame: function(gameId) {
+    this.selectedGame = gameId || "magic";
+  },
+
+  getSelectedGame: function() {
+    return this.selectedGame || "magic";
+  },
   
   // Métodos para atualizar estado de forma controlada
   setCurrentCards: function(cards) {
