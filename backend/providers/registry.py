@@ -11,9 +11,11 @@ from fastapi import HTTPException
 
 from providers import magic_provider
 
+from providers import yugioh_provider
 
 AVAILABLE_PROVIDERS = {
     "magic": magic_provider,
+    "yugioh": yugioh_provider,
 }
 
 
