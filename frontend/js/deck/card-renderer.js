@@ -92,19 +92,6 @@ function createCardElement(card, index) {
                 </div>
             </div>
         `;
-
-    // Amarra o evento de clique na div para abrir o Modal
-    cardDiv.addEventListener("click", () => {
-      if (typeof openArtModal === "function") {
-        openArtModal(card, index);
-      }
-    });
-
-    // Impede que clicar no botão de Flip abra o modal sem querer
-    const flipBtn = cardDiv.querySelector(".flip-btn");
-    if (flipBtn) {
-      flipBtn.addEventListener("click", (e) => e.stopPropagation());
-    }
   }
 
   return cardDiv;
