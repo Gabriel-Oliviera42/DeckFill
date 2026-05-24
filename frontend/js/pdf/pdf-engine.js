@@ -13,6 +13,40 @@
  *
  * @returns {Promise<void>}
  */
+
+function getPdfInitialStatus(gameConfig, resolvedSettings) {
+  const modeLabel =
+    resolvedSettings.outputMode === "professional"
+      ? "impressão profissional"
+      : "impressão manual";
+
+  return `Preparando PDF de ${gameConfig.shortLabel || gameConfig.label} para ${modeLabel}...`;
+}
+
+function getPdfCardProcessingStatus(selectedGame, progressPercentage) {
+  if (progressPercentage < 20) {
+    return "Preparando layout das páginas...";
+  }
+
+  if (progressPercentage < 75) {
+    if (selectedGame === "magic") {
+      return "Carregando imagens das cartas...";
+    }
+
+    return "Baixando imagens externas das cartas...";
+  }
+
+  return "Aplicando guias e configurações de impressão...";
+}
+
+function getPdfBackProcessingStatus(selectedGame) {
+  if (selectedGame === "magic") {
+    return "Montando páginas de verso...";
+  }
+
+  return "Montando páginas de verso e aplicando verso padrão do jogo...";
+}
+
 async function generatePDF() {
   // === VALIDAÇÃO INICIAL ===
   if (!AppState.currentCards || AppState.currentCards.length === 0) {
@@ -22,6 +56,8 @@ async function generatePDF() {
 
   // === FILTRAGEM DE TERRENOS BÁSICOS ===
   const resolvedSettings = PrintSettingsResolver.getResolvedPrintSettings();
+  const selectedGame = AppState.getSelectedGame?.() || "magic";
+  const gameConfig = GameConfigs.getGameConfig(selectedGame);
 
   const printableCardItems = PdfCardList.buildPrintableCardList(
     AppState.currentCards,
@@ -37,6 +73,13 @@ async function generatePDF() {
 
   // === ESTADO DA INTERFACE ===
   showProgressModal();
+  updateProgress(
+    2,
+    getPdfInitialStatus(gameConfig, resolvedSettings),
+    0,
+    cardsToProcess.length,
+    1,
+  );
 
   const originalText = elements.generatePdfBtn.innerHTML;
   elements.generatePdfBtn.disabled = true;
@@ -279,7 +322,7 @@ async function generatePDF() {
         const currentPage = Math.ceil((i + 1) / cardsPerPage);
         updateProgress(
           progressPercentage,
-          "Baixando imagens...",
+          getPdfCardProcessingStatus(selectedGame, progressPercentage),
           i + 1,
           cardsToPrint.length,
           currentPage,
@@ -416,7 +459,7 @@ async function generatePDF() {
     console.log("💾 Salvando PDF...");
     updateProgress(
       100,
-      "Concluído!",
+      "PDF finalizado. Preparando download...",
       cardsToPrint.length,
       cardsToPrint.length,
       Math.ceil(cardsToPrint.length / cardsPerPage),
