@@ -196,8 +196,11 @@
         <section id="loading-section" class="hidden bg-gray-800 rounded-lg shadow-sm p-6 mb-8">
             <div class="flex flex-col items-center justify-center py-8">
                 <div class="spinner mb-4"></div>
-                <p class="text-gray-600 font-medium">Processando decklist...</p>
-                <p class="text-gray-500 text-sm mt-2">Buscando cartas no banco de dados</p>
+                <p id="loading-title" class="text-gray-100 font-medium">Processando decklist...</p>
+                <p id="loading-description" class="text-gray-400 text-sm mt-2 text-center max-w-md">
+                    Buscando cartas no banco de dados
+                </p>
+                <p id="loading-hint" class="text-gray-500 text-xs mt-2 text-center max-w-md hidden"></p>
             </div>
         </section>
 

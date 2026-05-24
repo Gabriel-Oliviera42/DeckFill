@@ -34,6 +34,9 @@ const elements = {
 
   // === SEÇÕES DA INTERFACE ===
   loadingSection: document.getElementById("loading-section"), // Loading principal
+  loadingTitle: document.getElementById("loading-title"),
+  loadingDescription: document.getElementById("loading-description"),
+  loadingHint: document.getElementById("loading-hint"),
   resultsSection: document.getElementById("results-section"), // Resultados
   cardsGrid: document.getElementById("cards-grid"), // Grid de cartas
   resultsSummary: document.getElementById("results-summary"), // Resumo estatístico

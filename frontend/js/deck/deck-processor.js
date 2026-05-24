@@ -17,6 +17,52 @@
  *
  * @returns {Promise<void>}
  */
+
+function updateDeckProcessingLoading() {
+  const selectedGame = AppState.getSelectedGame?.() || "magic";
+  const gameConfig = GameConfigs.getGameConfig(selectedGame);
+
+  const loadingMessages = {
+    magic: {
+      title: "Processando deck de Magic...",
+      description: "Consultando a base local de cartas.",
+      hint: "",
+    },
+    yugioh: {
+      title: "Buscando cartas de Yu-Gi-Oh!...",
+      description: "Consultando uma base externa de cartas.",
+      hint: "Esse processo pode levar alguns segundos em listas maiores.",
+    },
+    pokemon: {
+      title: "Buscando cartas de Pokémon TCG...",
+      description: "Consultando uma base externa e escolhendo a melhor versão encontrada.",
+      hint: "Pokémon ainda está em suporte inicial, então algumas buscas podem demorar um pouco.",
+    },
+  };
+
+  const message = loadingMessages[selectedGame] || loadingMessages.magic;
+
+  if (elements.loadingTitle) {
+    elements.loadingTitle.textContent = message.title;
+  }
+
+  if (elements.loadingDescription) {
+    elements.loadingDescription.textContent = message.description;
+  }
+
+  if (elements.loadingHint) {
+    elements.loadingHint.textContent = message.hint;
+
+    if (message.hint) {
+      elements.loadingHint.classList.remove("hidden");
+    } else {
+      elements.loadingHint.classList.add("hidden");
+    }
+  }
+
+  console.log(`⏳ Loading de processamento: ${gameConfig.label}`);
+}
+
 async function processDecklist() {
   const decklist = elements.decklistInput.value.trim();
 
@@ -34,6 +80,7 @@ async function processDecklist() {
 
   // === ESTADO DA INTERFACE ===
   AppState.isProcessing = true;
+  updateDeckProcessingLoading();
   showLoading();
   hideErrors();
 
