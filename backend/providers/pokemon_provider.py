@@ -11,6 +11,7 @@ Esta versão ainda não usa cache local. Para produção, o ideal é criar cache
 ou aceitar uma API key para melhorar limites.
 """
 
+from functools import lru_cache
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -126,6 +127,7 @@ def pick_best_pokemon_match(
 
     return cards[0]
 
+@lru_cache(maxsize=512)
 def fetch_pokemon_card_by_name(card_name: str) -> Optional[Dict[str, Any]]:
     """
     Busca carta por nome na Pokémon TCG API.
