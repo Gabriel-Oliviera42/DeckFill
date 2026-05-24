@@ -9,13 +9,12 @@ Pokémon e Yu-Gi-Oh serão adicionados depois sem alterar diretamente o main.py.
 
 from fastapi import HTTPException
 
-from providers import magic_provider
-
-from providers import yugioh_provider
+from providers import magic_provider, pokemon_provider, yugioh_provider
 
 AVAILABLE_PROVIDERS = {
     "magic": magic_provider,
     "yugioh": yugioh_provider,
+    "pokemon": pokemon_provider,
 }
 
 
