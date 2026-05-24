@@ -91,6 +91,41 @@ def escape_pokemon_query_value(value: str) -> str:
     return value.replace('"', '\\"')
 
 
+def pick_best_pokemon_match(
+    cards: List[Dict[str, Any]],
+    requested_name: str,
+) -> Optional[Dict[str, Any]]:
+    """
+    Escolhe o melhor resultado para uma busca de Pokémon.
+
+    Preferência:
+    1. Nome exatamente igual ao digitado.
+    2. Nome começa com o digitado.
+    3. Primeiro resultado retornado pela API.
+    """
+    if not cards:
+        return None
+
+    normalized_requested = requested_name.lower().strip()
+
+    exact_matches = [
+        card for card in cards
+        if (card.get("name") or "").lower().strip() == normalized_requested
+    ]
+
+    if exact_matches:
+        return exact_matches[0]
+
+    starts_with_matches = [
+        card for card in cards
+        if (card.get("name") or "").lower().strip().startswith(normalized_requested)
+    ]
+
+    if starts_with_matches:
+        return starts_with_matches[0]
+
+    return cards[0]
+
 def fetch_pokemon_card_by_name(card_name: str) -> Optional[Dict[str, Any]]:
     """
     Busca carta por nome na Pokémon TCG API.
@@ -114,14 +149,16 @@ def fetch_pokemon_card_by_name(card_name: str) -> Optional[Dict[str, Any]]:
         if exact_response.status_code == 200:
             data = exact_response.json()
             cards = data.get("data", [])
-            if cards:
-                return cards[0]
+            best_match = pick_best_pokemon_match(cards, card_name)
+
+            if best_match:
+                return best_match
 
         fuzzy_response = requests.get(
             POKEMON_TCG_API_URL,
             params={
                 "q": f'name:{safe_name}*',
-                "pageSize": 1,
+                "pageSize": 20,
                 "orderBy": "-set.releaseDate",
             },
             timeout=15,
@@ -130,8 +167,10 @@ def fetch_pokemon_card_by_name(card_name: str) -> Optional[Dict[str, Any]]:
         if fuzzy_response.status_code == 200:
             data = fuzzy_response.json()
             cards = data.get("data", [])
-            if cards:
-                return cards[0]
+            best_match = pick_best_pokemon_match(cards, card_name)
+
+            if best_match:
+                return best_match
 
         return None
 
