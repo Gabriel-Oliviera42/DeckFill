@@ -140,8 +140,8 @@ def fetch_pokemon_card_by_name(card_name: str) -> Optional[Dict[str, Any]]:
             POKEMON_TCG_API_URL,
             params={
                 "q": f'name:"{safe_name}"',
-                "pageSize": 1,
-                "orderBy": "-set.releaseDate",
+                "pageSize": 100,
+                "orderBy": "name,-set.releaseDate",
             },
             timeout=15,
         )
@@ -158,8 +158,8 @@ def fetch_pokemon_card_by_name(card_name: str) -> Optional[Dict[str, Any]]:
             POKEMON_TCG_API_URL,
             params={
                 "q": f'name:{safe_name}*',
-                "pageSize": 20,
-                "orderBy": "-set.releaseDate",
+                "pageSize": 100,
+                "orderBy": "name,-set.releaseDate",
             },
             timeout=15,
         )
