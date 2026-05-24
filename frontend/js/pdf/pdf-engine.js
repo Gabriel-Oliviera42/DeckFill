@@ -451,6 +451,8 @@ function getPdfFetchableImageUrl(imageUrl) {
 
   const shouldProxy =
     imageUrl.includes("images.ygoprodeck.com") ||
+    imageUrl.includes("images.pokemontcg.io") ||
+    imageUrl.includes("images.scrydex.com") ||
     imageUrl.includes("cards.scryfall.io") ||
     imageUrl.includes("i.postimg.cc") ||
     imageUrl.includes("upload.wikimedia.org");

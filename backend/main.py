@@ -179,6 +179,8 @@ async def image_proxy(url: str):
 
         allowed_hosts = {
             "images.ygoprodeck.com",
+            "images.pokemontcg.io",
+            "images.scrydex.com",
             "cards.scryfall.io",
             "i.postimg.cc",
             "upload.wikimedia.org",

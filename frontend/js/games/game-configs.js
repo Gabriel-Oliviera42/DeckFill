@@ -28,7 +28,7 @@ const GAME_CONFIGS = {
     id: "pokemon",
     label: "Pokémon TCG",
     shortLabel: "Pokémon",
-    status: "coming-soon",
+    status: "active",
     cardWidthMm: 63,
     cardHeightMm: 88,
     defaultBackUrl: null,
