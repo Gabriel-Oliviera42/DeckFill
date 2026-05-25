@@ -31,6 +31,9 @@ const elements = {
   gameMagic: document.getElementById("game-magic"),
   gamePokemon: document.getElementById("game-pokemon"),
   gameYugioh: document.getElementById("game-yugioh"),
+  gameSupportNotice: document.getElementById("game-support-notice"),
+  gameSupportTitle: document.getElementById("game-support-title"),
+  gameSupportDescription: document.getElementById("game-support-description"),
 
   // === SEÇÕES DA INTERFACE ===
   loadingSection: document.getElementById("loading-section"), // Loading principal
@@ -1147,7 +1150,43 @@ function updateSelectedGameUI() {
     elements.decklistInput.placeholder = gameConfig.decklistPlaceholder;
   }
 
+  updateGameSupportNotice(selectedGame, gameConfig);
+
   console.log("🎮 Jogo selecionado:", gameConfig.label);
+}
+
+function updateGameSupportNotice(selectedGame, gameConfig) {
+  if (!elements.gameSupportNotice) {
+    return;
+  }
+
+  const notices = {
+    magic: {
+      title: `${gameConfig.label} está selecionado`,
+      description: "Busca rápida usando a base local de cartas.",
+      classes: "border-mtg-gold/60 bg-slate-800 text-gray-300",
+    },
+    pokemon: {
+      title: `${gameConfig.label} está em suporte inicial`,
+      description:
+        "A busca usa uma base externa e pode demorar um pouco em listas maiores. Seleção de versões e artes alternativas ainda será melhorada.",
+      classes: "border-yellow-500/50 bg-slate-800 text-gray-300",
+    },
+    yugioh: {
+      title: `${gameConfig.label} está em suporte inicial`,
+      description:
+        "A busca usa uma base externa. O PDF já funciona, mas seleção de artes alternativas ainda será melhorada.",
+      classes: "border-purple-500/50 bg-slate-800 text-gray-300",
+    },
+  };
+
+  const notice = notices[selectedGame] || notices.magic;
+
+  elements.gameSupportTitle.textContent = notice.title;
+  elements.gameSupportDescription.textContent = notice.description;
+
+  elements.gameSupportNotice.className =
+    `mt-3 rounded-lg border px-4 py-3 text-sm ${notice.classes}`;
 }
 
 console.log("Deck Fill App initialized");
