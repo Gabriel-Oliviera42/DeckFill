@@ -35,7 +35,7 @@ async function openArtModal(card, cardIndex) {
     elements.modalArtGrid.innerHTML = "";
     elements.modalError.classList.remove("hidden");
     elements.modalError.textContent =
-      `Troca de artes alternativas ainda não está disponível para ${gameConfig.label}.`;
+      `${gameConfig.label} está em suporte inicial. Seleção de versões e artes alternativas ainda será melhorada.`;
 
     if (elements.uploadBackSection) {
       elements.uploadBackSection.classList.add("hidden");
