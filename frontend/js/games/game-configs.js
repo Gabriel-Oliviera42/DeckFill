@@ -2,8 +2,8 @@
  * Deck Fill - Game Configs
  * Configurações por TCG.
  *
- * Nesta primeira fase, apenas Magic está ativo.
- * Pokémon e Yu-Gi-Oh ficam preparados para evolução futura.
+ * Magic usa base local.
+ * Pokémon e Yu-Gi-Oh estão em suporte inicial usando busca externa.
  */
 
 const GAME_CONFIGS = {
@@ -33,10 +33,10 @@ const GAME_CONFIGS = {
     cardHeightMm: 88,
     defaultBackUrl: null,
     sampleDecklist: `4 Pikachu
-2 Charizard ex
+2 Charizard
 10 Basic Fire Energy`,
     decklistPlaceholder: `4 Pikachu
-2 Charizard ex
+2 Charizard
 10 Basic Fire Energy`,
     backendGameKey: "pokemon",
   },
