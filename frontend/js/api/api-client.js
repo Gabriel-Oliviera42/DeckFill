@@ -12,17 +12,25 @@ async function checkApiHealth() {
     const data = await response.json();
 
     if (data.status === "healthy") {
-      elements.statusBadge.innerHTML = "🟢 API Online";
+      elements.statusBadge.innerHTML = `
+        <i data-lucide="wifi" class="df-icon-sm" aria-hidden="true"></i>
+        <span>API Online</span>
+      `;
       elements.statusBadge.className =
-        "bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium";
+        "df-status-badge bg-df-success text-df-bg px-3 py-1 rounded-full text-sm font-medium";
+      AppConfig.refreshIcons?.();
       console.log("API Health Check:", data);
     } else {
       throw new Error("API not healthy");
     }
   } catch (error) {
-    elements.statusBadge.innerHTML = "🔴 API Offline";
+    elements.statusBadge.innerHTML = `
+      <i data-lucide="wifi-off" class="df-icon-sm" aria-hidden="true"></i>
+      <span>API Offline</span>
+    `;
     elements.statusBadge.className =
-      "bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium";
+      "df-status-badge bg-df-danger text-df-bg px-3 py-1 rounded-full text-sm font-medium";
+    AppConfig.refreshIcons?.();
     console.error("API Health Check failed:", error);
     showError("API está offline. Inicie o servidor backend: python main.py");
   }

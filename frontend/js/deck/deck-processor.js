@@ -30,17 +30,38 @@ function updateDeckProcessingLoading() {
     },
     yugioh: {
       title: "Buscando cartas de Yu-Gi-Oh!...",
-      description: "Consultando uma base externa de cartas.",
-      hint: "Esse processo pode levar alguns segundos em listas maiores.",
+      description: "Consultando o banco local YGOPRODeck.",
+      hint: "",
     },
     pokemon: {
       title: "Buscando cartas de Pokémon TCG...",
-      description: "Consultando uma base externa e escolhendo a melhor versão encontrada.",
-      hint: "Pokémon ainda está em suporte inicial, então algumas buscas podem demorar um pouco.",
+      description: "Consultando o banco local Pokemon TCG.",
+      hint: "",
     },
   };
 
-  const message = loadingMessages[selectedGame] || loadingMessages.magic;
+  const extraLoadingMessages = {
+    lorcana: {
+      title: "Buscando cartas de Disney Lorcana...",
+      description: "Consultando o banco local Lorcast.",
+      hint: "",
+    },
+    onepiece: {
+      title: "Buscando cartas de One Piece...",
+      description: "Consultando o banco local OPTCG.",
+      hint: "",
+    },
+    fab: {
+      title: "Buscando cartas de Flesh and Blood...",
+      description: "Consultando o banco local GoAgain.",
+      hint: "",
+    },
+  };
+
+  const message =
+    extraLoadingMessages[selectedGame] ||
+    loadingMessages[selectedGame] ||
+    loadingMessages.magic;
 
   if (elements.loadingTitle) {
     elements.loadingTitle.textContent = message.title;
@@ -153,9 +174,9 @@ function loadSampleDecklist() {
     elements.decklistInput.scrollHeight + "px";
 
   // Destacar o botão
-  elements.loadSampleBtn.classList.add("bg-green-700");
+  elements.loadSampleBtn.classList.add("bg-df-success-dark");
   setTimeout(() => {
-    elements.loadSampleBtn.classList.remove("bg-green-700");
+    elements.loadSampleBtn.classList.remove("bg-df-success-dark");
   }, 200);
 
   // Auto-processar o deck de exemplo

@@ -98,7 +98,7 @@ function resolvePrintSettings(rawSettings) {
 
     guides: {
       mode: resolveGuideMode(rawSettings),
-      color: rawSettings.guideColor || "#f97316",
+      color: rawSettings.guideColor || "#E7B650",
     },
 
     edges: {

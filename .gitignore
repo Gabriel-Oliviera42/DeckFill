@@ -1,17 +1,57 @@
+# Python / ambientes locais
 venv/
+.venv/
+env/
 __pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Banco e artefatos de sincronizacao
 *.db
+*.db-*
+temp_cards.json
+temp_cards.json.gz
+
+# Configuracoes e segredos locais
 .env
+.env.*
+!.env.example
 .DS_Store
+
+# Dependencias/builds de frontend, caso sejam adicionados no futuro
+node_modules/
+dist/
+build/
+.vite/
 
 # Uploads de imagens customizadas
 backend/uploads/
+backend/.image-cache/
 *.jpg
 *.jpeg
 *.png
 *.gif
 *.webp
+# PDFs e saidas geradas
+*.pdf
+frontend/*.pdf
+backend/*.pdf
+game/output/
 
 # Logs de debug
 *.log
 debug.log
+
+# Artefatos locais de automacao/testes
+.codex-runtime/
+.codex-edge*/
+
+# Anexos, conversas e notas privadas
+attachments/
+pasted-text.txt
+conversa*.txt
+conversa*.md
+docs/private/
+*.local.md

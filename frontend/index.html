@@ -9,7 +9,7 @@
     <!-- === METADADOS E CONFIGURAÇÃO === -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Deck Fill - Gerador de PDF para Magic: The Gathering</title>
+    <title>Deck Fill - Gerador multi-TCG de PDFs para proxies</title>
     
     <!-- === DEPENDÊNCIAS EXTERNAS === -->
     <!-- Tailwind CSS via CDN - Framework de estilos -->
@@ -18,6 +18,9 @@
     <!-- jsPDF via CDN - Biblioteca de geração de PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
+    <!-- Lucide Icons - biblioteca SVG consistente para a interface -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
     <!-- === CONFIGURAÇÃO TAILWIND CUSTOMIZADA === -->
     <!-- Cores oficiais do Magic: The Gathering para branding consistente -->
     <script>
@@ -25,10 +28,33 @@
             theme: {
                 extend: {
                     colors: {
-                        'mtg-blue': '#0066CC',    // Azul oficial MTG
-                        'mtg-gold': '#FFD700',    // Dourado MTG (raro)
-                        'mtg-black': '#1A1A1A',   // Preto MTG
-                        'mtg-white': '#F5F5F5'    // Branco MTG
+                        'df-bg': '#10120F',
+                        'df-surface': '#181B16',
+                        'df-panel': '#22271F',
+                        'df-raised': '#2E352A',
+                        'df-line': '#485141',
+                        'df-text': '#F5F1E8',
+                        'df-muted': '#A8B3C0',
+                        'df-soft': '#D8CFC0',
+                        'df-primary': '#16B8A6',
+                        'df-primary-dark': '#0D8F85',
+                        'df-accent': '#E7B650',
+                        'df-accent-dark': '#B98522',
+                        'df-success': '#36B772',
+                        'df-success-dark': '#278D59',
+                        'df-danger': '#E3655B',
+                        'df-danger-dark': '#B6423B',
+                        'df-magic': '#E7B650',
+                        'df-pokemon': '#F0CB45',
+                        'df-yugioh': '#8F7CFF',
+                        'df-lorcana': '#CC6F8E',
+                        'df-onepiece': '#2BA8D8',
+                        'df-fab': '#D46A4C',
+                        'df-rose': '#CC6F8E',
+                        'mtg-blue': '#16B8A6',
+                        'mtg-gold': '#E7B650',
+                        'mtg-black': '#10120F',
+                        'mtg-white': '#F5F1E8'
                     }
                 }
             }
@@ -37,6 +63,297 @@
     
     <!-- === ESTILOS CUSTOMIZADOS === -->
     <style>
+        :root {
+            --df-bg: #10120F;
+            --df-surface: #181B16;
+            --df-panel: #22271F;
+            --df-raised: #2E352A;
+            --df-line: #485141;
+            --df-text: #F5F1E8;
+            --df-muted: #A8B3C0;
+            --df-soft: #D8CFC0;
+            --df-primary: #16B8A6;
+            --df-primary-dark: #0D8F85;
+            --df-accent: #E7B650;
+            --df-accent-dark: #B98522;
+            --df-success: #36B772;
+            --df-success-dark: #278D59;
+            --df-danger: #E3655B;
+            --df-danger-dark: #B6423B;
+            --df-magic: #E7B650;
+            --df-pokemon: #D9B83F;
+            --df-yugioh: #8F7CFF;
+            --df-lorcana: #CC6F8E;
+            --df-onepiece: #2BA8D8;
+            --df-fab: #D46A4C;
+            --df-game-accent: var(--df-magic);
+            --df-game-accent-rgb: 231, 182, 80;
+        }
+
+        body[data-game="magic"] {
+            --df-game-accent: var(--df-magic);
+            --df-game-accent-rgb: 231, 182, 80;
+        }
+
+        body[data-game="pokemon"] {
+            --df-game-accent: var(--df-pokemon);
+            --df-game-accent-rgb: 217, 184, 63;
+        }
+
+        body[data-game="yugioh"] {
+            --df-game-accent: var(--df-yugioh);
+            --df-game-accent-rgb: 143, 124, 255;
+        }
+
+        body[data-game="lorcana"] {
+            --df-game-accent: var(--df-lorcana);
+            --df-game-accent-rgb: 204, 111, 142;
+        }
+
+        body[data-game="onepiece"] {
+            --df-game-accent: var(--df-onepiece);
+            --df-game-accent-rgb: 43, 168, 216;
+        }
+
+        body[data-game="fab"] {
+            --df-game-accent: var(--df-fab);
+            --df-game-accent-rgb: 212, 106, 76;
+        }
+
+        body {
+            background:
+                radial-gradient(circle at top left, rgba(var(--df-game-accent-rgb), 0.13), transparent 34rem),
+                var(--df-bg);
+            color: var(--df-text);
+        }
+
+        .bg-slate-950, .bg-slate-900, .bg-gray-900 { background-color: var(--df-bg) !important; }
+        .bg-slate-800, .bg-gray-800 { background-color: var(--df-surface) !important; }
+        .bg-slate-700, .bg-gray-700 { background-color: var(--df-panel) !important; }
+        .bg-slate-600, .bg-gray-600 { background-color: var(--df-raised) !important; }
+        .bg-slate-900\/80 { background-color: rgba(16, 18, 15, 0.86) !important; }
+        .bg-slate-800\/50 { background-color: rgba(24, 27, 22, 0.72) !important; }
+        .bg-slate-700\/70, .bg-slate-700\/50 { background-color: rgba(34, 39, 31, 0.78) !important; }
+        .bg-gray-500 { background-color: var(--df-line) !important; }
+        .bg-white { background-color: var(--df-text) !important; }
+        .bg-black { background-color: #05070A !important; }
+        .bg-black\/70, .bg-black\/75 { background-color: rgba(5, 7, 10, 0.78) !important; }
+        .bg-black\/50 { background-color: rgba(5, 7, 10, 0.58) !important; }
+        .bg-mtg-gold, .bg-yellow-500, .bg-amber-500, .bg-orange-500 { background-color: var(--df-accent) !important; }
+        .bg-yellow-500\/20, .bg-amber-500\/10 { background-color: rgba(231, 182, 80, 0.14) !important; }
+        .bg-mtg-blue, .bg-blue-500, .bg-blue-600, .bg-purple-600 { background-color: var(--df-primary) !important; }
+        .bg-purple-950\/30, .bg-purple-600\/20, .bg-df-primary\/20 { background-color: rgba(22, 184, 166, 0.16) !important; }
+        .bg-purple-500 { background-color: var(--df-primary) !important; }
+        .bg-green-500, .bg-green-600, .bg-emerald-500, .bg-emerald-600 { background-color: var(--df-success) !important; }
+        .bg-green-500\/20 { background-color: rgba(54, 183, 114, 0.16) !important; }
+        .bg-red-500, .bg-red-600 { background-color: var(--df-danger) !important; }
+        .bg-red-900\/30 { background-color: rgba(227, 101, 91, 0.16) !important; }
+        .hover\:bg-slate-500:hover, .hover\:bg-slate-600:hover, .hover\:bg-slate-700:hover { background-color: var(--df-raised) !important; }
+        .hover\:bg-yellow-500:hover, .hover\:bg-orange-500:hover, .hover\:bg-amber-500:hover { background-color: var(--df-accent-dark) !important; }
+        .hover\:bg-blue-500:hover, .hover\:bg-blue-600:hover, .hover\:bg-blue-700:hover,
+        .hover\:bg-purple-500:hover, .hover\:bg-purple-600:hover, .hover\:bg-purple-700:hover { background-color: var(--df-primary-dark) !important; }
+        .hover\:bg-green-500:hover, .hover\:bg-green-600:hover, .hover\:bg-green-700:hover,
+        .hover\:bg-emerald-500:hover, .hover\:bg-emerald-600:hover, .hover\:bg-emerald-700:hover { background-color: var(--df-success-dark) !important; }
+        .hover\:bg-red-500:hover, .hover\:bg-red-600:hover, .hover\:bg-red-700:hover { background-color: var(--df-danger-dark) !important; }
+        .text-white, .text-gray-100, .text-slate-100, .text-gray-200, .text-slate-200 { color: var(--df-text) !important; }
+        .text-gray-300, .text-slate-300 { color: var(--df-soft) !important; }
+        .text-gray-400, .text-slate-400, .text-gray-500, .text-slate-500 { color: var(--df-muted) !important; }
+        .text-mtg-black, .text-slate-950, .text-gray-800 { color: var(--df-bg) !important; }
+        .text-mtg-blue, .text-blue-500, .text-blue-600, .text-purple-500, .text-purple-200, .text-purple-300, .text-purple-100\/80 { color: var(--df-primary) !important; }
+        .text-yellow-300, .text-amber-100, .text-orange-500 { color: var(--df-accent) !important; }
+        .text-green-300, .text-green-500, .text-emerald-500 { color: var(--df-success) !important; }
+        .text-red-300, .text-red-400, .text-red-500 { color: var(--df-danger) !important; }
+        .border-slate-700, .border-slate-600, .border-gray-600, .border-gray-300 { border-color: var(--df-line) !important; }
+        .border-mtg-gold, .border-yellow-500, .border-orange-500 { border-color: var(--df-accent) !important; }
+        .border-amber-500\/30 { border-color: rgba(231, 182, 80, 0.34) !important; }
+        .border-blue-400, .border-blue-500, .border-purple-500 { border-color: var(--df-primary) !important; }
+        .border-purple-700\/40 { border-color: rgba(22, 184, 166, 0.34) !important; }
+        .border-red-700\/50 { border-color: rgba(227, 101, 91, 0.55) !important; }
+        .border-df-primary { border-color: var(--df-primary) !important; }
+        .border-df-line { border-color: var(--df-line) !important; }
+        .border-df-success { border-color: var(--df-success) !important; }
+        .border-df-magic { border-color: var(--df-magic) !important; }
+        .border-df-pokemon { border-color: var(--df-pokemon) !important; }
+        .border-df-yugioh { border-color: var(--df-yugioh) !important; }
+        .border-df-lorcana { border-color: var(--df-lorcana) !important; }
+        .border-df-onepiece { border-color: var(--df-onepiece) !important; }
+        .border-df-fab { border-color: var(--df-fab) !important; }
+        .bg-df-bg { background-color: var(--df-bg) !important; }
+        .bg-df-bg\/80 { background-color: rgba(16, 18, 15, 0.82) !important; }
+        .bg-df-surface { background-color: var(--df-surface) !important; }
+        .bg-df-panel { background-color: var(--df-panel) !important; }
+        .bg-df-primary { background-color: var(--df-primary) !important; }
+        .bg-df-primary-dark { background-color: var(--df-primary-dark) !important; }
+        .bg-df-accent { background-color: var(--df-accent) !important; }
+        .bg-df-success { background-color: var(--df-success) !important; }
+        .bg-df-success-dark { background-color: var(--df-success-dark) !important; }
+        .bg-df-danger { background-color: var(--df-danger) !important; }
+        .bg-df-raised { background-color: var(--df-raised) !important; }
+        .text-df-bg { color: var(--df-bg) !important; }
+        .text-df-primary { color: var(--df-primary) !important; }
+        .text-df-accent { color: var(--df-accent) !important; }
+        .text-df-success { color: var(--df-success) !important; }
+        .text-df-text { color: var(--df-text) !important; }
+        .text-df-soft { color: var(--df-soft) !important; }
+        .text-df-muted { color: var(--df-muted) !important; }
+        .hover\:border-df-primary:hover { border-color: var(--df-primary) !important; }
+        .hover\:bg-df-line:hover { background-color: var(--df-line) !important; }
+        .hover\:bg-df-primary-dark:hover { background-color: var(--df-primary-dark) !important; }
+        .hover\:bg-df-accent-dark:hover { background-color: var(--df-accent-dark) !important; }
+        .hover\:bg-df-success-dark:hover { background-color: var(--df-success-dark) !important; }
+        .focus\:ring-mtg-blue:focus, .focus\:ring-blue-500:focus, .focus\:ring-purple-500:focus { --tw-ring-color: rgba(22, 184, 166, 0.45) !important; }
+        .accent-blue-500 { accent-color: var(--df-primary) !important; }
+        .bg-gradient-to-r.from-slate-800.to-slate-700 {
+            background-image: linear-gradient(135deg, var(--df-surface), var(--df-panel)) !important;
+        }
+
+        #game-magic:checked + span,
+        #game-pokemon:checked + span,
+        #game-yugioh:checked + span,
+        #game-lorcana:checked + span,
+        #game-onepiece:checked + span,
+        #game-fab:checked + span {
+            background-color: rgba(var(--df-game-accent-rgb), 0.14) !important;
+            border-color: var(--df-game-accent) !important;
+            box-shadow: inset 0 0 0 1px rgba(var(--df-game-accent-rgb), 0.16);
+            color: var(--df-text) !important;
+        }
+
+        #game-support-notice {
+            border-color: rgba(var(--df-game-accent-rgb), 0.72) !important;
+            background-color: rgba(var(--df-game-accent-rgb), 0.06) !important;
+        }
+
+        .game-status-pill {
+            background-color: rgba(216, 207, 192, 0.08) !important;
+            color: var(--df-muted) !important;
+        }
+
+        #game-magic:checked + span .game-status-pill,
+        #game-pokemon:checked + span .game-status-pill,
+        #game-yugioh:checked + span .game-status-pill,
+        #game-lorcana:checked + span .game-status-pill,
+        #game-onepiece:checked + span .game-status-pill,
+        #game-fab:checked + span .game-status-pill {
+            background-color: rgba(var(--df-game-accent-rgb), 0.14) !important;
+            color: var(--df-game-accent) !important;
+        }
+
+        .df-panel-accent {
+            background-color: rgba(22, 184, 166, 0.08) !important;
+            border-color: rgba(22, 184, 166, 0.3) !important;
+        }
+
+        button .lucide,
+        label .lucide,
+        a .lucide {
+            flex-shrink: 0;
+            stroke-width: 2.1;
+        }
+
+        .df-icon {
+            width: 1rem;
+            height: 1rem;
+            flex-shrink: 0;
+            stroke-width: 2.1;
+        }
+
+        .df-icon-sm {
+            width: 0.875rem;
+            height: 0.875rem;
+        }
+
+        .df-icon-lg {
+            width: 1.25rem;
+            height: 1.25rem;
+        }
+
+        .df-icon-xl {
+            width: 1.75rem;
+            height: 1.75rem;
+        }
+
+        .df-section-heading {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+        }
+
+        .df-icon-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 0.625rem;
+            background: rgba(22, 184, 166, 0.12);
+            color: var(--df-primary);
+            border: 1px solid rgba(22, 184, 166, 0.26);
+        }
+
+        .df-brand-mark {
+            width: 2.75rem;
+            height: 2.75rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.9rem;
+            color: var(--df-text);
+            background:
+                radial-gradient(circle at 30% 20%, rgba(231, 182, 80, 0.28), transparent 1.15rem),
+                linear-gradient(145deg, rgba(22, 184, 166, 0.22), rgba(16, 18, 15, 0.96));
+            border: 1px solid rgba(231, 182, 80, 0.34);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+        }
+
+        .df-brand-mark svg {
+            width: 2rem;
+            height: 2rem;
+            overflow: visible;
+        }
+
+        .df-brand-mark .df-logo-card {
+            fill: rgba(245, 241, 232, 0.94);
+            stroke: rgba(16, 18, 15, 0.95);
+            stroke-width: 2.2;
+        }
+
+        .df-brand-mark .df-logo-card-back {
+            fill: rgba(22, 184, 166, 0.23);
+            stroke: rgba(22, 184, 166, 0.72);
+            stroke-width: 1.6;
+        }
+
+        .df-brand-mark .df-logo-spark {
+            fill: var(--df-primary);
+            stroke: rgba(16, 18, 15, 0.95);
+            stroke-width: 1.6;
+        }
+
+        .df-brand-mark .df-logo-crop {
+            fill: none;
+            stroke: var(--df-accent);
+            stroke-linecap: round;
+            stroke-width: 2.2;
+        }
+
+        .df-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .df-card-choice-icon {
+            width: 1.9rem;
+            height: 1.9rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.55rem;
+            background: rgba(var(--df-game-accent-rgb), 0.1);
+            color: var(--df-game-accent);
+            border: 1px solid rgba(var(--df-game-accent-rgb), 0.22);
+        }
         /* Animações suaves para cards e elementos da interface */
         .fade-in {
             animation: fadeIn 0.3s ease-in-out;
@@ -56,8 +373,8 @@
         
         /* Loading spinner para feedback visual durante operações assíncronas */
         .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #0066CC;
+            border: 3px solid rgba(216, 207, 192, 0.24);
+            border-top: 3px solid var(--df-primary);
             border-radius: 50%;
             width: 40px;
             height: 40px;
@@ -75,7 +392,7 @@
 <!-- ================================================================================
      CORPO DA APLICAÇÃO - INTERFACE PRINCIPAL
      ================================================================================ -->
-<body class="bg-slate-900 min-h-screen text-gray-100">
+<body class="bg-slate-900 min-h-screen text-gray-100" data-game="magic">
         <!-- === HEADER DA APLICAÇÃO === -->
         <!-- Branding e status da API com cores oficiais MTG -->
         <header class="bg-gradient-to-r from-slate-800 to-slate-700 text-white shadow-sm">
@@ -83,22 +400,28 @@
             <div class="flex items-center justify-between">
                 <!-- Logo e título -->
                 <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-mtg-gold rounded-full flex items-center justify-center">
-                        <span class="text-mtg-black font-bold text-lg">DF</span>
+                    <div class="df-brand-mark" aria-hidden="true">
+                        <svg viewBox="0 0 48 48" role="img">
+                            <path class="df-logo-card-back" d="M10 16.5 28 11c2.4-.7 4.8.7 5.5 3.1l4.2 14.3c.7 2.4-.7 4.8-3.1 5.5l-18 5.4c-2.4.7-4.8-.7-5.5-3.1L6.9 21.9c-.7-2.4.7-4.8 3.1-5.4Z"/>
+                            <rect class="df-logo-card" x="15" y="8" width="22" height="32" rx="4.8" transform="rotate(4 26 24)"/>
+                            <path class="df-logo-spark" d="M25.9 17.2 29 23.7l6.3 3.1-6.3 3.1-3.1 6.5-3.1-6.5-6.3-3.1 6.3-3.1 3.1-6.5Z"/>
+                            <path class="df-logo-crop" d="M9 11h6M9 11v6M39 31v6M39 37h-6"/>
+                        </svg>
                     </div>
                     <div>
                         <h1 class="text-2xl font-bold">Deck Fill</h1>
-                        <p class="text-gray-300 text-sm">Gerador de PDF para Magic: The Gathering</p>
+                        <p class="text-gray-300 text-sm">Gerador multi-TCG de PDFs para proxies</p>
                     </div>
                 </div>
                 <!-- Status da API -->
                 <div class="flex items-center space-x-4">
-                    <button id="btn-donate-pix" class="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer border-none shadow-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" x2="6" y1="2" y2="4"/><line x1="10" x2="10" y1="2" y2="4"/><line x1="14" x2="14" y1="2" y2="4"/></svg>
+                    <button id="btn-donate-pix" class="flex items-center justify-center gap-2 bg-df-primary hover:bg-df-primary-dark text-df-bg px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer border-none shadow-sm">
+                        <i data-lucide="heart-handshake" class="df-icon-lg" aria-hidden="true"></i>
                         Apoie o Projeto
                     </button>
-                    <span id="status-badge" class="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                        🟢 API Online
+                    <span id="status-badge" class="df-status-badge bg-df-success text-df-bg px-3 py-1 rounded-full text-sm font-medium">
+                        <i data-lucide="wifi" class="df-icon-sm" aria-hidden="true"></i>
+                        <span>API Online</span>
                     </span>
                 </div>
             </div>
@@ -112,24 +435,31 @@
              ================================================================================ -->
         <section class="bg-gray-800 rounded-lg shadow-sm p-6 mb-8">
             <div class="mb-6">
-                <h2 class="text-xl font-bold text-gray-100 mb-2">Cole seu Decklist</h2>
+                <h2 class="df-section-heading text-xl font-bold text-gray-100 mb-2">
+                    <span class="df-icon-badge"><i data-lucide="clipboard-list" class="df-icon" aria-hidden="true"></i></span>
+                    <span>Cole seu Decklist</span>
+                </h2>
                 <p class="text-gray-400 text-sm">
                     Formatos suportados: "4x Lightning Bolt", "1 Island", "Black Lotus"
                 </p>
                 <div class="mt-4">
-                    <label class="block text-sm font-medium text-gray-100 mb-2">
-                        Jogo
+                    <label class="df-section-heading text-sm font-medium text-gray-100 mb-2">
+                        <i data-lucide="layers" class="df-icon text-df-primary" aria-hidden="true"></i>
+                        <span>Jogo</span>
                     </label>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                         <label class="cursor-pointer">
                             <input type="radio" name="game-selector" id="game-magic" value="magic" class="sr-only peer" checked>
-                            <span class="block h-full rounded-lg border border-mtg-gold bg-slate-700 px-4 py-3 text-sm font-medium text-gray-100 peer-checked:bg-mtg-gold peer-checked:text-mtg-black transition-colors">
+                            <span class="block h-full rounded-lg border border-slate-600 bg-slate-700 px-4 py-3 text-sm font-medium text-gray-100 transition-colors">
                                 <span class="flex items-center justify-between gap-2">
-                                    <span>Magic: The Gathering</span>
-                                    <span class="rounded-full bg-green-500/20 px-2 py-0.5 text-[11px] text-green-300 peer-checked:text-green-900">Estável</span>
+                                    <span class="flex items-center gap-2">
+                                        <span class="df-card-choice-icon"><i data-lucide="sparkles" class="df-icon" aria-hidden="true"></i></span>
+                                        <span>Magic: The Gathering</span>
+                                    </span>
+                                    <span class="game-status-pill rounded-full px-2 py-0.5 text-[11px]">Estável</span>
                                 </span>
-                                <span class="block text-xs text-gray-300 peer-checked:text-slate-800 mt-2">
+                                <span class="block text-xs text-gray-300 mt-2">
                                     Busca rápida usando base local.
                                 </span>
                             </span>
@@ -137,26 +467,80 @@
 
                         <label class="cursor-pointer">
                             <input type="radio" name="game-selector" id="game-pokemon" value="pokemon" class="sr-only peer">
-                            <span class="block h-full rounded-lg border border-slate-600 bg-slate-700 px-4 py-3 text-sm font-medium text-gray-100 peer-checked:bg-yellow-500 peer-checked:text-slate-950 transition-colors">
+                            <span class="block h-full rounded-lg border border-slate-600 bg-slate-700 px-4 py-3 text-sm font-medium text-gray-100 transition-colors">
                                 <span class="flex items-center justify-between gap-2">
-                                    <span>Pokémon TCG</span>
-                                    <span class="rounded-full bg-yellow-500/20 px-2 py-0.5 text-[11px] text-yellow-300 peer-checked:text-yellow-900">Inicial</span>
+                                    <span class="flex items-center gap-2">
+                                        <span class="df-card-choice-icon"><i data-lucide="circle-dot" class="df-icon" aria-hidden="true"></i></span>
+                                        <span>Pokémon TCG</span>
+                                    </span>
+                                    <span class="game-status-pill rounded-full px-2 py-0.5 text-[11px]">Inicial</span>
                                 </span>
-                                <span class="block text-xs text-gray-300 peer-checked:text-slate-800 mt-2">
-                                    Busca externa; pode demorar em listas maiores.
+                                <span class="block text-xs text-gray-300 mt-2">
+                                    Busca rapida usando base local.
                                 </span>
                             </span>
                         </label>
 
                         <label class="cursor-pointer">
                             <input type="radio" name="game-selector" id="game-yugioh" value="yugioh" class="sr-only peer">
-                            <span class="block h-full rounded-lg border border-slate-600 bg-slate-700 px-4 py-3 text-sm font-medium text-gray-100 peer-checked:bg-purple-500 peer-checked:text-white transition-colors">
+                            <span class="block h-full rounded-lg border border-slate-600 bg-slate-700 px-4 py-3 text-sm font-medium text-gray-100 transition-colors">
                                 <span class="flex items-center justify-between gap-2">
-                                    <span>Yu-Gi-Oh!</span>
-                                    <span class="rounded-full bg-purple-500/20 px-2 py-0.5 text-[11px] text-purple-300 peer-checked:text-purple-100">Inicial</span>
+                                    <span class="flex items-center gap-2">
+                                        <span class="df-card-choice-icon"><i data-lucide="layers" class="df-icon" aria-hidden="true"></i></span>
+                                        <span>Yu-Gi-Oh!</span>
+                                    </span>
+                                    <span class="game-status-pill rounded-full px-2 py-0.5 text-[11px]">Inicial</span>
                                 </span>
-                                <span class="block text-xs text-gray-300 peer-checked:text-purple-100 mt-2">
-                                    Busca externa com suporte básico de PDF.
+                                <span class="block text-xs text-gray-300 mt-2">
+                                    Busca rapida usando base local.
+                                </span>
+                            </span>
+                        </label>
+
+                        <label class="cursor-pointer">
+                            <input type="radio" name="game-selector" id="game-lorcana" value="lorcana" class="sr-only peer">
+                            <span class="block h-full rounded-lg border border-slate-600 bg-slate-700 px-4 py-3 text-sm font-medium text-gray-100 transition-colors">
+                                <span class="flex items-center justify-between gap-2">
+                                    <span class="flex items-center gap-2">
+                                        <span class="df-card-choice-icon"><i data-lucide="wand-sparkles" class="df-icon" aria-hidden="true"></i></span>
+                                        <span>Disney Lorcana</span>
+                                    </span>
+                                    <span class="game-status-pill rounded-full px-2 py-0.5 text-[11px]">Novo</span>
+                                </span>
+                                <span class="block text-xs text-gray-300 mt-2">
+                                    Busca rapida usando base Lorcast.
+                                </span>
+                            </span>
+                        </label>
+
+                        <label class="cursor-pointer">
+                            <input type="radio" name="game-selector" id="game-onepiece" value="onepiece" class="sr-only peer">
+                            <span class="block h-full rounded-lg border border-slate-600 bg-slate-700 px-4 py-3 text-sm font-medium text-gray-100 transition-colors">
+                                <span class="flex items-center justify-between gap-2">
+                                    <span class="flex items-center gap-2">
+                                        <span class="df-card-choice-icon"><i data-lucide="flag" class="df-icon" aria-hidden="true"></i></span>
+                                        <span>One Piece Card Game</span>
+                                    </span>
+                                    <span class="game-status-pill rounded-full px-2 py-0.5 text-[11px]">Novo</span>
+                                </span>
+                                <span class="block text-xs text-gray-300 mt-2">
+                                    Busca rapida usando base OPTCG.
+                                </span>
+                            </span>
+                        </label>
+
+                        <label class="cursor-pointer">
+                            <input type="radio" name="game-selector" id="game-fab" value="fab" class="sr-only peer">
+                            <span class="block h-full rounded-lg border border-slate-600 bg-slate-700 px-4 py-3 text-sm font-medium text-gray-100 transition-colors">
+                                <span class="flex items-center justify-between gap-2">
+                                    <span class="flex items-center gap-2">
+                                        <span class="df-card-choice-icon"><i data-lucide="shield" class="df-icon" aria-hidden="true"></i></span>
+                                        <span>Flesh and Blood</span>
+                                    </span>
+                                    <span class="game-status-pill rounded-full px-2 py-0.5 text-[11px]">Novo</span>
+                                </span>
+                                <span class="block text-xs text-gray-300 mt-2">
+                                    Busca rapida usando base GoAgain.
                                 </span>
                             </span>
                         </label>
@@ -175,8 +559,9 @@
             <div class="space-y-4">
                 <!-- Textarea para decklist -->
                 <div>
-                    <label for="decklist-input" class="block text-sm font-medium text-gray-100 mb-2">
-                        Decklist
+                    <label for="decklist-input" class="df-section-heading text-sm font-medium text-gray-100 mb-2">
+                        <i data-lucide="clipboard-paste" class="df-icon text-df-primary" aria-hidden="true"></i>
+                        <span>Decklist</span>
                     </label>
                     <textarea 
                         id="decklist-input" 
@@ -195,22 +580,22 @@
                     <button 
                         id="process-btn" 
                         class="bg-slate-700 hover:bg-slate-600 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center space-x-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                        </svg>
+                        <i data-lucide="wand-sparkles" class="df-icon-lg" aria-hidden="true"></i>
                         <span>Processar Deck</span>
                     </button>
                     
                     <button 
                         id="clear-btn" 
-                        class="bg-gray-500 hover:bg-gray-600 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200">
-                        Limpar
+                        class="bg-gray-500 hover:bg-gray-600 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center space-x-2">
+                        <i data-lucide="eraser" class="df-icon-lg" aria-hidden="true"></i>
+                        <span>Limpar</span>
                     </button>
                     
                     <button 
                         id="load-sample-btn" 
-                        class="bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200">
-                        Carregar Exemplo
+                        class="bg-df-success hover:bg-df-success-dark text-df-bg font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center space-x-2">
+                        <i data-lucide="file-plus" class="df-icon-lg" aria-hidden="true"></i>
+                        <span>Carregar Exemplo</span>
                     </button>
                 </div>
             </div>
@@ -231,12 +616,15 @@
         <!-- Results Section (escondido por padrão) -->
         <section id="results-section" class="hidden bg-gray-800 rounded-lg shadow-sm p-6">
             <div class="mb-6">
-                <h2 class="text-xl font-bold text-gray-100 mb-2">Cartas Encontradas</h2>
+                <h2 class="df-section-heading text-xl font-bold text-gray-100 mb-2">
+                    <span class="df-icon-badge"><i data-lucide="layout-grid" class="df-icon" aria-hidden="true"></i></span>
+                    <span>Cartas Encontradas</span>
+                </h2>
                 <div class="flex items-center justify-between">
                     <p id="results-summary" class="text-gray-400 text-sm"></p>
                     <div class="flex space-x-3">
-                        <button id="generate-pdf-btn" class="bg-mtg-gold hover:bg-yellow-500 text-mtg-black font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center space-x-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        <button id="generate-pdf-btn" class="bg-df-accent hover:bg-df-accent-dark text-df-bg font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center space-x-2">
+                            <i data-lucide="file-down" class="df-icon" aria-hidden="true"></i>
                             <span>Gerar PDF</span>
                         </button>
                     </div>
@@ -245,7 +633,10 @@
                 <div class="mt-6 border border-slate-700 rounded-lg p-4 bg-slate-800">
                     <div class="flex items-center justify-between gap-4 flex-wrap">
                         <div>
-                            <h3 class="font-semibold text-gray-100">Modo de saída</h3>
+                            <h3 class="df-section-heading font-semibold text-gray-100">
+                                <i data-lucide="send" class="df-icon text-df-primary" aria-hidden="true"></i>
+                                <span>Modo de saída</span>
+                            </h3>
                             <p class="text-sm text-gray-400 mt-1">
                                 Escolha se você quer gerar um PDF para imprimir por conta própria ou preparar um arquivo para impressão profissional.
                             </p>
@@ -254,25 +645,34 @@
                         <div class="flex bg-slate-900 border border-slate-700 rounded-lg p-1">
                             <label class="cursor-pointer">
                                 <input type="radio" name="output-mode" id="output-mode-manual" value="manual" class="sr-only peer" checked>
-                                <span class="block px-4 py-2 rounded-md text-sm font-medium text-slate-300 peer-checked:bg-mtg-gold peer-checked:text-mtg-black transition-colors">
-                                    Imprimir em casa
+                                <span class="block px-4 py-2 rounded-md text-sm font-medium text-slate-300 peer-checked:bg-df-accent peer-checked:text-df-bg transition-colors">
+                                    <span class="inline-flex items-center gap-2">
+                                        <i data-lucide="printer" class="df-icon-sm" aria-hidden="true"></i>
+                                        Imprimir em casa
+                                    </span>
                                 </span>
                             </label>
 
                             <label class="cursor-pointer">
                                 <input type="radio" name="output-mode" id="output-mode-professional" value="professional" class="sr-only peer">
-                                <span class="block px-4 py-2 rounded-md text-sm font-medium text-slate-300 peer-checked:bg-purple-500 peer-checked:text-white transition-colors">
-                                    Impressão profissional
+                                <span class="block px-4 py-2 rounded-md text-sm font-medium text-slate-300 peer-checked:bg-df-primary peer-checked:text-df-bg transition-colors">
+                                    <span class="inline-flex items-center gap-2">
+                                        <i data-lucide="badge-check" class="df-icon-sm" aria-hidden="true"></i>
+                                        Impressão profissional
+                                    </span>
                                 </span>
                             </label>
                         </div>
                     </div>
 
-                    <div id="professional-print-panel" class="hidden mt-4 p-4 bg-purple-950/30 border border-purple-700/40 rounded-lg">
+                    <div id="professional-print-panel" class="hidden mt-4 p-4 df-panel-accent border rounded-lg">
                         <div class="flex items-start justify-between gap-4 flex-wrap">
                             <div>
-                                <h4 class="font-semibold text-purple-200">Preparar para impressão profissional</h4>
-                                <p class="text-sm text-purple-100/80 mt-1">
+                                <h4 class="df-section-heading font-semibold text-df-text">
+                                    <i data-lucide="package-check" class="df-icon text-df-primary" aria-hidden="true"></i>
+                                    <span>Preparar para impressão profissional</span>
+                                </h4>
+                                <p class="text-sm text-df-muted mt-1">
                                     Gere o PDF e envie para a gráfica/parceiro. Orçamento, acabamentos e envio são combinados diretamente com eles.
                                 </p>
                                 <div class="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-100">
@@ -282,8 +682,9 @@
                                 </div>
                             </div>
 
-                            <button id="whatsapp-print-btn" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200">
-                                Enviar mensagem no WhatsApp
+                            <button id="whatsapp-print-btn" class="bg-df-success hover:bg-df-success-dark text-df-bg font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2">
+                                <i data-lucide="message-circle" class="df-icon" aria-hidden="true"></i>
+                                <span>Enviar mensagem no WhatsApp</span>
                             </button>
                         </div>
                     </div>
@@ -293,18 +694,14 @@
                     <button id="print-settings-toggle" class="w-full px-4 py-3 bg-gradient-to-r from-slate-700 to-slate-600 hover:from-slate-600 hover:to-slate-500 transition-all duration-200 flex items-center justify-between text-left">
                         <div class="flex items-center space-x-3">
                             <div class="w-8 h-8 bg-mtg-blue rounded-lg flex items-center justify-center">
-                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6V10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
-                                </svg>
+                                <i data-lucide="sliders-horizontal" class="df-icon text-white" aria-hidden="true"></i>
                             </div>
                             <div>
                                 <span class="font-semibold text-gray-100">Configurações Avançadas de Impressão</span>
                                 <p class="text-xs text-gray-400 mt-0.5">Layout, guias e funcionalidades inteligentes</p>
                             </div>
                         </div>
-                        <svg id="print-settings-chevron" class="w-5 h-5 text-gray-500 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                        </svg>
+                        <i id="print-settings-chevron" data-lucide="chevron-down" class="df-icon-lg text-gray-500 transform transition-transform duration-200" aria-hidden="true"></i>
                     </button>
                     
                     <div id="print-settings-content" class="hidden">
@@ -313,16 +710,17 @@
                             <div class="border border-gray-600 rounded-lg p-4 bg-gradient-to-br from-slate-800/30 to-slate-700/30">
                                 <div class="flex items-center space-x-2 mb-4">
                                     <div class="w-6 h-6 bg-slate-600 rounded flex items-center justify-center">
-                                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path>
-                                        </svg>
+                                        <i data-lucide="panel-top" class="df-icon-sm text-white" aria-hidden="true"></i>
                                     </div>
                                     <h3 class="font-semibold text-gray-200">Layout & Geometria</h3>
                                 </div>
                                 
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-200 mb-1">Tamanho da Folha</label>
+                                        <label class="df-section-heading text-sm font-medium text-gray-200 mb-1">
+                                            <i data-lucide="file-text" class="df-icon-sm text-df-primary" aria-hidden="true"></i>
+                                            <span>Tamanho da Folha</span>
+                                        </label>
                                         <select id="page-size" class="w-full px-3 py-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-slate-700 text-gray-100">
                                             <option value="a4">A4 (210 x 297 mm)</option>
                                             <option value="letter">Letter / Carta (215.9 x 279.4 mm)</option>
@@ -335,7 +733,10 @@
                                     </div>
                                     
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-200 mb-1">Espaçamento / Gap (mm)</label>
+                                        <label class="df-section-heading text-sm font-medium text-gray-200 mb-1">
+                                            <i data-lucide="ruler" class="df-icon-sm text-df-primary" aria-hidden="true"></i>
+                                            <span>Espaçamento / Gap (mm)</span>
+                                        </label>
                                         <div class="flex items-center space-x-3">
                                             <input type="range" id="gap-spacing" min="0" max="5" step="0.5" value="2.0" class="flex-1 h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"/>
                                             <span id="gap-value" class="text-sm font-medium text-gray-200 bg-gray-700 px-2 py-1 rounded min-w-[3rem] text-center">2.0 mm</span>
@@ -344,7 +745,10 @@
                                     </div>
                                     
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-200 mb-1">Tamanho da Carta / Scale</label>
+                                        <label class="df-section-heading text-sm font-medium text-gray-200 mb-1">
+                                            <i data-lucide="maximize" class="df-icon-sm text-df-primary" aria-hidden="true"></i>
+                                            <span>Tamanho da Carta / Scale</span>
+                                        </label>
                                         <select id="scale" class="w-full px-3 py-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-slate-700 text-gray-100">
                                             <option value="small">Pequena (~75% - Cabem mais por página)</option>
                                             <option value="normal" selected>Normal (100% - 63x88mm - MTG Original)</option>
@@ -356,12 +760,13 @@
                                     
                                     <!-- Imprimir Dupla Face (Movido para cá) -->
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-200 mb-1">Impressão Dupla Face</label>
+                                        <label class="df-section-heading text-sm font-medium text-gray-200 mb-1">
+                                            <i data-lucide="flip-horizontal" class="df-icon-sm text-df-primary" aria-hidden="true"></i>
+                                            <span>Impressão Dupla Face</span>
+                                        </label>
                                         <div class="flex items-center justify-between p-3 bg-slate-700 rounded-md border border-slate-600">
                                             <div class="flex items-center space-x-3">
-                                                <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 16h4m10 0h4"></path>
-                                                </svg>
+                                                <i data-lucide="flip-horizontal" class="df-icon text-df-primary" aria-hidden="true"></i>
                                                 <span class="text-sm text-gray-200">Imprimir Dupla Face</span>
                                                 <button id="global-back-btn" class="text-xs bg-slate-600 hover:bg-slate-500 text-slate-300 px-2 py-1 rounded ml-2 transition-colors">
                                                     Padrão
@@ -369,7 +774,7 @@
                                             </div>
                                             <label class="relative inline-flex items-center cursor-pointer">
                                                 <input type="checkbox" id="print-double-faced" class="sr-only peer">
-                                                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
+                                                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-df-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-df-primary"></div>
                                             </label>
                                         </div>
                                     </div>
@@ -379,9 +784,7 @@
                             <div class="border border-slate-700 rounded-lg p-4 bg-slate-800">
                                 <div class="flex items-center space-x-2 mb-4">
                                     <div class="w-6 h-6 bg-orange-500 rounded flex items-center justify-center">
-                                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"></path>
-                                        </svg>
+                                        <i data-lucide="scissors" class="df-icon-sm text-white" aria-hidden="true"></i>
                                     </div>
                                     <h3 class="font-semibold text-gray-200">Guias de Impressão</h3>
                                 </div>
@@ -389,38 +792,32 @@
                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div class="flex items-center justify-between p-3 bg-slate-700 rounded-md border border-gray-600">
                                         <div class="flex items-center space-x-3">
-                                            <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"></path>
-                                            </svg>
+                                            <i data-lucide="scissors" class="df-icon text-orange-500" aria-hidden="true"></i>
                                             <span class="text-sm text-gray-200">Marcas de Corte</span>
                                         </div>
                                         <div class="flex items-center gap-3">
-                                            <input type="color" id="guide-color" value="#f97316" class="w-8 h-8 rounded cursor-pointer bg-transparent border-0 p-0" title="Escolher cor da linha">
+                                            <input type="color" id="guide-color" value="#E7B650" class="w-8 h-8 rounded cursor-pointer bg-transparent border-0 p-0" title="Escolher cor da linha">
                                             <label class="relative inline-flex items-center cursor-pointer">
                                                 <input type="checkbox" id="crop-marks" class="sr-only peer" checked>
-                                                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500"></div>
+                                                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-df-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-df-accent"></div>
                                             </label>
                                         </div>
                                     </div>
                                     
                                     <div class="flex items-center justify-between p-3 bg-slate-700 rounded-md border border-slate-600">
                                         <div class="flex items-center space-x-3">
-                                            <svg class="w-4 h-4 text-orange-500" fill="currentColor" viewBox="0 0 24 24">
-                                                <path d="M3 3h18v18H3V3zm2 2v14h14V5H5z"/>
-                                            </svg>
+                                            <i data-lucide="square" class="df-icon text-orange-500" aria-hidden="true"></i>
                                             <span class="text-sm text-gray-200">Bordas Pretas</span>
                                         </div>
                                         <label class="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" id="black-corners" class="sr-only peer">
-                                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500"></div>
+                                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-df-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-df-accent"></div>
                                         </label>
                                     </div>
                                     
                                     <div class="flex items-center justify-between p-3 bg-slate-700 rounded-md border border-slate-600">
                                         <div class="flex items-center space-x-3">
-                                            <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
-                                            </svg>
+                                            <i data-lucide="droplets" class="df-icon text-orange-500" aria-hidden="true"></i>
                                             <div>
                                                 <span class="text-sm text-gray-200">Sangria</span>
                                                 <p class="text-xs text-gray-500">Extensão da arte para corte seguro.</p>
@@ -428,7 +825,7 @@
                                         </div>
                                         <label class="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" id="bleed" class="sr-only peer" checked>
-                                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500"></div>
+                                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-df-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-df-accent"></div>
                                         </label>
                                     </div>
                                 </div>
@@ -436,10 +833,8 @@
             
                             <div class="border border-slate-700 rounded-lg p-4 bg-slate-800">
                                 <div class="flex items-center space-x-2 mb-4">
-                                    <div class="w-6 h-6 bg-purple-500 rounded flex items-center justify-center">
-                                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                                        </svg>
+                                    <div class="w-6 h-6 bg-df-primary rounded flex items-center justify-center">
+                                        <i data-lucide="sparkles" class="df-icon-sm text-white" aria-hidden="true"></i>
                                     </div>
                                     <h3 class="font-semibold text-gray-200">Funcionalidades Inteligentes</h3>
                                 </div>
@@ -447,14 +842,12 @@
                                 <div class="space-y-4">
                                     <div class="flex items-center justify-between p-3 bg-slate-700 rounded-md border border-slate-600">
                                         <div class="flex items-center space-x-3">
-                                            <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
-                                            </svg>
+                                            <i data-lucide="leaf" class="df-icon text-df-primary" aria-hidden="true"></i>
                                             <span class="text-sm text-gray-200">Omitir Terrenos Básicos</span>
                                         </div>
                                         <label class="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" id="skip-basic-lands" class="sr-only peer">
-                                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
+                                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-df-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-df-primary"></div>
                                         </label>
                                     </div>
                                 </div>
@@ -476,26 +869,58 @@
     </main>
 
     <!-- Modal de Escolha de Artes -->
-    <div id="art-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-slate-800 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden border border-slate-700">
+    <div id="art-modal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-3 sm:p-5">
+        <div class="bg-slate-800 rounded-xl shadow-2xl max-w-7xl w-full max-h-[92vh] overflow-hidden border border-slate-600">
             <!-- Header -->
-            <div class="bg-slate-900 text-slate-200 p-4 flex justify-between items-center border-b border-slate-700">
-                <h2 id="modal-card-name" class="text-xl font-bold">Nome da Carta</h2>
-                <button id="close-modal-btn" class="text-slate-300 hover:text-slate-100 transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
+            <div class="bg-slate-700 text-slate-100 px-5 py-4 flex justify-between items-center border-b border-slate-600">
+                <div>
+                    <p id="modal-game-label" class="text-xs uppercase tracking-wide text-slate-300">Selecionar arte</p>
+                    <h2 class="df-section-heading text-xl font-bold">
+                        <i data-lucide="images" class="df-icon-lg text-df-primary" aria-hidden="true"></i>
+                        <span>Select Artwork for <span id="modal-card-name">Nome da Carta</span></span>
+                    </h2>
+                </div>
+                <button id="close-modal-btn" class="text-slate-300 hover:text-white transition-colors" aria-label="Fechar">
+                    <i data-lucide="x" class="w-7 h-7" aria-hidden="true"></i>
                 </button>
             </div>
             
             <!-- Conteúdo -->
-            <div class="p-4 overflow-y-auto max-h-[calc(90vh-80px)]">
-                <div id="modal-loading" class="text-center py-8 hidden">
-                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+            <div class="bg-slate-700/70 border-b border-slate-600 px-4 py-3">
+                <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div id="art-source-controls" class="hidden">
+                        <select id="art-source-select" class="sr-only" aria-label="Fonte de arte">
+                            <option value="scryfall">Scryfall</option>
+                            <option value="mpc">MPC Autofill</option>
+                        </select>
+                        <div id="art-source-tabs" class="flex flex-wrap items-center gap-2"></div>
+                    </div>
+
+                    <div class="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center lg:max-w-2xl">
+                        <div class="relative flex-1">
+                            <i data-lucide="search" class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" aria-hidden="true"></i>
+                            <input id="art-search-input" type="search" class="w-full rounded-lg border border-slate-500 bg-slate-900/80 py-3 pl-10 pr-4 text-sm text-white placeholder:text-slate-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40" placeholder="Buscar outra carta..." autocomplete="off">
+                        </div>
+                        <button id="art-search-btn" class="rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 transition-colors flex items-center justify-center gap-2">
+                            <i data-lucide="search" class="df-icon" aria-hidden="true"></i>
+                            <span>Buscar</span>
+                        </button>
+                    </div>
+
+                    <div id="art-result-count" class="rounded-lg border border-slate-500 bg-slate-800 px-3 py-2 text-sm text-slate-200 flex items-center gap-2">
+                        <i data-lucide="image" class="df-icon-sm text-df-primary" aria-hidden="true"></i>
+                        <span>0 artes</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 overflow-y-auto max-h-[calc(92vh-210px)] bg-slate-800">
+                <div id="modal-loading" class="text-center py-12 hidden">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
                     <p class="mt-2 text-slate-400">Buscando artes...</p>
                 </div>
 
-                <div id="modal-art-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+                <div id="modal-art-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-6">
                     <!-- Artes serão inseridas aqui -->
                 </div>
 
@@ -503,13 +928,14 @@
                 <div class="mt-4 p-4 bg-slate-700/50 border border-slate-600/50 rounded-lg">
                     <div class="flex items-center justify-between">
                         <div>
-                            <h3 class="font-semibold text-slate-200 mb-1">Usar Imagem Personalizada</h3>
+                            <h3 class="df-section-heading font-semibold text-slate-200 mb-1">
+                                <i data-lucide="image-plus" class="df-icon text-df-primary" aria-hidden="true"></i>
+                                <span>Usar Imagem Personalizada</span>
+                            </h3>
                             <p class="text-sm text-slate-400">Envie sua própria arte para esta carta</p>
                         </div>
-                        <label for="custom-image-upload" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg cursor-pointer transition-colors duration-200 flex items-center space-x-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                            </svg>
+                        <label for="custom-image-upload" class="bg-df-primary hover:bg-df-primary-dark text-df-bg px-4 py-2 rounded-lg cursor-pointer transition-colors duration-200 flex items-center space-x-2">
+                            <i data-lucide="upload" class="df-icon" aria-hidden="true"></i>
                             <span>Escolher Imagem</span>
                         </label>
                         <input type="file" id="custom-image-upload" accept="image/*" class="hidden">
@@ -527,13 +953,14 @@
                 <div id="upload-back-section" class="mt-4 p-4 bg-slate-700/50 border border-slate-600/50 rounded-lg hidden">
                     <div class="flex items-center justify-between">
                         <div>
-                            <h3 class="font-semibold text-slate-200 mb-1">Arte do Verso</h3>
+                            <h3 class="df-section-heading font-semibold text-slate-200 mb-1">
+                                <i data-lucide="rotate-ccw" class="df-icon text-df-primary" aria-hidden="true"></i>
+                                <span>Arte do Verso</span>
+                            </h3>
                             <p class="text-sm text-slate-400">Envie a arte do verso para cartas dupla-face</p>
                         </div>
                         <label for="custom-image-upload-back" class="bg-slate-600 hover:bg-slate-500 text-white px-4 py-2 rounded-lg cursor-pointer transition-colors duration-200 flex items-center space-x-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                            </svg>
+                            <i data-lucide="upload" class="df-icon" aria-hidden="true"></i>
                             <span>Escolher Verso</span>
                         </label>
                         <input type="file" id="custom-image-upload-back" accept="image/*" class="hidden">
@@ -550,9 +977,7 @@
                 <!-- Erro -->
                 <div id="modal-error" class="text-center py-8 hidden">
                     <div class="text-red-500 mb-2">
-                        <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
+                        <i data-lucide="circle-alert" class="w-12 h-12 mx-auto" aria-hidden="true"></i>
                     </div>
                     <p class="text-gray-600">Nenhuma arte encontrada para esta carta.</p>
                 </div>
@@ -564,9 +989,12 @@
 <div id="global-back-modal" class="fixed inset-0 bg-black/80 hidden z-[9999] flex items-center justify-center backdrop-blur-sm">
     <div class="bg-slate-800 rounded-xl w-full max-w-2xl border border-slate-600 shadow-2xl flex flex-col max-h-[90vh]">
         <div class="flex justify-between items-center p-4 border-b border-slate-700 bg-slate-800/50 rounded-t-xl">
-            <h3 class="text-xl font-bold text-white">Escolher Verso Padrão</h3>
+            <h3 class="df-section-heading text-xl font-bold text-white">
+                <i data-lucide="rotate-ccw" class="df-icon-lg text-df-primary" aria-hidden="true"></i>
+                <span>Escolher Verso Padrão</span>
+            </h3>
             <button id="close-global-back-modal" class="text-slate-400 hover:text-white transition-colors">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <i data-lucide="x" class="w-6 h-6" aria-hidden="true"></i>
             </button>
         </div>
         
@@ -574,59 +1002,59 @@
             <p class="text-slate-300 mb-4 text-sm">Esta arte será usada como o verso de todas as cartas no modo Dupla Face (a menos que a carta seja uma DFC nativa).</p>
             
             <div class="grid grid-cols-2 md:grid-cols-3 gap-4" id="global-back-options">
-<div class="back-option-card cursor-pointer border-4 border-purple-500 rounded-xl overflow-hidden transition-all shadow-lg aspect-[63/88] relative group" data-url="https://i.postimg.cc/P5g4Hbnb/Fundo-0.jpg">
+<div class="back-option-card cursor-pointer border-4 border-df-primary rounded-xl overflow-hidden transition-all shadow-lg aspect-[63/88] relative group" data-url="https://i.postimg.cc/P5g4Hbnb/Fundo-0.jpg">
     <img src="https://i.postimg.cc/P5g4Hbnb/Fundo-0.jpg" class="w-full h-full object-fill" alt="Fundo 0">
-    <div class="selected-overlay absolute inset-0 bg-purple-600/20 flex items-center justify-center">
-        <div class="bg-purple-600 text-white rounded-full p-1"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"></path></svg></div>
+    <div class="selected-overlay absolute inset-0 bg-df-primary/20 flex items-center justify-center">
+        <div class="bg-df-primary text-df-bg rounded-full p-1"><i data-lucide="check" class="w-6 h-6" aria-hidden="true"></i></div>
     </div>
 </div>
 
-<div class="back-option-card cursor-pointer border-4 border-transparent hover:border-purple-400 rounded-xl overflow-hidden transition-all shadow-lg aspect-[63/88] relative group" data-url="https://i.postimg.cc/3xsBhjQ9/Fundo-1.jpg">
+<div class="back-option-card cursor-pointer border-4 border-transparent hover:border-df-primary rounded-xl overflow-hidden transition-all shadow-lg aspect-[63/88] relative group" data-url="https://i.postimg.cc/3xsBhjQ9/Fundo-1.jpg">
     <img src="https://i.postimg.cc/3xsBhjQ9/Fundo-1.jpg" class="w-full h-full object-fill" alt="Fundo 1">
-    <div class="selected-overlay hidden absolute inset-0 bg-purple-600/20 flex items-center justify-center">
-        <div class="bg-purple-600 text-white rounded-full p-1"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"></path></svg></div>
+    <div class="selected-overlay hidden absolute inset-0 bg-df-primary/20 flex items-center justify-center">
+        <div class="bg-df-primary text-df-bg rounded-full p-1"><i data-lucide="check" class="w-6 h-6" aria-hidden="true"></i></div>
     </div>
 </div>
 
-<div class="back-option-card cursor-pointer border-4 border-transparent hover:border-purple-400 rounded-xl overflow-hidden transition-all shadow-lg aspect-[63/88] relative group" data-url="https://i.postimg.cc/L8cTSkFy/Fundo-2.webp">
+<div class="back-option-card cursor-pointer border-4 border-transparent hover:border-df-primary rounded-xl overflow-hidden transition-all shadow-lg aspect-[63/88] relative group" data-url="https://i.postimg.cc/L8cTSkFy/Fundo-2.webp">
     <img src="https://i.postimg.cc/L8cTSkFy/Fundo-2.webp" class="w-full h-full object-fill" alt="Fundo 2">
-    <div class="selected-overlay hidden absolute inset-0 bg-purple-600/20 flex items-center justify-center">
-        <div class="bg-purple-600 text-white rounded-full p-1"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"></path></svg></div>
+    <div class="selected-overlay hidden absolute inset-0 bg-df-primary/20 flex items-center justify-center">
+        <div class="bg-df-primary text-df-bg rounded-full p-1"><i data-lucide="check" class="w-6 h-6" aria-hidden="true"></i></div>
     </div>
 </div>
 
-<div class="back-option-card cursor-pointer border-4 border-transparent hover:border-purple-400 rounded-xl overflow-hidden transition-all shadow-lg aspect-[63/88] relative group" data-url="https://i.postimg.cc/13kHS01v/Fundo-3.jpg">
+<div class="back-option-card cursor-pointer border-4 border-transparent hover:border-df-primary rounded-xl overflow-hidden transition-all shadow-lg aspect-[63/88] relative group" data-url="https://i.postimg.cc/13kHS01v/Fundo-3.jpg">
     <img src="https://i.postimg.cc/13kHS01v/Fundo-3.jpg" class="w-full h-full object-fill" alt="Fundo 3">
-    <div class="selected-overlay hidden absolute inset-0 bg-purple-600/20 flex items-center justify-center">
-        <div class="bg-purple-600 text-white rounded-full p-1"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"></path></svg></div>
+    <div class="selected-overlay hidden absolute inset-0 bg-df-primary/20 flex items-center justify-center">
+        <div class="bg-df-primary text-df-bg rounded-full p-1"><i data-lucide="check" class="w-6 h-6" aria-hidden="true"></i></div>
     </div>
 </div>
 
-<div class="back-option-card cursor-pointer border-4 border-transparent hover:border-purple-400 rounded-xl overflow-hidden transition-all shadow-lg aspect-[63/88] relative group" data-url="https://i.postimg.cc/L8cTSkFT/Fundo-4.png">
+<div class="back-option-card cursor-pointer border-4 border-transparent hover:border-df-primary rounded-xl overflow-hidden transition-all shadow-lg aspect-[63/88] relative group" data-url="https://i.postimg.cc/L8cTSkFT/Fundo-4.png">
     <img src="https://i.postimg.cc/L8cTSkFT/Fundo-4.png" class="w-full h-full object-fill" alt="Fundo 4">
-    <div class="selected-overlay hidden absolute inset-0 bg-purple-600/20 flex items-center justify-center">
-        <div class="bg-purple-600 text-white rounded-full p-1"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"></path></svg></div>
+    <div class="selected-overlay hidden absolute inset-0 bg-df-primary/20 flex items-center justify-center">
+        <div class="bg-df-primary text-df-bg rounded-full p-1"><i data-lucide="check" class="w-6 h-6" aria-hidden="true"></i></div>
     </div>
 </div>
 
-<div id="custom-back-slot" class="hidden back-option-card cursor-pointer border-4 border-transparent hover:border-purple-400 rounded-xl overflow-hidden transition-all shadow-lg aspect-[63/88] relative group" data-url="">
+<div id="custom-back-slot" class="hidden back-option-card cursor-pointer border-4 border-transparent hover:border-df-primary rounded-xl overflow-hidden transition-all shadow-lg aspect-[63/88] relative group" data-url="">
     <img id="custom-back-preview-img" src="" class="w-full h-full object-fill" alt="Verso">
-    <div class="selected-overlay hidden absolute inset-0 bg-purple-600/20 flex items-center justify-center">
-        <div class="bg-purple-600 text-white rounded-full p-1"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"></path></svg></div>
+    <div class="selected-overlay hidden absolute inset-0 bg-df-primary/20 flex items-center justify-center">
+        <div class="bg-df-primary text-df-bg rounded-full p-1"><i data-lucide="check" class="w-6 h-6" aria-hidden="true"></i></div>
     </div>
 </div>
             </div>
         </div>
 
         <div class="p-4 border-t border-slate-700 bg-slate-800/50 rounded-b-xl space-y-3">
-            <label for="global-back-upload-modal" class="flex items-center justify-center w-full bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-3 rounded-lg cursor-pointer transition-colors shadow-lg font-medium">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+            <label for="global-back-upload-modal" class="flex items-center justify-center w-full bg-df-success hover:bg-df-success-dark text-df-bg px-4 py-3 rounded-lg cursor-pointer transition-colors shadow-lg font-medium">
+                <i data-lucide="upload" class="df-icon-lg mr-2" aria-hidden="true"></i>
                 <span>Fazer Upload de Verso Customizado</span>
             </label>
             <input type="file" id="global-back-upload-modal" accept="image/*" class="hidden">
             
-            <button id="confirm-global-back-selection" class="flex items-center justify-center w-full bg-purple-600 hover:bg-purple-500 text-white px-4 py-3 rounded-lg transition-colors shadow-lg font-medium">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            <button id="confirm-global-back-selection" class="flex items-center justify-center w-full bg-df-primary hover:bg-df-primary-dark text-df-bg px-4 py-3 rounded-lg transition-colors shadow-lg font-medium">
+                <i data-lucide="check" class="df-icon-lg mr-2" aria-hidden="true"></i>
                 <span>Confirmar Seleção</span>
             </button>
         </div>
@@ -642,18 +1070,13 @@
                 class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors duration-200"
                 onclick="window.deckFillApp.hideProgressModal()"
             >
-                <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
+                <i data-lucide="x" class="df-icon text-gray-600" aria-hidden="true"></i>
             </button>
             
             <!-- Header -->
             <div class="text-center mb-6">
                 <div class="inline-flex items-center justify-center w-12 h-12 bg-mtg-blue rounded-full mb-4">
-                    <svg class="animate-spin h-6 w-6 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-</svg>
+                    <i data-lucide="loader-circle" class="animate-spin h-6 w-6 text-df-primary" aria-hidden="true"></i>
                 </div>
                 <h2 class="text-xl font-bold text-gray-800">Gerando seu PDF...</h2>
             </div>
@@ -672,23 +1095,24 @@
             <!-- Status Messages -->
             <div class="space-y-2 text-sm">
                 <div class="flex items-center space-x-2">
-                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <i data-lucide="activity" class="df-icon-sm text-df-success animate-pulse" aria-hidden="true"></i>
                     <span id="progress-status" class="text-gray-700">Status: Iniciando...</span>
                 </div>
                 <div class="flex items-center space-x-2">
-                    <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <i data-lucide="layers" class="df-icon-sm text-df-primary" aria-hidden="true"></i>
                     <span id="progress-cards" class="text-gray-600">Carta: 0 de 0</span>
                 </div>
                 <div class="flex items-center space-x-2">
-                    <div class="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    <i data-lucide="file-stack" class="df-icon-sm text-df-primary" aria-hidden="true"></i>
                     <span id="progress-pages" class="text-gray-600">Página atual: 0</span>
                 </div>
             </div>
             
             <!-- Cancel Button -->
             <div class="mt-6 text-center">
-                <button id="progress-cancel-btn" class="text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors">
-                    Cancelar
+                <button id="progress-cancel-btn" class="text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors inline-flex items-center gap-2">
+                    <i data-lucide="ban" class="df-icon-sm" aria-hidden="true"></i>
+                    <span>Cancelar</span>
                 </button>
             </div>
         </div>
@@ -698,13 +1122,21 @@
     <footer class="bg-gray-800 text-white mt-12">
         <div class="container mx-auto px-4 py-6">
             <div class="flex flex-col md:flex-row justify-between items-center">
-                <div class="mb-4 md:mb-0">
-                    <p class="text-gray-400">Deck Fill © 2026 - Criado para a comunidade Magic</p>
+                <div class="mb-4 md:mb-0 flex items-center gap-3">
+                    <div class="df-brand-mark !w-9 !h-9" aria-hidden="true">
+                        <svg viewBox="0 0 48 48" role="img">
+                            <path class="df-logo-card-back" d="M10 16.5 28 11c2.4-.7 4.8.7 5.5 3.1l4.2 14.3c.7 2.4-.7 4.8-3.1 5.5l-18 5.4c-2.4.7-4.8-.7-5.5-3.1L6.9 21.9c-.7-2.4.7-4.8 3.1-5.4Z"/>
+                            <rect class="df-logo-card" x="15" y="8" width="22" height="32" rx="4.8" transform="rotate(4 26 24)"/>
+                            <path class="df-logo-spark" d="M25.9 17.2 29 23.7l6.3 3.1-6.3 3.1-3.1 6.5-3.1-6.5-6.3-3.1 6.3-3.1 3.1-6.5Z"/>
+                            <path class="df-logo-crop" d="M9 11h6M9 11v6M39 31v6M39 37h-6"/>
+                        </svg>
+                    </div>
+                    <p class="text-gray-400">Deck Fill © 2026 - Criado para a comunidade multi-TCG</p>
                 </div>
-                <div class="flex space-x-6 text-gray-400 text-sm">
-                    <span>Base de dados: 109.762 cartas</span>
+                <div class="flex flex-wrap items-center gap-4 text-gray-400 text-sm">
+                    <span class="inline-flex items-center gap-2"><i data-lucide="database" class="df-icon-sm text-df-primary" aria-hidden="true"></i>Base local multi-TCG</span>
                     <span>•</span>
-                    <span>Powered by Scryfall</span>
+                    <span class="inline-flex items-center gap-2"><i data-lucide="sparkles" class="df-icon-sm text-df-accent" aria-hidden="true"></i>Powered by Scryfall, Pokemon TCG API e YGOPRODeck</span>
                 </div>
             </div>
         </div>
@@ -735,11 +1167,12 @@
         <div class="bg-slate-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden border border-slate-700">
             <!-- Header -->
             <div class="bg-slate-900 text-slate-200 p-4 flex justify-between items-center border-b border-slate-700">
-                <h2 class="text-xl font-bold">Apoie o Deck Fill & Próximos Passos</h2>
+                <h2 class="df-section-heading text-xl font-bold">
+                    <i data-lucide="heart-handshake" class="df-icon-lg text-df-primary" aria-hidden="true"></i>
+                    <span>Apoie o Deck Fill & Próximos Passos</span>
+                </h2>
                 <button id="close-about-modal" class="text-slate-300 hover:text-slate-100 transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
+                    <i data-lucide="x" class="w-6 h-6" aria-hidden="true"></i>
                 </button>
             </div>
             
@@ -754,35 +1187,25 @@
 
                 <!-- Roadmap -->
                 <div class="mb-6">
-                    <h3 class="text-lg font-semibold text-slate-200 mb-3 flex items-center">
-                        <svg class="w-5 h-5 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                        </svg>
-                        Futuras Funcionalidades
+                    <h3 class="df-section-heading text-lg font-semibold text-slate-200 mb-3">
+                        <i data-lucide="map" class="df-icon-lg text-df-primary" aria-hidden="true"></i>
+                        <span>Futuras Funcionalidades</span>
                     </h3>
                     <ul class="space-y-2 text-slate-300">
                         <li class="flex items-start">
-                            <svg class="w-4 h-4 mr-2 text-emerald-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                            </svg>
+                            <i data-lucide="circle-check" class="df-icon mr-2 text-df-success mt-0.5 flex-shrink-0" aria-hidden="true"></i>
                             Suporte para Pokémon TCG
                         </li>
                         <li class="flex items-start">
-                            <svg class="w-4 h-4 mr-2 text-emerald-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                            </svg>
+                            <i data-lucide="circle-check" class="df-icon mr-2 text-df-success mt-0.5 flex-shrink-0" aria-hidden="true"></i>
                             Suporte para Yu-Gi-Oh!
                         </li>
                         <li class="flex items-start">
-                            <svg class="w-4 h-4 mr-2 text-emerald-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                            </svg>
+                            <i data-lucide="circle-check" class="df-icon mr-2 text-df-success mt-0.5 flex-shrink-0" aria-hidden="true"></i>
                             Galeria de Artes da Comunidade
                         </li>
                         <li class="flex items-start">
-                            <svg class="w-4 h-4 mr-2 text-emerald-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                            </svg>
+                            <i data-lucide="circle-check" class="df-icon mr-2 text-df-success mt-0.5 flex-shrink-0" aria-hidden="true"></i>
                             Novos layouts de impressão
                         </li>
                     </ul>
@@ -790,20 +1213,18 @@
 
                 <!-- Contato -->
                 <div class="mb-6">
-                    <h3 class="text-lg font-semibold text-slate-200 mb-3 flex items-center">
-                        <svg class="w-5 h-5 mr-2 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                        </svg>
-                        Conecte-se Comigo
+                    <h3 class="df-section-heading text-lg font-semibold text-slate-200 mb-3">
+                        <i data-lucide="send" class="df-icon-lg text-df-primary" aria-hidden="true"></i>
+                        <span>Conecte-se Comigo</span>
                     </h3>
                     <div class="flex flex-wrap gap-3">
-                        <a href="https://www.linkedin.com/in/gabriel-lourenco-ab7893273/" target="_blank" class="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors">
+                        <a href="https://www.linkedin.com/in/gabriel-lourenco-ab7893273/" target="_blank" class="flex items-center gap-2 px-4 py-2 bg-df-primary hover:bg-df-primary-dark text-df-bg rounded-lg transition-colors">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
                             </svg>
                             LinkedIn
                         </a>
-                        <a href="https://github.com/Gabriel-Oliviera42" target="_blank" class="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors">
+                        <a href="https://github.com/Gabriel-Oliviera42" target="_blank" class="flex items-center gap-2 px-4 py-2 bg-df-raised hover:bg-df-line text-df-text rounded-lg transition-colors">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                             </svg>
@@ -814,11 +1235,9 @@
 
                 <!-- Área PIX -->
                 <div class="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
-                    <h3 class="text-lg font-semibold text-slate-200 mb-3 flex items-center">
-                        <svg class="w-5 h-5 mr-2 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                        </svg>
-                        Apoie com Pix
+                    <h3 class="df-section-heading text-lg font-semibold text-slate-200 mb-3">
+                        <i data-lucide="wallet" class="df-icon-lg text-df-primary" aria-hidden="true"></i>
+                        <span>Apoie com Pix</span>
                     </h3>
                     <div class="space-y-3">
                         <div class="flex items-center gap-2">
@@ -831,9 +1250,10 @@
                             >
                             <button 
                                 id="copy-pix-btn" 
-                                class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors font-medium"
+                                class="px-4 py-2 bg-df-success hover:bg-df-success-dark text-df-bg rounded-lg transition-colors font-medium inline-flex items-center gap-2"
                             >
-                                Copiar Chave
+                                <i data-lucide="copy" class="df-icon" aria-hidden="true"></i>
+                                <span>Copiar Chave</span>
                             </button>
                         </div>
                         <p class="text-xs text-slate-400">
@@ -883,15 +1303,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 const originalText = btnCopyPix.innerHTML;
                 
                 // Muda a cor e o texto para dar feedback ao usuário
-                btnCopyPix.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
-                btnCopyPix.classList.add('bg-purple-600', 'hover:bg-purple-700');
-                btnCopyPix.innerHTML = '✅ Chave Copiada!';
+                btnCopyPix.classList.remove('bg-df-success', 'hover:bg-df-success-dark');
+                btnCopyPix.classList.add('bg-df-primary', 'hover:bg-df-primary-dark');
+                btnCopyPix.innerHTML = '<i data-lucide="check" class="df-icon" aria-hidden="true"></i><span>Chave Copiada!</span>';
+                AppConfig.refreshIcons?.();
                 
                 // Volta ao normal depois de 2 segundos
                 setTimeout(() => {
-                    btnCopyPix.classList.remove('bg-purple-600', 'hover:bg-purple-700');
-                    btnCopyPix.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
+                    btnCopyPix.classList.remove('bg-df-primary', 'hover:bg-df-primary-dark');
+                    btnCopyPix.classList.add('bg-df-success', 'hover:bg-df-success-dark');
                     btnCopyPix.innerHTML = originalText;
+                    AppConfig.refreshIcons?.();
                 }, 2000);
             }).catch(err => {
                 console.error('Erro ao copiar Pix: ', err);

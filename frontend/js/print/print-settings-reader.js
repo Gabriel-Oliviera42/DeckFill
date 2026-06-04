@@ -15,7 +15,7 @@ function readRawPrintSettings() {
     cropMarks: Boolean(elements.cropMarks?.checked),
     blackCorners: Boolean(elements.blackCorners?.checked),
     bleed: Boolean(elements.bleed?.checked),
-    guideColor: elements.guideColor?.value || "#f97316",
+    guideColor: elements.guideColor?.value || "#E7B650",
 
     skipBasicLands: Boolean(elements.skipBasicLands?.checked),
 

@@ -84,11 +84,10 @@ async function generatePDF() {
   const originalText = elements.generatePdfBtn.innerHTML;
   elements.generatePdfBtn.disabled = true;
   elements.generatePdfBtn.innerHTML = `
-        <svg class="animate-spin w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-        </svg>
+        <i data-lucide="loader-circle" class="animate-spin df-icon" aria-hidden="true"></i>
         <span>Gerando PDF...</span>
     `;
+  AppConfig.refreshIcons?.();
 
   try {
     // === SISTEMA DE DEBUG AVANÇADO ===
@@ -492,11 +491,25 @@ function getPdfFetchableImageUrl(imageUrl) {
     return imageUrl;
   }
 
+  if (imageUrl.includes("/image-proxy?url=")) {
+    return imageUrl;
+  }
+
   const shouldProxy =
     imageUrl.includes("images.ygoprodeck.com") ||
     imageUrl.includes("images.pokemontcg.io") ||
     imageUrl.includes("images.scrydex.com") ||
     imageUrl.includes("cards.scryfall.io") ||
+    imageUrl.includes("cards.lorcast.io") ||
+    imageUrl.includes("optcgapi.com") ||
+    imageUrl.includes("onepiece-cardgame.com") ||
+    imageUrl.includes("storage.googleapis.com") ||
+    imageUrl.includes("dhhim4ltzu1pj.cloudfront.net") ||
+    imageUrl.includes("d2wlb52bya4y8z.cloudfront.net") ||
+    imageUrl.includes("legendstory-production-s3-public.s3.amazonaws.com") ||
+    imageUrl.includes("fabtcg.com") ||
+    imageUrl.includes("drive.google.com") ||
+    imageUrl.includes("lh3.googleusercontent.com") ||
     imageUrl.includes("i.postimg.cc") ||
     imageUrl.includes("upload.wikimedia.org");
 
@@ -555,6 +568,9 @@ async function drawCardImageOnPdf({
   if (bleedSize > 0) {
     console.log(`🩸 Aplicando sangria de ${bleedSize}mm em: ${cardName}`);
     dataUrl = await processImageWithBleed(blob, bleedSize);
+  } else if (!isPdfNativeImageBlob(blob)) {
+    console.log(`Convertendo imagem externa para JPEG: ${cardName}`);
+    dataUrl = await blobToJpegDataUrl(blob);
   } else {
     console.log(`🖼️ Processando imagem normal: ${cardName}`);
     dataUrl = await blobToDataUrl(blob);
@@ -617,5 +633,43 @@ function blobToDataUrl(blob) {
     reader.onload = () => resolve(reader.result);
     reader.onerror = reject;
     reader.readAsDataURL(blob);
+  });
+}
+
+function isPdfNativeImageBlob(blob) {
+  const mime = (blob?.type || "").toLowerCase();
+  return mime === "image/jpeg" || mime === "image/jpg" || mime === "image/png";
+}
+
+function blobToJpegDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    const objectUrl = URL.createObjectURL(blob);
+
+    image.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = image.naturalWidth || image.width;
+        canvas.height = image.naturalHeight || image.height;
+
+        const context = canvas.getContext("2d");
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+        URL.revokeObjectURL(objectUrl);
+        resolve(canvas.toDataURL("image/jpeg", 0.95));
+      } catch (error) {
+        URL.revokeObjectURL(objectUrl);
+        reject(error);
+      }
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Failed to decode external image for PDF"));
+    };
+
+    image.src = objectUrl;
   });
 }

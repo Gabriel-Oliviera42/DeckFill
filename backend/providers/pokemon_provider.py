@@ -1,56 +1,146 @@
-"""
-Pokémon Provider
+"""Pokemon provider."""
 
-Primeira versão básica:
-- parseia decklists simples
-- busca cartas na Pokémon TCG API v2
-- normaliza a resposta para o formato atual do DeckFill
-
-Observação:
-Esta versão ainda não usa cache local. Para produção, o ideal é criar cache/DB
-ou aceitar uma API key para melhorar limites.
-"""
+from __future__ import annotations
 
 from functools import lru_cache
+import json
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
+from fastapi import HTTPException
+
+from providers import local_tcg_db
 
 
 POKEMON_TCG_API_URL = "https://api.pokemontcg.io/v2/cards"
+POKEMON_DB_FILE = "pokemon_cards.db"
+
+POKEMON_SECTION_HEADERS = {
+    "pokemon",
+    "pokémon",
+    "pok?mon",
+    "trainer",
+    "trainers",
+    "trainer cards",
+    "energy",
+    "energies",
+    "energy cards",
+}
+
+POKEMON_SET_CODE_ALIASES = {
+    "SSH": "SWSH1",
+    "RCL": "SWSH2",
+    "DAA": "SWSH3",
+    "CPA": "SWSH35",
+    "VIV": "SWSH4",
+    "SHF": "SWSH45",
+    "BST": "SWSH5",
+    "CRE": "SWSH6",
+    "EVS": "SWSH7",
+    "CEL": "CEL25",
+    "FST": "SWSH8",
+    "BRS": "SWSH9",
+    "ASR": "SWSH10",
+    "PGO": "PGO",
+    "LOR": "SWSH11",
+    "SIT": "SWSH12",
+    "CRZ": "SWSH12PT5",
+    "SVI": "SV1",
+    "PAL": "SV2",
+    "OBF": "SV3",
+    "MEW": "SV3PT5",
+    "PAR": "SV4",
+    "PAF": "SV4PT5",
+    "TEF": "SV5",
+    "TWM": "SV6",
+    "SFA": "SV6PT5",
+    "SCR": "SV7",
+    "SSP": "SV8",
+    "PRE": "SV8PT5",
+    "JTG": "SV9",
+    "DRI": "SV10",
+}
+
+
+def normalize_pokemon_set_hint(set_code: Optional[str]) -> Optional[str]:
+    if not set_code:
+        return None
+
+    normalized = set_code.strip().upper()
+    return POKEMON_SET_CODE_ALIASES.get(normalized, normalized)
+
+
+def get_lookup_key(parsed_card: Dict[str, Any]) -> str:
+    return parsed_card.get("lookup_key") or "|".join([
+        str(parsed_card.get("name") or "").strip().casefold(),
+        str(parsed_card.get("set_code") or "").strip().casefold(),
+        str(parsed_card.get("collector_number") or "").strip().casefold(),
+    ])
+
+
+def should_ignore_pokemon_line(line: str) -> bool:
+    normalized = line.strip().strip(":").casefold()
+    return normalized in POKEMON_SECTION_HEADERS
+
+
+def extract_pokemon_printing_hint(card_name: str) -> Tuple[str, Optional[str], Optional[str]]:
+    card_name = re.sub(r"\s+", " ", card_name).strip()
+
+    patterns = [
+        re.compile(
+            r"^(?P<name>.+?)\s*[\(\[]\s*(?P<set>[A-Za-z0-9]{2,10})\s*(?:#|/|-)?\s*(?P<number>[A-Za-z0-9/-]+)\s*[\)\]]\s*$",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"^(?P<name>.+?)\s*[\(\[]\s*(?P<set>[A-Za-z0-9]{2,10})\s*[\)\]]\s*#?\s*(?P<number>[A-Za-z0-9/-]+)\s*$",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"^(?P<name>.+?)\s+(?P<set>[A-Z0-9]{2,10})\s+#?(?P<number>[A-Za-z0-9/-]+)\s*$",
+        ),
+    ]
+
+    for pattern in patterns:
+        match = pattern.match(card_name)
+        if match:
+            return (
+                match.group("name").strip(),
+                normalize_pokemon_set_hint(match.group("set")),
+                match.group("number").strip(),
+            )
+
+    return card_name, None, None
 
 
 def parse_decklist(decklist: str) -> Tuple[List[Dict[str, Any]], List[str]]:
     """
-    Parse simples de decklist de Pokémon.
+    Parse de decklist Pokemon.
 
     Suporta:
     - "4 Pikachu"
-    - "1x Charizard"
-    - "Professor's Research"
+    - "1x Charizard ex"
+    - "1 Buddy-Buddy Poffin TEF 144"
+    - "1 Charizard ex (PAF #54)"
     """
-    cards = []
-    errors = []
+    cards: List[Dict[str, Any]] = []
+    errors: List[str] = []
 
     patterns = [
         r"^\s*(\d+)\s*[xX]?\s+(.+?)\s*$",
         r"^\s*(.+?)\s*$",
     ]
 
-    lines = decklist.strip().split("\n")
+    for line_num, raw_line in enumerate(decklist.strip().split("\n"), 1):
+        line = raw_line.strip().rstrip(".")
 
-    for line_num, line in enumerate(lines, 1):
-        line = line.strip().rstrip(".")
-
-        if not line or line.startswith("//") or line.startswith("#"):
+        if not line or line.startswith("//") or line.startswith("#") or should_ignore_pokemon_line(line):
             continue
 
         card_found = False
 
         for pattern in patterns:
             match = re.match(pattern, line, re.IGNORECASE)
-
             if not match:
                 continue
 
@@ -64,12 +154,14 @@ def parse_decklist(decklist: str) -> Tuple[List[Dict[str, Any]], List[str]]:
                     quantity = 1
                     card_name = groups[0].strip()
 
-                card_name = re.sub(r"\s+", " ", card_name).strip()
+                card_name, set_code, collector_number = extract_pokemon_printing_hint(card_name)
 
                 if quantity > 0 and card_name:
                     cards.append({
                         "quantity": quantity,
                         "name": card_name,
+                        "set_code": set_code,
+                        "collector_number": collector_number,
                         "line_number": line_num,
                     })
                     card_found = True
@@ -80,15 +172,12 @@ def parse_decklist(decklist: str) -> Tuple[List[Dict[str, Any]], List[str]]:
                 break
 
         if not card_found:
-            errors.append(f"Linha {line_num}: Formato não reconhecido - {line}")
+            errors.append(f"Linha {line_num}: Formato nao reconhecido - {line}")
 
     return cards, errors
 
 
 def escape_pokemon_query_value(value: str) -> str:
-    """
-    Escapa aspas para uso básico no parâmetro q da Pokémon TCG API.
-    """
     return value.replace('"', '\\"')
 
 
@@ -96,22 +185,14 @@ def pick_best_pokemon_match(
     cards: List[Dict[str, Any]],
     requested_name: str,
 ) -> Optional[Dict[str, Any]]:
-    """
-    Escolhe o melhor resultado para uma busca de Pokémon.
-
-    Preferência:
-    1. Nome exatamente igual ao digitado.
-    2. Nome começa com o digitado.
-    3. Primeiro resultado retornado pela API.
-    """
     if not cards:
         return None
 
-    normalized_requested = requested_name.lower().strip()
+    normalized_requested = requested_name.casefold().strip()
 
     exact_matches = [
         card for card in cards
-        if (card.get("name") or "").lower().strip() == normalized_requested
+        if (card.get("name") or "").casefold().strip() == normalized_requested
     ]
 
     if exact_matches:
@@ -119,7 +200,7 @@ def pick_best_pokemon_match(
 
     starts_with_matches = [
         card for card in cards
-        if (card.get("name") or "").lower().strip().startswith(normalized_requested)
+        if (card.get("name") or "").casefold().strip().startswith(normalized_requested)
     ]
 
     if starts_with_matches:
@@ -127,13 +208,11 @@ def pick_best_pokemon_match(
 
     return cards[0]
 
+
 @lru_cache(maxsize=512)
 def fetch_pokemon_card_by_name(card_name: str) -> Optional[Dict[str, Any]]:
     """
-    Busca carta por nome na Pokémon TCG API.
-
-    Primeiro tenta nome exato.
-    Se não achar, tenta busca aproximada por wildcard.
+    Fallback externo para desenvolvimento quando pokemon_cards.db ainda nao existe.
     """
     try:
         safe_name = escape_pokemon_query_value(card_name)
@@ -149,8 +228,7 @@ def fetch_pokemon_card_by_name(card_name: str) -> Optional[Dict[str, Any]]:
         )
 
         if exact_response.status_code == 200:
-            data = exact_response.json()
-            cards = data.get("data", [])
+            cards = exact_response.json().get("data", [])
             best_match = pick_best_pokemon_match(cards, card_name)
 
             if best_match:
@@ -167,8 +245,7 @@ def fetch_pokemon_card_by_name(card_name: str) -> Optional[Dict[str, Any]]:
         )
 
         if fuzzy_response.status_code == 200:
-            data = fuzzy_response.json()
-            cards = data.get("data", [])
+            cards = fuzzy_response.json().get("data", [])
             best_match = pick_best_pokemon_match(cards, card_name)
 
             if best_match:
@@ -177,28 +254,26 @@ def fetch_pokemon_card_by_name(card_name: str) -> Optional[Dict[str, Any]]:
         return None
 
     except requests.RequestException as exc:
-        print(f"Erro ao buscar Pokémon card '{card_name}': {exc}")
+        print(f"Erro ao buscar Pokemon card '{card_name}': {exc}")
         return None
 
 
 def normalize_pokemon_card(card: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Converte uma carta da Pokémon TCG API para o formato CardResponse atual.
-    """
     card_id = str(card.get("id") or "")
-    name = card.get("name") or "Unknown Pokémon Card"
+    name = card.get("name") or "Unknown Pokemon Card"
 
     images = card.get("images") or {}
     set_info = card.get("set") or {}
 
     image_small = images.get("small")
     image_large = images.get("large") or image_small
+    set_code = set_info.get("ptcgoCode") or set_info.get("id") or "PKM"
 
     supertype = card.get("supertype")
     subtypes = card.get("subtypes") or []
     types = card.get("types") or []
 
-    type_parts = []
+    type_parts: List[str] = []
     if supertype:
         type_parts.append(supertype)
     if subtypes:
@@ -208,27 +283,35 @@ def normalize_pokemon_card(card: Dict[str, Any]) -> Dict[str, Any]:
 
     type_line = " - ".join(type_parts) if type_parts else None
 
-    rules = card.get("rules") or []
-    attacks = card.get("attacks") or []
-
-    text_parts = []
+    text_parts: List[str] = []
 
     if card.get("flavorText"):
         text_parts.append(card["flavorText"])
 
-    for rule in rules:
+    for rule in card.get("rules") or []:
         text_parts.append(rule)
 
-    for attack in attacks:
-        attack_name = attack.get("name")
+    for ability in card.get("abilities") or []:
+        ability_name = ability.get("name") or "Ability"
+        ability_text = ability.get("text")
+        ability_type = ability.get("type")
+        ability_line = ability_name
+
+        if ability_type:
+            ability_line += f" ({ability_type})"
+        if ability_text:
+            ability_line += f": {ability_text}"
+
+        text_parts.append(ability_line)
+
+    for attack in card.get("attacks") or []:
+        attack_name = attack.get("name") or "Attack"
         attack_text = attack.get("text")
         attack_damage = attack.get("damage")
-
-        attack_line = attack_name or "Attack"
+        attack_line = attack_name
 
         if attack_damage:
             attack_line += f" ({attack_damage})"
-
         if attack_text:
             attack_line += f": {attack_text}"
 
@@ -238,15 +321,15 @@ def normalize_pokemon_card(card: Dict[str, Any]) -> Dict[str, Any]:
 
     return {
         "id": f"pokemon-{card_id}",
-        "oracle_id": card_id or None,
+        "oracle_id": f"pokemon:{local_tcg_db.normalize_text(name)}",
 
         "name": name,
         "printed_name": None,
         "lang": "en",
         "layout": "normal",
 
-        "set_code": set_info.get("id") or "PKM",
-        "set_name": set_info.get("name") or "Pokémon TCG",
+        "set_code": str(set_code).upper(),
+        "set_name": set_info.get("name") or "Pokemon TCG",
         "collector_number": str(card.get("number") or card_id or "unknown"),
         "released_at": set_info.get("releaseDate"),
         "rarity": card.get("rarity"),
@@ -271,23 +354,93 @@ def normalize_pokemon_card(card: Dict[str, Any]) -> Dict[str, Any]:
         "back_printed_text": None,
 
         "all_parts_json": None,
-        "card_faces_json": None,
+        "card_faces_json": json.dumps([card], ensure_ascii=False),
     }
 
 
+def get_set_aliases(card: Dict[str, Any]) -> List[Optional[str]]:
+    set_info = card.get("set") or {}
+    return [
+        set_info.get("id"),
+        set_info.get("ptcgoCode"),
+        set_info.get("name"),
+        set_info.get("series"),
+    ]
+
+
 def search_cards(parsed_cards: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
-    """
-    Busca cartas de Pokémon na API externa e retorna no formato esperado pelo main.py.
-    """
-    results = {}
+    if local_tcg_db.database_exists(POKEMON_DB_FILE):
+        return local_tcg_db.search_cards_in_db(
+            POKEMON_DB_FILE,
+            parsed_cards,
+            "Pokemon",
+        )
+
+    results: Dict[str, List[Dict[str, Any]]] = {}
 
     for parsed_card in parsed_cards:
         card_name = parsed_card["name"]
         found_card = fetch_pokemon_card_by_name(card_name)
 
         if found_card:
-            results[card_name] = [normalize_pokemon_card(found_card)]
+            results[get_lookup_key(parsed_card)] = [normalize_pokemon_card(found_card)]
         else:
-            results[card_name] = []
+            results[get_lookup_key(parsed_card)] = []
 
     return results
+
+
+def get_art_sources() -> List[Dict[str, Any]]:
+    return [
+        {
+            "id": "local",
+            "label": "Pokemon TCG",
+            "available": True,
+            "is_default": True,
+        },
+    ]
+
+
+def ensure_local_source(source: Optional[str]) -> None:
+    source = (source or "local").lower().strip()
+
+    if source != "local":
+        raise HTTPException(
+            status_code=400,
+            detail="Pokemon TCG usa apenas a fonte local neste fluxo.",
+        )
+
+
+def get_printings_by_id(
+    card_id: str,
+    *,
+    source: str = "local",
+    name: Optional[str] = None,
+    limit: int = 80,
+) -> Dict[str, Any]:
+    ensure_local_source(source)
+    return local_tcg_db.get_printings_by_id(
+        POKEMON_DB_FILE,
+        card_id,
+        "Pokemon",
+        limit=limit,
+    )
+
+
+def get_printings_by_name(card_name: str, limit: int = 80) -> List[Dict[str, Any]]:
+    return local_tcg_db.get_printings_by_name(
+        POKEMON_DB_FILE,
+        card_name,
+        "Pokemon",
+        limit=limit,
+    )
+
+
+def search_printings(
+    card_name: str,
+    *,
+    source: str = "local",
+    limit: int = 80,
+) -> List[Dict[str, Any]]:
+    ensure_local_source(source)
+    return get_printings_by_name(card_name, limit=limit)

@@ -41,6 +41,12 @@ function getResolvedBackImageUrl(card, cardIndex) {
 }
 
 function applyPrintingToCard(card, printing) {
+  const isMpcArt = printing.art_source === "mpc";
+  const originalDeckName = card.decklist_name || card.name;
+  const originalDeckSetCode = card.decklist_set_code || card.set_code || null;
+  const originalDeckCollectorNumber =
+    card.decklist_collector_number || card.collector_number || null;
+
   return {
     ...card,
 
@@ -66,6 +72,7 @@ function applyPrintingToCard(card, printing) {
     image_uri_normal: printing.image_uri_normal || null,
     image_uri_png: printing.image_uri_png || null,
     image_uri_art_crop: printing.image_uri_art_crop || null,
+    download_url: printing.download_url || card.download_url || null,
 
     image_uri_back_normal: printing.image_uri_back_normal || null,
     image_uri_back_png: printing.image_uri_back_png || null,
@@ -79,6 +86,14 @@ function applyPrintingToCard(card, printing) {
 
     all_parts_json: printing.all_parts_json || null,
     card_faces_json: printing.card_faces_json || null,
+    art_source: printing.art_source || card.art_source || "local",
+    decklist_name: isMpcArt ? originalDeckName : printing.name,
+    decklist_set_code: isMpcArt
+      ? originalDeckSetCode
+      : printing.set_code || null,
+    decklist_collector_number: isMpcArt
+      ? originalDeckCollectorNumber
+      : printing.collector_number || null,
   };
 }
 

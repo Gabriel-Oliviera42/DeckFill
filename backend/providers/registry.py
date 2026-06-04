@@ -9,12 +9,23 @@ Pokémon e Yu-Gi-Oh serão adicionados depois sem alterar diretamente o main.py.
 
 from fastapi import HTTPException
 
-from providers import magic_provider, pokemon_provider, yugioh_provider
+from providers import (
+    fab_provider,
+    lorcana_provider,
+    magic_provider,
+    onepiece_provider,
+    pokemon_provider,
+    yugioh_provider,
+)
+from providers.base import CardProvider
 
-AVAILABLE_PROVIDERS = {
+AVAILABLE_PROVIDERS: dict[str, CardProvider] = {
     "magic": magic_provider,
     "yugioh": yugioh_provider,
     "pokemon": pokemon_provider,
+    "lorcana": lorcana_provider,
+    "onepiece": onepiece_provider,
+    "fab": fab_provider,
 }
 
 
@@ -22,7 +33,7 @@ def normalize_game_key(game: str | None) -> str:
     return (game or "magic").lower().strip()
 
 
-def get_card_provider(game: str | None):
+def get_card_provider(game: str | None) -> CardProvider:
     game_key = normalize_game_key(game)
 
     provider = AVAILABLE_PROVIDERS.get(game_key)

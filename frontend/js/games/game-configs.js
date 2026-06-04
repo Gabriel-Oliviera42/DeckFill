@@ -18,6 +18,7 @@ const GAME_CONFIGS = {
     sampleDecklist: window.AppConfig.SAMPLE_DECKLIST,
     decklistPlaceholder: `4x Lightning Bolt
 2 Island
+1 Lukamina, Moon Druid
 1 Tovolar, Dire Overlord
 3 Black Lotus
 4 Force of Will`,
@@ -32,12 +33,16 @@ const GAME_CONFIGS = {
     cardWidthMm: 63,
     cardHeightMm: 88,
     defaultBackUrl: null,
-    sampleDecklist: `4 Pikachu
-2 Charizard
-10 Basic Fire Energy`,
-    decklistPlaceholder: `4 Pikachu
-2 Charizard
-10 Basic Fire Energy`,
+    sampleDecklist: `1 Charizard ex (PAF #54)
+1 Pikachu
+1 Professor's Research
+1 Rare Candy
+1 Basic Fire Energy`,
+    decklistPlaceholder: `1 Charizard ex (PAF #54)
+1 Pikachu
+1 Professor's Research
+1 Rare Candy
+1 Basic Fire Energy`,
     backendGameKey: "pokemon",
   },
 
@@ -50,13 +55,66 @@ const GAME_CONFIGS = {
     cardHeightMm: 86,
     defaultBackUrl:
         "https://images.ygoprodeck.com/images/assets/CardBack.jpg",
-    sampleDecklist: `3 Blue-Eyes White Dragon
+    sampleDecklist: `1 Blue-Eyes White Dragon LOB-001
+2 Blue-Eyes White Dragon
 1 Dark Magician
 1 Monster Reborn`,
-    decklistPlaceholder: `3 Blue-Eyes White Dragon
+    decklistPlaceholder: `1 Blue-Eyes White Dragon LOB-001
+2 Blue-Eyes White Dragon
 1 Dark Magician
 1 Monster Reborn`,
     backendGameKey: "yugioh",
+  },
+
+  lorcana: {
+    id: "lorcana",
+    label: "Disney Lorcana",
+    shortLabel: "Lorcana",
+    status: "active",
+    cardWidthMm: 63,
+    cardHeightMm: 88,
+    defaultBackUrl: null,
+    sampleDecklist: `1 Mickey Mouse - Brave Little Tailor
+1 Elsa - Snow Queen
+1 Stitch - Rock Star`,
+    decklistPlaceholder: `1 Mickey Mouse - Brave Little Tailor
+1 Elsa - Snow Queen
+1 Stitch - Rock Star`,
+    backendGameKey: "lorcana",
+  },
+
+  onepiece: {
+    id: "onepiece",
+    label: "One Piece Card Game",
+    shortLabel: "One Piece",
+    status: "active",
+    cardWidthMm: 63,
+    cardHeightMm: 88,
+    defaultBackUrl: null,
+    sampleDecklist: `1 Monkey.D.Luffy
+1 Roronoa Zoro
+1 Nami`,
+    decklistPlaceholder: `1 Monkey.D.Luffy
+1 Roronoa Zoro
+1 Nami`,
+    backendGameKey: "onepiece",
+  },
+
+  fab: {
+    id: "fab",
+    label: "Flesh and Blood",
+    shortLabel: "FAB",
+    status: "active",
+    cardWidthMm: 63,
+    cardHeightMm: 88,
+    defaultBackUrl: null,
+    sampleDecklist: `1 Fyendal's Spring Tunic
+1 Command and Conquer
+1 Enlightened Strike`,
+    decklistPlaceholder: `1 Fyendal's Spring Tunic
+1 Command and Conquer
+1 Enlightened Strike`,
+    backendGameKey: "fab",
   },
 };
 

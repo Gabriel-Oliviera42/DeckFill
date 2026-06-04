@@ -31,6 +31,9 @@ const elements = {
   gameMagic: document.getElementById("game-magic"),
   gamePokemon: document.getElementById("game-pokemon"),
   gameYugioh: document.getElementById("game-yugioh"),
+  gameLorcana: document.getElementById("game-lorcana"),
+  gameOnepiece: document.getElementById("game-onepiece"),
+  gameFab: document.getElementById("game-fab"),
   gameSupportNotice: document.getElementById("game-support-notice"),
   gameSupportTitle: document.getElementById("game-support-title"),
   gameSupportDescription: document.getElementById("game-support-description"),
@@ -54,6 +57,13 @@ const elements = {
   modalLoading: document.getElementById("modal-loading"), // Loading de artes
   modalArtGrid: document.getElementById("modal-art-grid"), // Grid de opções de arte
   modalError: document.getElementById("modal-error"), // Mensagem de erro
+  artSourceControls: document.getElementById("art-source-controls"),
+  artSourceSelect: document.getElementById("art-source-select"),
+  artSourceTabs: document.getElementById("art-source-tabs"),
+  modalGameLabel: document.getElementById("modal-game-label"),
+  artSearchInput: document.getElementById("art-search-input"),
+  artSearchBtn: document.getElementById("art-search-btn"),
+  artResultCount: document.getElementById("art-result-count"),
 
   // === UPLOAD DE IMAGENS PERSONALIZADAS ===
   customImageUpload: document.getElementById("custom-image-upload"), // Input de upload
@@ -131,6 +141,7 @@ window.elements = elements;
 document.addEventListener("DOMContentLoaded", () => {
   console.log("Deck Fill Application started");
   initializeEventListeners();
+  AppConfig.refreshIcons?.();
   checkApiHealth();
 });
 
@@ -154,17 +165,9 @@ function initializeEventListeners() {
   // Botão Carregar Exemplo
   elements.loadSampleBtn.addEventListener("click", loadSampleDecklist);
 
-  if (elements.gameMagic) {
-    elements.gameMagic.addEventListener("change", handleGameChange);
-  }
-
-  if (elements.gamePokemon) {
-    elements.gamePokemon.addEventListener("change", handleGameChange);
-  }
-
-  if (elements.gameYugioh) {
-    elements.gameYugioh.addEventListener("change", handleGameChange);
-  }
+  getGameSelectorInputs().forEach((input) => {
+    input.addEventListener("change", handleGameChange);
+  });
 
   updateSelectedGameUI();
 
@@ -199,6 +202,18 @@ function initializeEventListeners() {
 
   // Modal events
   elements.closeModalBtn.addEventListener("click", closeArtModal);
+  if (elements.artSearchBtn) {
+    elements.artSearchBtn.addEventListener("click", handleArtSearchSubmit);
+  }
+
+  if (elements.artSearchInput) {
+    elements.artSearchInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        handleArtSearchSubmit();
+      }
+    });
+  }
 
   // Upload de imagens personalizadas
   elements.customImageUpload.addEventListener(
@@ -393,74 +408,6 @@ function initializeEventListeners() {
 
 // Função processImageWithBleed movida para ./js/utils/helpers.js
 
-// ================================================================================
-// GERAÇÃO DE PDF - FUNÇÃO PRINCIPAL
-// ================================================================================
-
-/**
- * Gera PDF com layout 3x3 em A4 usando dimensões MTG oficiais (63x88mm)
- *
- * Arquitetura de geração:
- * - Sistema de DUAS PASSADAS para otimizar desenho de marcas de corte
- * - Passada 1: Coleta de coordenadas e desenho de linhas de fundo (Background Lines)
-    } else {
-      doubleFaceSettings.classList.add("hidden");
-    }
-  });
-}
-
-// Listener para tipo de verso global
-if (globalBackType && globalBackUploadSection) {
-  globalBackType.addEventListener("change", (e) => {
-    if (e.target.value === "custom-global") {
-      globalBackUploadSection.classList.remove("hidden");
-    } else {
-      globalBackUploadSection.classList.add("hidden");
-    }
-  });
-}
-
-// Listener para upload do verso global
-if (globalBackUpload && globalBackFilename) {
-  globalBackUpload.addEventListener("change", (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.type.startsWith("image/")) {
-        const reader = new FileReader();
-        reader.onload = function (event) {
-          AppState.globalCustomBackImage = event.target.result;
-          globalBackFilename.textContent = file.name;
-        };
-        reader.readAsDataURL(file);
-      } else {
-        alert("Por favor, selecione um arquivo de imagem válido.");
-        e.target.value = "";
-      }
-    }
-  });
-}
-
-// Atalho de teclado: Ctrl+Enter para processar
-elements.decklistInput.addEventListener("keydown", (e) => {
-  if (e.ctrlKey && e.key === "Enter") {
-    processDecklist();
-  }
-});
-
-// Auto-resize do textarea
-elements.decklistInput.addEventListener("input", () => {
-  elements.decklistInput.style.height = "auto";
-  elements.decklistInput.style.height =
-    elements.decklistInput.scrollHeight + "px";
-});
-
-// Fechar seção de erros
-elements.errorsSection.addEventListener("click", (e) => {
-  if (e.target === elements.errorsSection) {
-    hideErrors();
-  }
-});
-
 // Função generatePDF movida para ./js/pdf/pdf-engine.js
 
 // Função blobToDataUrl movida para ./js/pdf/pdf-engine.js
@@ -479,6 +426,7 @@ function updateCardElement(cardIndex) {
     // Garante que o novo elemento tenha cursor pointer
     newCardElement.style.cursor = "pointer";
     cardElements[cardIndex].replaceWith(newCardElement);
+
   }
 }
 
@@ -593,7 +541,7 @@ function getPrintSettings() {
     backFaceType: elements.backFaceType?.value || "standard",
     smartFill: elements.smartFill?.value || "none",
     // Cor das guias
-    guideColor: elements.guideColor?.value || "#FFFFFF",
+    guideColor: elements.guideColor?.value || "#E7B650",
     // Campos removidos do HTML (mantidos para compatibilidade futura)
     printDecklist: elements.printDecklist?.checked || false,
     playtestWatermark: elements.playtestWatermark?.checked || false,
@@ -612,15 +560,17 @@ function getPrintSettings() {
 function updateCardImage(cardIndex, imageUrl) {
   const cardElements = document.querySelectorAll(".card-item");
   if (cardElements[cardIndex]) {
-    const imgElement = cardElements[cardIndex].querySelector("img");
+    const imgElement =
+      cardElements[cardIndex].querySelector('[data-role="primary-card-image"]') ||
+      cardElements[cardIndex].querySelector("img");
     if (imgElement) {
       imgElement.src = imageUrl;
 
       // Adicionar indicador visual de imagem personalizada
       cardElements[cardIndex].classList.add("custom-image");
 
-      // Adicionar borda roxa para indicar imagem personalizada
-      imgElement.classList.add("border-2", "border-purple-500");
+      // Adicionar borda de destaque para indicar imagem personalizada
+      imgElement.classList.add("border-2", "border-df-primary");
     }
   }
 }
@@ -631,7 +581,9 @@ function updateCardImage(cardIndex, imageUrl) {
 function restoreOriginalImage(cardIndex) {
   const cardElements = document.querySelectorAll(".card-item");
   if (cardElements[cardIndex] && AppState.currentCards[cardIndex]) {
-    const imgElement = cardElements[cardIndex].querySelector("img");
+    const imgElement =
+      cardElements[cardIndex].querySelector('[data-role="primary-card-image"]') ||
+      cardElements[cardIndex].querySelector("img");
     if (imgElement) {
       const originalUrl =
         AppState.currentCards[cardIndex].image_uri_png ||
@@ -640,7 +592,7 @@ function restoreOriginalImage(cardIndex) {
 
       // Remover indicadores de imagem personalizada
       cardElements[cardIndex].classList.remove("custom-image");
-      imgElement.classList.remove("border-2", "border-purple-500");
+      imgElement.classList.remove("border-2", "border-df-primary");
     }
   }
 }
@@ -716,7 +668,11 @@ function updateDecklistTextarea() {
   AppState.currentCards.forEach((card) => {
     if (card.name.endsWith(" (Verso)")) return;
 
-    const key = `${card.name} (${card.set_name || card.set_code} #${card.collector_number})`;
+    const deckName = card.decklist_name || card.name;
+    const setCode = card.decklist_set_code || card.set_code || card.set_name || "SET";
+    const collectorNumber =
+      card.decklist_collector_number || card.collector_number || "-";
+    const key = `${deckName} (${setCode} #${collectorNumber})`;
     cardCounts[key] = (cardCounts[key] || 0) + 1;
   });
 
@@ -758,30 +714,30 @@ function updateGlobalBackButton() {
   if (currentBack) {
     buttonText.textContent = "Customizado";
     buttonText.classList.remove(
-      "bg-slate-600",
-      "hover:bg-slate-500",
-      "text-slate-300",
+      "bg-df-raised",
+      "hover:bg-df-line",
+      "text-df-soft",
     );
     buttonText.classList.add(
-      "bg-emerald-600",
-      "hover:bg-emerald-500",
-      "text-white",
+      "bg-df-success",
+      "hover:bg-df-success-dark",
+      "text-df-bg",
       "border-2",
-      "border-emerald-400",
+      "border-df-success",
     );
   } else {
     buttonText.textContent = "Padrão";
     buttonText.classList.remove(
-      "bg-emerald-600",
-      "hover:bg-emerald-500",
-      "text-white",
+      "bg-df-success",
+      "hover:bg-df-success-dark",
+      "text-df-bg",
       "border-2",
-      "border-emerald-400",
+      "border-df-success",
     );
     buttonText.classList.add(
-      "bg-slate-600",
-      "hover:bg-slate-500",
-      "text-slate-300",
+      "bg-df-raised",
+      "hover:bg-df-line",
+      "text-df-soft",
     );
   }
 }
@@ -817,7 +773,8 @@ function handleGlobalBackUploadModal(event) {
       // Manually trigger selection without closing modal
       const options = document.querySelectorAll(".back-option-card");
       options.forEach((opt) => {
-        opt.classList.remove("border-purple-500");
+        opt.classList.remove("selected");
+        opt.classList.remove("border-df-primary");
         opt.classList.add("border-transparent");
         // Hide all selected overlays
         const overlay = opt.querySelector(".selected-overlay");
@@ -825,8 +782,9 @@ function handleGlobalBackUploadModal(event) {
       });
 
       // Highlight the custom slot
+      customSlot.classList.add("selected");
       customSlot.classList.remove("border-transparent");
-      customSlot.classList.add("border-purple-500");
+      customSlot.classList.add("border-df-primary");
 
       // Show selected overlay
       const overlay = customSlot.querySelector(".selected-overlay");
@@ -853,7 +811,9 @@ function clearGlobalBackModal() {
   // Limpar preview
   const imgElement = elements.globalBackPreviewLarge;
 
-  imgElement.src = window.AppConfig.MTG_BACK_URL;
+  if (imgElement) {
+    imgElement.src = window.AppConfig.MTG_BACK_URL;
+  }
 
   // Atualizar botão
   updateGlobalBackButton();
@@ -875,6 +835,7 @@ window.deckFillApp = {
   // Funções movidas para módulos especializados - mantendo apenas estado e configuração
   currentCards: AppState.currentCards,
   showProgressMock, // Função de teste
+  hideProgressModal,
   getPrintSettings,
 };
 
@@ -908,7 +869,8 @@ function initializeGlobalBackGallery() {
 
       // Single click - just update selection visual
       options.forEach((opt) => {
-        opt.classList.remove("border-purple-500");
+        opt.classList.remove("selected");
+        opt.classList.remove("border-df-primary");
         opt.classList.add("border-transparent");
         // Hide all selected overlays
         const overlay = opt.querySelector(".selected-overlay");
@@ -916,8 +878,9 @@ function initializeGlobalBackGallery() {
       });
 
       // Highlight selected option
+      this.classList.add("selected");
       this.classList.remove("border-transparent");
-      this.classList.add("border-purple-500");
+      this.classList.add("border-df-primary");
 
       // Show selected overlay
       const overlay = this.querySelector(".selected-overlay");
@@ -930,7 +893,7 @@ function initializeGlobalBackGallery() {
   if (confirmBtn) {
     confirmBtn.addEventListener("click", function () {
       const selectedOption = document.querySelector(
-        ".back-option-card.border-purple-500",
+        ".back-option-card.border-df-primary",
       );
       if (selectedOption) {
         const selectedUrl = selectedOption.getAttribute("data-url");
@@ -997,13 +960,16 @@ function initializeAboutModal() {
           showSuccess("Chave Pix copiada com sucesso!");
         } else {
           // Fallback notification
-          const originalText = copyPixBtn.textContent;
-          copyPixBtn.textContent = "Copiado!";
-          copyPixBtn.classList.add("bg-green-600");
+          const originalContent = copyPixBtn.innerHTML;
+          copyPixBtn.innerHTML =
+            '<i data-lucide="check" class="df-icon" aria-hidden="true"></i><span>Copiado!</span>';
+          copyPixBtn.classList.add("bg-df-success");
+          AppConfig.refreshIcons?.();
 
           setTimeout(() => {
-            copyPixBtn.textContent = originalText;
-            copyPixBtn.classList.remove("bg-green-600");
+            copyPixBtn.innerHTML = originalContent;
+            copyPixBtn.classList.remove("bg-df-success");
+            AppConfig.refreshIcons?.();
           }, 2000);
         }
       } catch (err) {
@@ -1037,6 +1003,7 @@ function updateOutputModeUI() {
       selectedMode !== "professional",
     );
   }
+
 }
 
 function openProfessionalPrintWhatsApp() {
@@ -1083,7 +1050,7 @@ function applyProfessionalPrintPreset() {
   }
 
   if (elements.bleed) {
-    elements.bleed.checked = false;
+    elements.bleed.checked = true;
   }
 
   if (elements.blackCorners) {
@@ -1094,10 +1061,12 @@ function applyProfessionalPrintPreset() {
 function setProfessionalPrintControlsLocked(isLocked) {
   setElementDisabled(elements.pageSize, isLocked);
   setElementDisabled(elements.scale, isLocked);
-  setElementDisabled(elements.gapSpacing, isLocked);
   setElementDisabled(elements.cropMarks, isLocked);
-  setElementDisabled(elements.bleed, isLocked);
   setElementDisabled(elements.blackCorners, isLocked);
+
+  // Gap e sangria precisam ficar calibraveis no fluxo profissional.
+  setElementDisabled(elements.gapSpacing, false);
+  setElementDisabled(elements.bleed, false);
 }
 
 function handleOutputModeChange() {
@@ -1113,16 +1082,13 @@ function handleOutputModeChange() {
   updateOutputModeUI();
 }
 
+function getGameSelectorInputs() {
+  return Array.from(document.querySelectorAll('input[name="game-selector"]'));
+}
+
 function getSelectedGameFromUI() {
-  if (elements.gamePokemon?.checked) {
-    return "pokemon";
-  }
-
-  if (elements.gameYugioh?.checked) {
-    return "yugioh";
-  }
-
-  return "magic";
+  const selectedInput = getGameSelectorInputs().find((input) => input.checked);
+  return selectedInput?.value || "magic";
 }
 
 function handleGameChange() {
@@ -1131,7 +1097,10 @@ function handleGameChange() {
 
   if (gameConfig.status !== "active") {
     showError(`${gameConfig.label} ainda não está disponível.`);
-    elements.gameMagic.checked = true;
+    const magicInput = document.getElementById("game-magic");
+    if (magicInput) {
+      magicInput.checked = true;
+    }
     AppState.setSelectedGame("magic");
     updateSelectedGameUI();
     return;
@@ -1146,13 +1115,17 @@ function updateSelectedGameUI() {
   const selectedGame = AppState.getSelectedGame();
   const gameConfig = GameConfigs.getGameConfig(selectedGame);
 
+  if (document.body) {
+    document.body.dataset.game = selectedGame;
+  }
+
   if (elements.decklistInput) {
     elements.decklistInput.placeholder = gameConfig.decklistPlaceholder;
   }
 
   updateGameSupportNotice(selectedGame, gameConfig);
 
-  console.log("🎮 Jogo selecionado:", gameConfig.label);
+  console.log("Jogo selecionado:", gameConfig.label);
 }
 
 function updateGameSupportNotice(selectedGame, gameConfig) {
@@ -1164,23 +1137,44 @@ function updateGameSupportNotice(selectedGame, gameConfig) {
     magic: {
       title: `${gameConfig.label} está selecionado`,
       description: "Busca rápida usando a base local de cartas.",
-      classes: "border-mtg-gold/60 bg-slate-800 text-gray-300",
+      classes: "border-df-line bg-df-surface text-df-muted",
     },
     pokemon: {
-      title: `${gameConfig.label} está em suporte inicial`,
+      title: `${gameConfig.label} usa base local sincronizada`,
       description:
-        "A busca usa uma base externa e pode demorar um pouco em listas maiores. Seleção de versões e artes alternativas ainda será melhorada.",
-      classes: "border-yellow-500/50 bg-slate-800 text-gray-300",
+        "A busca usa o banco local Pokemon TCG. A seleção de versões e artes alternativas está disponível no modal da carta.",
+      classes: "border-df-line bg-df-surface text-df-muted",
     },
     yugioh: {
-      title: `${gameConfig.label} está em suporte inicial`,
+      title: `${gameConfig.label} usa base local sincronizada`,
       description:
-        "A busca usa uma base externa. O PDF já funciona, mas seleção de artes alternativas ainda será melhorada.",
-      classes: "border-purple-500/50 bg-slate-800 text-gray-300",
+        "A busca usa o banco local YGOPRODeck. A seleção de versões e artes alternativas está disponível no modal da carta.",
+      classes: "border-df-line bg-df-surface text-df-muted",
     },
   };
 
-  const notice = notices[selectedGame] || notices.magic;
+  const extendedNotices = {
+    lorcana: {
+      title: `${gameConfig.label} usa base local sincronizada`,
+      description:
+        "A busca usa o banco local Lorcast. A selecao de versoes e artes alternativas esta disponivel no modal da carta.",
+      classes: "border-df-line bg-df-surface text-df-muted",
+    },
+    onepiece: {
+      title: `${gameConfig.label} usa base local sincronizada`,
+      description:
+        "A busca usa o banco local OPTCG. A selecao de versoes e artes alternativas esta disponivel no modal da carta.",
+      classes: "border-df-line bg-df-surface text-df-muted",
+    },
+    fab: {
+      title: `${gameConfig.label} usa base local sincronizada`,
+      description:
+        "A busca usa o banco local GoAgain. A selecao de versoes e artes alternativas esta disponivel no modal da carta.",
+      classes: "border-df-line bg-df-surface text-df-muted",
+    },
+  };
+
+  const notice = extendedNotices[selectedGame] || notices[selectedGame] || notices.magic;
 
   elements.gameSupportTitle.textContent = notice.title;
   elements.gameSupportDescription.textContent = notice.description;

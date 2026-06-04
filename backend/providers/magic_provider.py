@@ -1,30 +1,34 @@
 """
 Magic Provider
 
-Contém a lógica específica de Magic: The Gathering:
-- conexão com o banco atual de cartas
-- parse de decklist Magic
-- busca de cartas Magic no SQLite
+Logica especifica de Magic: The Gathering:
+- parse de decklist
+- busca no banco SQLite local
+- suporte a reprints especificos por set/collector number
+- suporte a DFCs pelo nome da face frontal
 """
 
-import sqlite3
-import re
 import contextlib
+import re
+import sqlite3
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import HTTPException
 
+from providers import mpc_autofill_provider
+
 
 DB_FILE = "cards.db"
+LOCAL_ART_SOURCE_IDS = {"local", "scryfall", ""}
 
 
 def get_db_connection() -> sqlite3.Connection:
-    """Obtém uma conexão limpa com o banco de dados (Thread-Safe)."""
+    """Obtem uma conexao SQLite limpa."""
     if not Path(DB_FILE).exists():
         raise HTTPException(
             status_code=500,
-            detail=f"Banco de dados '{DB_FILE}' não encontrado. Execute sync_db.py primeiro."
+            detail=f"Banco de dados '{DB_FILE}' nao encontrado. Execute sync_db.py primeiro.",
         )
 
     conn = sqlite3.connect(DB_FILE, check_same_thread=False)
@@ -69,204 +73,375 @@ CARD_SELECT_COLUMNS = """
     card_faces_json
 """
 
-def parse_decklist(decklist: str) -> List[Dict[str, Any]]:
+
+def get_lookup_key(parsed_card: Dict[str, Any]) -> str:
+    return parsed_card.get("lookup_key") or "|".join([
+        str(parsed_card.get("name") or "").strip().casefold(),
+        str(parsed_card.get("set_code") or "").strip().casefold(),
+        str(parsed_card.get("collector_number") or "").strip().casefold(),
+    ])
+
+
+def clean_card_name(card_name: str) -> str:
+    # Para DFCs, buscar pela face frontal combina melhor com o Scryfall.
+    card_name = card_name.split("//")[0].strip()
+    return re.sub(r"\s+", " ", card_name).strip()
+
+
+def parse_decklist(decklist: str) -> Tuple[List[Dict[str, Any]], List[str]]:
     """
-    Parse de decklist usando regex.
-    
-    Suporta formatos:
-    - "1x Lightning Bolt"
-    - "1 Lightning Bolt" 
+    Parse de decklist Magic.
+
+    Suporta:
+    - "4 Lightning Bolt"
+    - "4x Lightning Bolt"
     - "Lightning Bolt"
-    - "4 Thantis, the Warweaver"
-    
-    NOTA: Phase 5.1 deve adicionar suporte para "(SET) #number"
+    - "1 Demonic Tutor (UMA) 93"
+    - "1 Black Lotus (YDMU #35)"
+    - "1 Tovolar, Dire Overlord // ... (SLD) 1612"
     """
-    cards = []
-    errors = []
-    
-    # Regex patterns para diferentes formatos
-    patterns = [
-        # 1. Formato com tudo no parênteses (ex: "1 Black Lotus (YDMU #35)" ou "1x Lotus (YDMU 35)")
-        r'^\s*(\d+)\s*[xX]?\s*(.+?)\s*\(\s*([A-Za-z0-9]{3,5})\s*(?:#|/|-)?\s*([A-Za-z0-9\-]+)\s*\)\s*$',
-        
-        # 2. Formato original Arena (ex: "1 Black Lotus (YDMU) 35" ou "1x Lotus (YDMU) #35")
-        r'^\s*(\d+)\s*[xX]?\s*(.+?)\s*\(\s*([A-Za-z0-9]{3,5})\s*\)\s*#?\s*([A-Za-z0-9\-]+)\s*$',
-        
-        # 3. Formato apenas com Set (ex: "1 Demonic Tutor (UMA)")
-        r'^\s*(\d+)\s*[xX]?\s*(.+?)\s*\(\s*([A-Za-z0-9]{3,5})\s*\)\s*$',
-        
-        # 4. Formato sem set/numero (ex: "1x Demonic Tutor" ou "1 Demonic Tutor")
-        r'^\s*(\d+)\s*[xX]?\s+(.+?)\s*$',
-        
-        # 5. Apenas o nome (assume quantidade 1)
-        r'^\s*(.+?)\s*$'
+    cards: List[Dict[str, Any]] = []
+    errors: List[str] = []
+    section_headers = {"deck", "sideboard", "commander", "companions"}
+
+    set_patterns = [
+        re.compile(
+            r"^(?P<name>.+?)\s*\(\s*(?P<set>[A-Za-z0-9]{2,6})\s*(?:#|/|-)?\s*(?P<number>[A-Za-z0-9\-]+)\s*\)\s*$",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"^(?P<name>.+?)\s*\(\s*(?P<set>[A-Za-z0-9]{2,6})\s*\)\s*#?\s*(?P<number>[A-Za-z0-9\-]+)\s*$",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"^(?P<name>.+?)\s*\(\s*(?P<set>[A-Za-z0-9]{2,6})\s*\)\s*$",
+            re.IGNORECASE,
+        ),
     ]
-    
-    lines = decklist.strip().split('\n')
-    
-    for line_num, line in enumerate(lines, 1):
-        line = line.strip()
-        # Remove pontos finais no fim da linha (ex: "Phyrexian Ingester.")
-        line = line.rstrip('.')
-        
-        # Ignorar linvas vazias e comentários
-        if not line or line.startswith('//') or line.startswith('#'):
+
+    for line_num, raw_line in enumerate(decklist.strip().split("\n"), 1):
+        line = raw_line.strip().rstrip(".")
+
+        if not line or line.startswith("//") or line.startswith("#"):
             continue
-        
-        card_found = False
-        
-        for pattern in patterns:
-            match = re.match(pattern, line, re.IGNORECASE)
+
+        if line.lower().strip(":") in section_headers:
+            continue
+
+        quantity_match = re.match(r"^\s*(?:(\d+)\s*[xX]?\s+)?(.+?)\s*$", line)
+        if not quantity_match:
+            errors.append(f"Linha {line_num}: Formato nao reconhecido - {line}")
+            continue
+
+        quantity = int(quantity_match.group(1) or 1)
+        card_name = quantity_match.group(2).strip()
+        set_code = None
+        collector_number = None
+
+        for pattern in set_patterns:
+            match = pattern.match(card_name)
             if match:
-                try:
-                    # Processar diferentes números de grupos de captura
-                    groups = match.groups()
-                    
-                    if len(groups) == 4:
-                        # Formato: quantidade + nome + set + número
-                        quantity = int(groups[0])
-                        card_name = groups[1].strip()
-                        set_code = groups[2].upper()
-                        collector_number = groups[3]
-                    elif len(groups) == 3:
-                        # Formato: quantidade + nome + set
-                        quantity = int(groups[0])
-                        card_name = groups[1].strip()
-                        set_code = groups[2].upper()
-                        collector_number = None
-                    elif len(groups) == 2:
-                        # Formato: quantidade + nome
-                        quantity = int(groups[0])
-                        card_name = groups[1].strip()
-                        set_code = None
-                        collector_number = None
-                    else:
-                        # Formato: apenas nome
-                        quantity = 1
-                        card_name = groups[0].strip()
-                        set_code = None
-                        collector_number = None
-                    
-                    # Limpar nome da carta (remover extras e //)
-                    card_name = card_name.split('//')[0].strip()
-                    card_name = re.sub(r'\s+', ' ', card_name).strip()
-                    
-                    # DEBUG - Raio-X: Parser extraiu quantidade e nome
-                    print(f"🔍 DEBUG - Parser extraiu: Qtd: {quantity}, Nome: '{card_name}', Set: {set_code}, Num: {collector_number}")
-                    
-                    if quantity > 0 and card_name:
-                        cards.append({
-                            'quantity': quantity,
-                            'name': card_name,
-                            'set_code': set_code,
-                            'collector_number': collector_number,
-                            'line_number': line_num
-                        })
-                        card_found = True
-                        break
-                        
-                except ValueError as e:
-                    errors.append(f"Linha {line_num}: Erro ao processar quantidade - {line}")
-                    break
-        
-        if not card_found:
-            errors.append(f"Linha {line_num}: Formato não reconhecido - {line}")
-    
+                card_name = match.group("name").strip()
+                set_code = match.group("set").upper()
+                collector_number = match.groupdict().get("number")
+                break
+
+        card_name = clean_card_name(card_name)
+
+        if quantity <= 0 or not card_name:
+            errors.append(f"Linha {line_num}: Formato nao reconhecido - {line}")
+            continue
+
+        cards.append({
+            "quantity": quantity,
+            "name": card_name,
+            "set_code": set_code,
+            "collector_number": collector_number,
+            "line_number": line_num,
+        })
+
     return cards, errors
+
+
+def search_exact_printing(
+    cursor: sqlite3.Cursor,
+    card_name: str,
+    set_code: str,
+    collector_number: str,
+) -> List[Dict[str, Any]]:
+    cursor.execute(f"""
+        SELECT {CARD_SELECT_COLUMNS}
+        FROM cards
+        WHERE set_code COLLATE NOCASE = ? COLLATE NOCASE
+          AND CAST(collector_number AS TEXT) COLLATE NOCASE = ? COLLATE NOCASE
+          AND (
+              name = ? COLLATE NOCASE
+              OR name LIKE ? COLLATE NOCASE
+              OR printed_name = ? COLLATE NOCASE
+              OR printed_name LIKE ? COLLATE NOCASE
+          )
+          AND image_uri_normal IS NOT NULL
+          AND image_uri_normal != ''
+          AND layout != 'art_series'
+        ORDER BY
+            CASE
+                WHEN name = ? COLLATE NOCASE THEN 1
+                WHEN name LIKE ? COLLATE NOCASE THEN 2
+                WHEN lang = 'en' THEN 3
+                WHEN lang = 'pt' THEN 4
+                ELSE 5
+            END ASC
+        LIMIT 1
+    """, (
+        set_code,
+        str(collector_number),
+        card_name,
+        f"{card_name}%",
+        card_name,
+        f"{card_name}%",
+        card_name,
+        f"{card_name}%",
+    ))
+    return [dict(row) for row in cursor.fetchall()]
+
+
+def search_by_exact_name(cursor: sqlite3.Cursor, card_name: str) -> List[Dict[str, Any]]:
+    cursor.execute(f"""
+        SELECT {CARD_SELECT_COLUMNS}
+        FROM cards
+        WHERE name = ? COLLATE NOCASE
+          AND image_uri_normal IS NOT NULL
+          AND image_uri_normal != ''
+          AND layout != 'art_series'
+        ORDER BY
+            CASE
+                WHEN lang = 'en' THEN 1
+                WHEN lang = 'pt' THEN 2
+                ELSE 3
+            END ASC,
+            released_at DESC,
+            set_code ASC,
+            CAST(collector_number AS INTEGER) ASC
+        LIMIT 10
+    """, (card_name,))
+    return [dict(row) for row in cursor.fetchall()]
+
+
+def search_by_loose_name(cursor: sqlite3.Cursor, card_name: str) -> List[Dict[str, Any]]:
+    loose_name = re.sub(r"[aeiouAEIOU\-.,']", "_", card_name)
+    search_name = f"%{loose_name}%"
+
+    cursor.execute(f"""
+        SELECT {CARD_SELECT_COLUMNS}
+        FROM cards
+        WHERE name LIKE ? COLLATE NOCASE
+          AND image_uri_normal IS NOT NULL
+          AND image_uri_normal != ''
+          AND layout != 'art_series'
+        ORDER BY
+            CASE WHEN name LIKE ? THEN 1 ELSE 2 END,
+            CASE
+                WHEN lang = 'en' THEN 1
+                WHEN lang = 'pt' THEN 2
+                ELSE 3
+            END ASC,
+            released_at DESC,
+            set_code ASC,
+            CAST(collector_number AS INTEGER) ASC
+        LIMIT 10
+    """, (search_name, f"{card_name}%"))
+    return [dict(row) for row in cursor.fetchall()]
+
 
 def search_cards(parsed_cards: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
     """
-    Busca cartas no banco de dados usando os índices otimizados.
-    
-    Args:
-        parsed_cards: Lista de dicionários com quantity, name, set_code, collector_number
-    
-    Returns:
-        Dict com nome da carta como chave e lista de resultados como valor.
+    Busca cartas no banco local.
+
+    O resultado usa a mesma lookup_key do main.py para nao misturar reprints
+    quando uma lista tem a mesma carta em edicoes diferentes.
     """
-    results = {}
+    results: Dict[str, List[Dict[str, Any]]] = {}
+
     with contextlib.closing(get_db_connection()) as conn:
         cursor = conn.cursor()
-        
-        for card in parsed_cards:  # INÍCIO DO LOOP
+
+        for card in parsed_cards:
             card_name = card["name"]
             set_code = card.get("set_code")
             collector_number = card.get("collector_number")
-            found_cards = []
-            
-            # DEBUG - Raio-X: Buscando carta
-            print(f"DEBUG - Buscando no banco: '{card_name}' (Set: {set_code}, Num: {collector_number})")
-            
-            # 1. Se temos set e number, tenta busca exata específica PRIMEIRO
+
+            found_cards: List[Dict[str, Any]] = []
+
             if set_code and collector_number:
-                cursor.execute(f"""
-                    SELECT {CARD_SELECT_COLUMNS}
-                    FROM cards 
-                    WHERE set_code COLLATE NOCASE = ? COLLATE NOCASE 
-                    AND CAST(collector_number AS TEXT) COLLATE NOCASE = ? COLLATE NOCASE
-                    LIMIT 1
-                """, (set_code, str(collector_number)))
-                
-                exact_match_rows = cursor.fetchall()
-                print(f"DEBUG SQL - Buscando: {card_name} | {set_code} | {collector_number} -> Retornou {len(exact_match_rows)} cartas")
-                if exact_match_rows:
-                    found_cards = [dict(row) for row in exact_match_rows]
-                    print(f"DEBUG - Match EXATO (set+num) encontrado para '{card_name}' ({set_code} #{collector_number})")
-                else:
-                    print(f"DEBUG - Match EXATO (set+num) NÃO encontrado para '{card_name}' ({set_code} #{collector_number})")
-            
-            # 2. Se não encontrou match exato ou não tem set/num, tenta busca por nome apenas
+                found_cards = search_exact_printing(
+                    cursor,
+                    card_name,
+                    set_code,
+                    collector_number,
+                )
+
             if not found_cards:
-                cursor.execute(f"""
-                    SELECT {CARD_SELECT_COLUMNS}
-                    FROM cards 
-                    WHERE name = ? COLLATE NOCASE
-                    ORDER BY 
-                        set_code DESC,
-                        CAST(collector_number AS INTEGER) ASC
-                    LIMIT 10
-                """, (card_name,))
-                
-                exact_rows = cursor.fetchall()
-                if exact_rows:
-                    found_cards = [dict(row) for row in exact_rows]
-                    print(f"DEBUG - Busca por nome encontrou {len(found_cards)} cartas para '{card_name}'")
-                else:
-                    # 3. Só tenta parcial se a exata falhar
-                    import re
-                    # Substitui vogais e caracteres não-alfanuméricos por '_' (coringa de 1 caractere do SQL)
-                    loose_name = re.sub(r'[aeiouAEIOU\-.,\']', '_', card_name)
-                    search_name = f"%{loose_name}%"
-                    cursor.execute(f"""
-                        SELECT {CARD_SELECT_COLUMNS}
-                        FROM cards 
-                        WHERE name LIKE ? COLLATE NOCASE
-                        ORDER BY 
-                            CASE WHEN name LIKE ? THEN 1 ELSE 2 END,
-                            CASE 
-                                WHEN set_code = 'SLD' THEN 1
-                                WHEN set_code = 'MPS' THEN 2
-                                WHEN set_code = 'EXP' THEN 3
-                                WHEN set_code = 'STA' THEN 4
-                                WHEN set_code = '2X2' THEN 5
-                                WHEN set_code = 'MH3' THEN 6
-                                WHEN set_code = 'MH2' THEN 7
-                                WHEN set_code = 'PRM' THEN 8
-                                ELSE 9 
-                            END ASC,
-                            name ASC,
-                            set_code DESC,
-                            CAST(collector_number AS INTEGER) ASC
-                        LIMIT 10
-                    """, (search_name, f"{card_name}%"))
-                    
-                    partial_rows = cursor.fetchall()
-                    found_cards = [dict(row) for row in partial_rows]
-                print(f"🔍 DEBUG - Busca parcial encontrou {len(found_cards)} cartas para '{card_name}'")
-                
-            # 3. SALVA DENTRO DO LOOP
-            results[card_name] = found_cards
-            print(f"🔍 DEBUG - {card_name} salva com {len(found_cards)} cartas")
-            
-        # FIM DO LOOP
+                found_cards = search_by_exact_name(cursor, card_name)
+
+            if not found_cards:
+                found_cards = search_by_loose_name(cursor, card_name)
+
+            results[get_lookup_key(card)] = found_cards
+
     return results
+
+
+def normalize_art_source(source: Optional[str]) -> str:
+    return (source or "scryfall").lower().strip()
+
+
+def get_art_sources() -> List[Dict[str, Any]]:
+    mpc_status = mpc_autofill_provider.get_status()
+
+    return [
+        {
+            "id": "scryfall",
+            "label": "Scryfall",
+            "available": True,
+            "is_default": True,
+        },
+        {
+            "id": "mpc",
+            "label": "MPC Autofill",
+            "available": bool(mpc_status.get("online")),
+            "status": mpc_status,
+        },
+    ]
+
+
+def get_printings_by_name(card_name: str, limit: int = 80) -> List[Dict[str, Any]]:
+    try:
+        with contextlib.closing(get_db_connection()) as conn:
+            cursor = conn.cursor()
+            search_name = card_name.split("//")[0].strip()
+
+            cursor.execute(f"""
+                SELECT {CARD_SELECT_COLUMNS}
+                FROM cards
+                WHERE name LIKE ?
+                COLLATE NOCASE
+                AND image_uri_normal IS NOT NULL
+                AND image_uri_normal != ''
+                AND layout != 'art_series'
+                ORDER BY set_code DESC, collector_number ASC
+                LIMIT ?
+            """, (search_name + "%", limit))
+
+            return [dict(row) for row in cursor.fetchall()]
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao buscar impressoes de Magic: {exc}",
+        )
+
+
+def get_printings_by_id(
+    card_id: str,
+    *,
+    source: str = "scryfall",
+    name: Optional[str] = None,
+    limit: int = 80,
+) -> Dict[str, Any]:
+    source = normalize_art_source(source)
+
+    if source == "mpc":
+        search_name = name or card_id
+        results = mpc_autofill_provider.search_printings(search_name, limit=limit)
+        return {
+            "card_id": card_id,
+            "source": "mpc",
+            "count": len(results),
+            "results": results,
+        }
+
+    if source not in LOCAL_ART_SOURCE_IDS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Fonte de arte '{source}' nao esta disponivel para Magic.",
+        )
+
+    try:
+        with contextlib.closing(get_db_connection()) as conn:
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                SELECT oracle_id
+                FROM cards
+                WHERE id = ?
+                LIMIT 1
+            """, (card_id,))
+
+            row = cursor.fetchone()
+
+            if not row or not row["oracle_id"]:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Carta nao encontrada ou sem oracle_id.",
+                )
+
+            oracle_id = row["oracle_id"]
+
+            cursor.execute(f"""
+                SELECT {CARD_SELECT_COLUMNS}
+                FROM cards
+                WHERE oracle_id = ?
+                  AND image_uri_normal IS NOT NULL
+                  AND image_uri_normal != ''
+                  AND layout != 'art_series'
+                ORDER BY
+                    CASE
+                        WHEN lang = 'en' THEN 1
+                        WHEN lang = 'pt' THEN 2
+                        ELSE 3
+                    END ASC,
+                    released_at DESC,
+                    set_code ASC,
+                    CAST(collector_number AS INTEGER) ASC
+                LIMIT ?
+            """, (oracle_id, limit))
+
+            results = [dict(row) for row in cursor.fetchall()]
+
+            return {
+                "card_id": card_id,
+                "source": "scryfall",
+                "oracle_id": oracle_id,
+                "count": len(results),
+                "results": results,
+            }
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao buscar impressoes por id: {exc}",
+        )
+
+
+def search_printings(
+    card_name: str,
+    *,
+    source: str = "scryfall",
+    limit: int = 80,
+) -> List[Dict[str, Any]]:
+    source = normalize_art_source(source)
+
+    if source == "mpc":
+        return mpc_autofill_provider.search_printings(card_name, limit=limit)
+
+    if source in LOCAL_ART_SOURCE_IDS:
+        return get_printings_by_name(card_name, limit=limit)
+
+    raise HTTPException(
+        status_code=400,
+        detail=f"Fonte de arte '{source}' nao esta disponivel para Magic.",
+    )

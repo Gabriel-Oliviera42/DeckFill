@@ -3,10 +3,14 @@
 Deck Fill - Backend API
 FastAPI server para processar decklists e buscar cartas no banco de dados local.
 """
+import hashlib
+import os
+
 import requests
 from fastapi.responses import Response
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
+import json
 import sqlite3
 import re
 import time
@@ -14,7 +18,7 @@ import contextlib
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from providers.registry import get_card_provider, normalize_game_key
@@ -22,6 +26,8 @@ from providers.registry import get_card_provider, normalize_game_key
 # Configurações
 DB_FILE = "cards.db"
 PORT = 8000
+IMAGE_CACHE_DIR = Path(__file__).resolve().parent / ".image-cache"
+IMAGE_CACHE_TTL_SECONDS = int(os.getenv("DECKFILL_IMAGE_CACHE_TTL_SECONDS", "604800"))
 
 # Modelos Pydantic
 class CardResponse(BaseModel):
@@ -60,6 +66,8 @@ class CardResponse(BaseModel):
 
     all_parts_json: Optional[str] = None
     card_faces_json: Optional[str] = None
+    download_url: Optional[str] = None
+    art_source: Optional[str] = None
 
 class DeckParseRequest(BaseModel):
     decklist: str
@@ -70,6 +78,15 @@ class DeckParseResponse(BaseModel):
     total_cards: int
     processing_time_ms: float
     errors: List[str]
+
+
+def get_parsed_card_lookup_key(card: Dict[str, Any]) -> str:
+    """Cria uma chave estavel para diferenciar reprints da mesma carta."""
+    return "|".join([
+        str(card.get("name") or "").strip().casefold(),
+        str(card.get("set_code") or "").strip().casefold(),
+        str(card.get("collector_number") or "").strip().casefold(),
+    ])
 
 # Inicialização FastAPI
 app = FastAPI(
@@ -166,8 +183,121 @@ async def health_check():
             detail=f"Health check failed: {str(e)}"
         )
 
+def _image_cache_paths(url: str) -> tuple[Path, Path]:
+    cache_key = hashlib.sha256(url.encode("utf-8")).hexdigest()
+    return (
+        IMAGE_CACHE_DIR / f"{cache_key}.bin",
+        IMAGE_CACHE_DIR / f"{cache_key}.json",
+    )
+
+
+def _read_cached_image(url: str, allow_stale: bool = False) -> Optional[tuple[bytes, str, str]]:
+    image_path, meta_path = _image_cache_paths(url)
+
+    if not image_path.exists() or not meta_path.exists():
+        return None
+
+    try:
+        metadata = json.loads(meta_path.read_text(encoding="utf-8"))
+        cached_at = float(metadata.get("cached_at") or 0)
+        is_fresh = (time.time() - cached_at) <= IMAGE_CACHE_TTL_SECONDS
+
+        if not is_fresh and not allow_stale:
+            return None
+
+        cache_state = "HIT" if is_fresh else "STALE"
+        return (
+            image_path.read_bytes(),
+            metadata.get("content_type") or "image/jpeg",
+            cache_state,
+        )
+    except (OSError, ValueError, json.JSONDecodeError):
+        return None
+
+
+def _write_cached_image(url: str, content: bytes, content_type: str) -> None:
+    image_path, meta_path = _image_cache_paths(url)
+    IMAGE_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+    image_path.write_bytes(content)
+    meta_path.write_text(
+        json.dumps(
+            {
+                "url": url,
+                "content_type": content_type,
+                "cached_at": time.time(),
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+
+def _looks_like_image(content_type: str, content: bytes) -> bool:
+    normalized_type = (content_type or "").split(";")[0].strip().lower()
+
+    if normalized_type.startswith("image/"):
+        return True
+
+    return (
+        content.startswith(b"\xff\xd8\xff")
+        or content.startswith(b"\x89PNG\r\n\x1a\n")
+        or content.startswith(b"RIFF")
+        or content.startswith(b"GIF8")
+    )
+
+
+def _image_response(content: bytes, content_type: str, cache_state: str) -> Response:
+    return Response(
+        content=content,
+        media_type=content_type,
+        headers={
+            "Cache-Control": f"public, max-age={IMAGE_CACHE_TTL_SECONDS}",
+            "X-DeckFill-Image-Cache": cache_state,
+        },
+    )
+
+
+def _proxied_image_url(request: Request, image_url: Optional[str]) -> Optional[str]:
+    if not image_url or "/image-proxy?url=" in image_url:
+        return image_url
+
+    parsed = urlparse(image_url)
+    if parsed.scheme not in {"http", "https"}:
+        return image_url
+
+    return f"{request.url_for('image_proxy')}?url={quote(image_url, safe='')}"
+
+
+def _prepare_art_results_for_frontend(
+    request: Request,
+    results: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    prepared_results = []
+
+    for result in results:
+        prepared = dict(result)
+
+        if prepared.get("art_source") == "mpc":
+            for field in (
+                "image_uri_normal",
+                "image_uri_png",
+                "image_uri_art_crop",
+                "image_uri_back_normal",
+                "image_uri_back_png",
+                "image_uri_back_art_crop",
+            ):
+                original_url = prepared.get(field)
+                if original_url:
+                    prepared[f"original_{field}"] = original_url
+                    prepared[field] = _proxied_image_url(request, original_url)
+
+        prepared_results.append(prepared)
+
+    return prepared_results
+
 @app.get("/image-proxy")
-async def image_proxy(url: str):
+def image_proxy(url: str):
     """
     Proxy simples para imagens externas usadas na geração de PDF.
 
@@ -177,45 +307,96 @@ async def image_proxy(url: str):
     try:
         parsed = urlparse(url)
 
+        image_host = (parsed.hostname or "").lower()
         allowed_hosts = {
             "images.ygoprodeck.com",
             "images.pokemontcg.io",
             "images.scrydex.com",
             "cards.scryfall.io",
+            "cards.lorcast.io",
+            "optcgapi.com",
+            "en.onepiece-cardgame.com",
+            "asia-en.onepiece-cardgame.com",
+            "www.onepiece-cardgame.com",
+            "onepiece-cardgame.com",
+            "storage.googleapis.com",
+            "dhhim4ltzu1pj.cloudfront.net",
+            "d2wlb52bya4y8z.cloudfront.net",
+            "legendstory-production-s3-public.s3.amazonaws.com",
+            "fabtcg.com",
+            "www.fabtcg.com",
             "i.postimg.cc",
             "upload.wikimedia.org",
+            "drive.google.com",
+            "drive.usercontent.google.com",
+            "docs.google.com",
+            "lh3.googleusercontent.com",
         }
+        allowed_host_suffixes = (
+            ".googleusercontent.com",
+        )
 
         if parsed.scheme not in {"http", "https"}:
             raise HTTPException(status_code=400, detail="URL inválida.")
 
-        if parsed.netloc not in allowed_hosts:
+        if image_host not in allowed_hosts and not image_host.endswith(allowed_host_suffixes):
             raise HTTPException(
                 status_code=400,
                 detail=f"Host de imagem não permitido: {parsed.netloc}",
             )
 
-        response = requests.get(url, timeout=20)
+        cached = _read_cached_image(url)
+        if cached:
+            content, content_type, cache_state = cached
+            return _image_response(content, content_type, cache_state)
+
+        response = requests.get(
+            url,
+            timeout=20,
+            headers={
+                "User-Agent": "DeckFill/1.0 (+https://localhost)",
+                "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+            },
+            allow_redirects=True,
+        )
 
         if response.status_code != 200:
+            stale = _read_cached_image(url, allow_stale=True)
+            if stale:
+                content, content_type, cache_state = stale
+                return _image_response(content, content_type, cache_state)
+
             raise HTTPException(
                 status_code=response.status_code,
                 detail="Não foi possível baixar a imagem.",
             )
 
         content_type = response.headers.get("content-type", "image/jpeg")
+        content = response.content
 
-        return Response(
-            content=response.content,
-            media_type=content_type,
-            headers={
-                "Cache-Control": "public, max-age=86400",
-            },
-        )
+        if not _looks_like_image(content_type, content):
+            stale = _read_cached_image(url, allow_stale=True)
+            if stale:
+                content, content_type, cache_state = stale
+                return _image_response(content, content_type, cache_state)
+
+            raise HTTPException(
+                status_code=502,
+                detail="A URL retornou um conteudo que nao parece ser imagem.",
+            )
+
+        _write_cached_image(url, content, content_type)
+
+        return _image_response(content, content_type, "MISS")
 
     except HTTPException:
         raise
     except Exception as e:
+        stale = _read_cached_image(url, allow_stale=True)
+        if stale:
+            content, content_type, cache_state = stale
+            return _image_response(content, content_type, cache_state)
+
         raise HTTPException(
             status_code=500,
             detail=f"Erro ao buscar imagem: {str(e)}",
@@ -238,23 +419,21 @@ async def parse_deck(request: DeckParseRequest):
     game = normalize_game_key(request.game)
     provider = get_card_provider(game)
     
-    # DEBUG - Raio-X: Entrada do /parse-deck
-    print(f"🔍 DEBUG - Jogo recebido: {game}")
-    print(f"🔍 DEBUG - Recebido do frontend: {repr(request.decklist)}")
-    
     try:
         # 1. Parse do decklist
         parsed_cards, parse_errors = provider.parse_decklist(request.decklist)
-        print(f"🔍 DEBUG - Parser retornou {len(parsed_cards)} cartas e {len(parse_errors)} erros")
         
         # 2. Buscar cartas no banco (agora com informações de set/number)
         unique_parsed_cards = []
-        seen_names = set()
+        seen_cards = set()
         
         for card in parsed_cards:
-            if card['name'] not in seen_names:
+            lookup_key = get_parsed_card_lookup_key(card)
+            card["lookup_key"] = lookup_key
+
+            if lookup_key not in seen_cards:
                 unique_parsed_cards.append(card)
-                seen_names.add(card['name'])
+                seen_cards.add(lookup_key)
         
         search_results = provider.search_cards(unique_parsed_cards)
         
@@ -265,11 +444,12 @@ async def parse_deck(request: DeckParseRequest):
         for parsed_card in parsed_cards:
             card_name = parsed_card['name']
             quantity = parsed_card['quantity']
+            lookup_key = parsed_card.get("lookup_key") or get_parsed_card_lookup_key(parsed_card)
             
-            if card_name in search_results and search_results[card_name]:
+            if lookup_key in search_results and search_results[lookup_key]:
                 # Pega a primeira (melhor) correspondência
                 # Converte sqlite3.Row para dict nativo antes de passar para CardResponse
-                card_data = dict(search_results[card_name][0])
+                card_data = dict(search_results[lookup_key][0])
                 
                 # Adiciona a quantidade para cada cópia
                 for _ in range(quantity):
@@ -339,61 +519,119 @@ async def search_card(card_name: str, limit: int = 10):
             detail=f"Erro ao buscar carta: {str(e)}"
         )
 
+@app.get("/art-sources")
+async def get_art_sources(game: str = "magic"):
+    """Lista fontes de arte disponiveis no modal."""
+    game = normalize_game_key(game)
+    provider = get_card_provider(game)
+    sources = provider.get_art_sources()
+
+    return {
+        "game": game,
+        "sources": sources,
+    }
+
+
 @app.get("/printings/{card_name:path}")
-async def get_card_printings(card_name: str):
-    """
-    Retorna todas as impressões de uma carta específica.
-    
-    Filtra cartas sem imagem para não mostrar opções em branco no modal.
-    """
-    try:
-        with contextlib.closing(get_db_connection()) as conn:
-            cursor = conn.cursor()
-            
-            # Pega apenas a frente do nome (antes do //) para a busca
-            search_name = card_name.split('//')[0].strip()
-            
-            # Buscar todas as impressões da carta, ignorando maiúsculas/minúsculas
-            # Filtrando apenas cartas que têm imagem
-            cursor.execute(f"""
-                SELECT {CARD_SELECT_COLUMNS}
-                FROM cards 
-                WHERE name LIKE ?
-                COLLATE NOCASE
-                AND image_uri_normal IS NOT NULL 
-                AND image_uri_normal != ''
-                ORDER BY set_code DESC, collector_number ASC
-            """, (search_name + '%',))
-            
-            results = [dict(row) for row in cursor.fetchall()]
-            
-            print(f" Encontradas {len(results)} impressões para '{card_name}'")
-            
-            return results
-        
-    except Exception as e:
+async def get_card_printings_multi_tcg(
+    request: Request,
+    card_name: str,
+    game: str = "magic",
+    source: str = "local",
+    limit: int = 80,
+):
+    game = normalize_game_key(game)
+    source = (source or "local").lower().strip()
+    provider = get_card_provider(game)
+
+    if not hasattr(provider, "search_printings"):
         raise HTTPException(
-            status_code=500,
-            detail=f"Erro ao buscar impressões: {str(e)}"
+            status_code=400,
+            detail=f"O jogo '{game}' ainda nao suporta troca de artes.",
         )
 
-@app.get("/cards/{card_id}/printings")
-async def get_card_printings_by_id(card_id: str):
-    """
-    Retorna todas as impressões relacionadas à mesma carta usando oracle_id.
+    results = provider.search_printings(
+        card_name,
+        source=source,
+        limit=limit,
+    )
+    prepared_results = _prepare_art_results_for_frontend(request, results)
 
-    Esse endpoint é mais confiável do que buscar por nome, especialmente para:
-    - cartas dupla-face
-    - nomes com //
-    - versões promocionais
-    - cartas com nomes parecidos
+    return {
+        "card": card_name,
+        "game": game,
+        "source": source,
+        "count": len(prepared_results),
+        "results": prepared_results,
+    }
+
+
+@app.get("/legacy/printings/{card_name:path}")
+async def get_card_printings(card_name: str):
+    """Compatibilidade: lista impressoes de Magic pelo nome."""
+    provider = get_card_provider("magic")
+    return provider.search_printings(card_name, source="scryfall", limit=500)
+
+
+@app.get("/cards/{card_id}/printings")
+async def get_card_printings_by_id_multi_tcg(
+    request: Request,
+    card_id: str,
+    game: str = "magic",
+    source: str = "local",
+    name: Optional[str] = None,
+    limit: int = 80,
+):
+    game = normalize_game_key(game)
+    source = (source or "local").lower().strip()
+    provider = get_card_provider(game)
+
+    if not hasattr(provider, "get_printings_by_id"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"O jogo '{game}' ainda nao suporta troca de artes.",
+        )
+
+    result = provider.get_printings_by_id(
+        card_id,
+        source=source,
+        name=name,
+        limit=limit,
+    )
+    result["game"] = game
+    result["source"] = result.get("source") or source
+
+    if isinstance(result.get("results"), list):
+        result["results"] = _prepare_art_results_for_frontend(
+            request,
+            result["results"],
+        )
+        result["count"] = len(result["results"])
+
+    return result
+
+
+@app.get("/legacy/cards/{card_id}/printings")
+async def get_card_printings_by_id(card_id: str):
+    """Compatibilidade: lista impressoes de Magic pelo ID Scryfall."""
+    provider = get_card_provider("magic")
+    return provider.get_printings_by_id(card_id, source="scryfall", limit=500)
+
+@app.get("/cards/{card_id}/related")
+async def get_card_related_parts(card_id: str):
+    """
+    Retorna as cartas completas listadas em all_parts_json.
+
+    O Scryfall guarda tokens, partes de meld e combo pieces em all_parts,
+    mas o objeto relacionado so traz metadados basicos. Este endpoint resolve
+    os IDs contra o banco local para o frontend poder mostrar imagens.
     """
     try:
         with contextlib.closing(get_db_connection()) as conn:
             cursor = conn.cursor()
 
             cursor.execute("""
-                SELECT oracle_id
+                SELECT all_parts_json
                 FROM cards
                 WHERE id = ?
                 LIMIT 1
@@ -401,39 +639,73 @@ async def get_card_printings_by_id(card_id: str):
 
             row = cursor.fetchone()
 
-            if not row or not row["oracle_id"]:
-                raise HTTPException(
-                    status_code=404,
-                    detail="Carta não encontrada ou sem oracle_id."
-                )
+            if not row:
+                raise HTTPException(status_code=404, detail="Carta nao encontrada.")
 
-            oracle_id = row["oracle_id"]
+            raw_parts = row["all_parts_json"]
+            if not raw_parts:
+                return {
+                    "card_id": card_id,
+                    "count": 0,
+                    "parts": [],
+                    "results": [],
+                }
 
+            try:
+                parts = json.loads(raw_parts)
+            except json.JSONDecodeError:
+                parts = []
+
+            related_ids = [
+                part.get("id")
+                for part in parts
+                if isinstance(part, dict) and part.get("id")
+            ]
+
+            if not related_ids:
+                return {
+                    "card_id": card_id,
+                    "count": 0,
+                    "parts": parts,
+                    "results": [],
+                }
+
+            placeholders = ",".join("?" for _ in related_ids)
             cursor.execute(f"""
                 SELECT {CARD_SELECT_COLUMNS}
                 FROM cards
-                WHERE oracle_id = ?
-                  AND image_uri_normal IS NOT NULL
-                  AND image_uri_normal != ''
-                  AND layout != 'art_series'
-                ORDER BY
-                    CASE
-                        WHEN lang = 'en' THEN 1
-                        WHEN lang = 'pt' THEN 2
-                        ELSE 3
-                    END ASC,
-                    released_at DESC,
-                    set_code ASC,
-                    CAST(collector_number AS INTEGER) ASC
-            """, (oracle_id,))
+                WHERE id IN ({placeholders})
+            """, related_ids)
 
-            results = [dict(row) for row in cursor.fetchall()]
+            cards_by_id = {row["id"]: dict(row) for row in cursor.fetchall()}
+            results = []
+
+            for part in parts:
+                if not isinstance(part, dict):
+                    continue
+
+                part_id = part.get("id")
+                related_card = cards_by_id.get(part_id)
+
+                if related_card:
+                    related_card["related_component"] = part.get("component")
+                    related_card["related_uri"] = part.get("uri")
+                    results.append(related_card)
+                    continue
+
+                results.append({
+                    "id": part_id,
+                    "name": part.get("name"),
+                    "type_line": part.get("type_line"),
+                    "related_component": part.get("component"),
+                    "related_uri": part.get("uri"),
+                })
 
             return {
                 "card_id": card_id,
-                "oracle_id": oracle_id,
                 "count": len(results),
-                "results": results
+                "parts": parts,
+                "results": results,
             }
 
     except HTTPException:
@@ -441,7 +713,7 @@ async def get_card_printings_by_id(card_id: str):
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Erro ao buscar impressões por id: {str(e)}"
+            detail=f"Erro ao buscar partes relacionadas: {str(e)}"
         )
 
 @app.get("/stats")
@@ -493,14 +765,14 @@ if __name__ == "__main__":
     
     # Verificar se banco de dados existe
     if not Path(DB_FILE).exists():
-        print(f"❌ Erro: Banco de dados '{DB_FILE}' não encontrado!")
+        print(f"Erro: Banco de dados '{DB_FILE}' não encontrado!")
         print("Execute 'python sync_db.py' primeiro.")
         exit(1)
     
-    print(f"✅ Banco de dados encontrado: {DB_FILE}")
-    print(f"🚀 Iniciando servidor na porta {PORT}")
-    print(f"📖 Docs: http://localhost:{PORT}/docs")
-    print(f"🔍 Health: http://localhost:{PORT}/health")
+    print(f"Banco de dados encontrado: {DB_FILE}")
+    print(f"Iniciando servidor na porta {PORT}")
+    print(f"Docs: http://localhost:{PORT}/docs")
+    print(f"Health: http://localhost:{PORT}/health")
     print("=" * 50)
     
     uvicorn.run(
