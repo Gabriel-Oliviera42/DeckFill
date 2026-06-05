@@ -20,6 +20,12 @@ ONEPIECE_API_ENDPOINTS = (
     "https://optcgapi.com/api/allDonCards/",
 )
 ONEPIECE_DB_FILE = "onepiece_cards.db"
+# Nao remova watermark por processamento de imagem. A solucao correta e trocar
+# para uma fonte publica/licenciada melhor quando ela estiver estavel.
+ONEPIECE_IMAGE_LIMITATION = (
+    "As imagens públicas disponíveis para One Piece geralmente vêm das fontes "
+    "oficiais/públicas da Bandai e podem conter watermark SAMPLE."
+)
 
 ONEPIECE_SECTION_HEADERS = {
     "deck",
@@ -260,6 +266,9 @@ def fetch_all_onepiece_cards() -> List[Dict[str, Any]]:
 
     for endpoint in ONEPIECE_API_ENDPOINTS:
         response = requests.get(endpoint, timeout=60)
+        if response.status_code == 404:
+            continue
+
         response.raise_for_status()
         payload = response.json()
 
@@ -320,9 +329,10 @@ def get_art_sources() -> List[Dict[str, Any]]:
     return [
         {
             "id": "local",
-            "label": "OPTCG API",
+            "label": "OPTCG",
             "available": True,
             "is_default": True,
+            "notice": ONEPIECE_IMAGE_LIMITATION,
         },
     ]
 

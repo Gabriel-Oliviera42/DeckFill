@@ -21,6 +21,7 @@ const API_BASE = window.DECKFILL_API_BASE || localStorage.getItem("deckfill_api_
 
 const DISPLAY_IMAGE_PROXY_HOSTS = new Set([
   "cards.lorcast.io",
+  "images.scrydex.com",
   "optcgapi.com",
   "en.onepiece-cardgame.com",
   "asia-en.onepiece-cardgame.com",

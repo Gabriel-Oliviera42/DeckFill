@@ -72,6 +72,10 @@ function resolvePrintSettings(rawSettings) {
   const gapMm = Number.isFinite(rawSettings.gapSpacing)
     ? rawSettings.gapSpacing
     : 0;
+  const selectedGame = AppState.getSelectedGame?.() || "magic";
+  const gameConfig = GameConfigs.getGameConfig(selectedGame);
+  const cardWidthMm = gameConfig.cardWidthMm || 63;
+  const cardHeightMm = gameConfig.cardHeightMm || 88;
 
   return {
     outputMode: resolveOutputMode(rawSettings),
@@ -84,12 +88,12 @@ function resolvePrintSettings(rawSettings) {
     },
 
     card: {
-      widthMm: 63,
-      heightMm: 88,
+      widthMm: cardWidthMm,
+      heightMm: cardHeightMm,
       scaleName: rawSettings.scale || "normal",
       scaleMultiplier,
-      finalWidthMm: 63 * scaleMultiplier,
-      finalHeightMm: 88 * scaleMultiplier,
+      finalWidthMm: cardWidthMm * scaleMultiplier,
+      finalHeightMm: cardHeightMm * scaleMultiplier,
     },
 
     spacing: {

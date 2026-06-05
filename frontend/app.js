@@ -7,7 +7,7 @@
  */
 
 // ================================================================================
-// CONFIGURAÇÃO E ESTADO GLOBAL
+// CONFIGURACAO E ESTADO GLOBAL
 // ================================================================================
 
 // Constantes movidas para ./js/core/config.js (AppConfig.AppConfig.MTG_BACK_URL, AppConfig.AppConfig.API_BASE)
@@ -38,7 +38,7 @@ const elements = {
   gameSupportTitle: document.getElementById("game-support-title"),
   gameSupportDescription: document.getElementById("game-support-description"),
 
-  // === SEÇÕES DA INTERFACE ===
+  // === SECOES DA INTERFACE ===
   loadingSection: document.getElementById("loading-section"), // Loading principal
   loadingTitle: document.getElementById("loading-title"),
   loadingDescription: document.getElementById("loading-description"),
@@ -60,6 +60,7 @@ const elements = {
   artSourceControls: document.getElementById("art-source-controls"),
   artSourceSelect: document.getElementById("art-source-select"),
   artSourceTabs: document.getElementById("art-source-tabs"),
+  artSourceNotice: document.getElementById("art-source-notice"),
   modalGameLabel: document.getElementById("modal-game-label"),
   artSearchInput: document.getElementById("art-search-input"),
   artSearchBtn: document.getElementById("art-search-btn"),
@@ -85,7 +86,7 @@ const elements = {
   uploadPreviewImgBack: document.getElementById("upload-preview-img-back"), // Imagem de preview verso
   clearCustomImageBack: document.getElementById("clear-custom-image-back"), // Botão remover imagem verso
 
-  // === CONFIGURAÇÕES DE IMPRESSÃO (ACCORDION) ===
+  // === CONFIGURACOES DE IMPRESSAO (ACCORDION) ===
   printSettingsToggle: document.getElementById("print-settings-toggle"), // Toggle do accordion
   printSettingsContent: document.getElementById("print-settings-content"), // Conteúdo do accordion
   printSettingsChevron: document.getElementById("print-settings-chevron"), // Ícone do accordion
@@ -102,7 +103,7 @@ const elements = {
   scale: document.getElementById("scale"), // Escala da carta
   gapValue: document.getElementById("gap-value"), // Display do valor do gap
 
-  // === CATEGORIA 2: GUIAS DE IMPRESSÃO ===
+  // === CATEGORIA 2: GUIAS DE IMPRESSÒO ===
   cropMarks: document.getElementById("crop-marks"), // Marcas de corte
   blackCorners: document.getElementById("black-corners"), // Bordas pretas
   bleed: document.getElementById("bleed"), // Sangria/bleed
@@ -113,7 +114,7 @@ const elements = {
   autodetectTokens: document.getElementById("autodetect-tokens"), // Auto-detectar tokens
   printDoubleFaced: document.getElementById("print-double-faced"), // Imprimir dupla face
 
-  // === MODAL DE PROGRESSO (GERAÇÃO DE PDF) ===
+  // === MODAL DE PROGRESSO (GERACAO DE PDF) ===
   progressModal: document.getElementById("progress-modal"), // Container do modal
   progressBar: document.getElementById("progress-bar"), // Barra de progresso
   progressPercentage: document.getElementById("progress-percentage"), // Percentual
@@ -134,7 +135,7 @@ window.elements = elements;
 // AppConfig.SAMPLE_DECKLIST movido para ./js/core/config.js (AppConfig.AppConfig.SAMPLE_DECKLIST)
 
 // ================================================================================
-// INICIALIZAÇÃO DA APLICAÇÃO
+// INICIALIZACAO DA APLICACAO
 // ================================================================================
 
 // Ponto de entrada da aplicação - executado quando DOM está carregado
@@ -276,7 +277,7 @@ function initializeEventListeners() {
 
   if (elements.globalBackBtn) {
     elements.globalBackBtn.addEventListener("click", openGlobalBackModal);
-    console.log("✅ Event listener do botão Global Back adicionado");
+    console.log("Event listener do botão Global Back adicionado");
   }
 
   if (elements.closeGlobalBackModal) {
@@ -307,7 +308,7 @@ function initializeEventListeners() {
 
       // Se já tiver imagem customizada, permite resetar
       if (currentBack) {
-        console.log("🔄 Resetando verso para padrão MTG");
+        console.log("Resetando verso para padrão MTG");
 
         // Limpar do estado
         AppState.setGlobalCustomBackImage(null);
@@ -393,7 +394,7 @@ function initializeEventListeners() {
 // Função checkApiHealth movida para ./js/api/api-client.js
 
 // ================================================================================
-// FUNÇÕES PRINCIPAIS DA APLICAÇÃO
+// FUNCOES PRINCIPAIS DA APLICACAO
 // ================================================================================
 
 // Função processDecklist movida para ./js/deck/deck-processor.js
@@ -549,7 +550,7 @@ function getPrintSettings() {
 }
 
 // ================================================================================
-// FUNÇÕES DE UPLOAD DE IMAGENS PERSONALIZADAS
+// FUNCOES DE UPLOAD DE IMAGENS PERSONALIZADAS
 // ================================================================================
 
 // Funções de upload movidas para ./js/upload/image-upload.js
@@ -611,7 +612,7 @@ function handleGlobalBackUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  console.log("🔍 Upload do verso global iniciado!");
+  console.log("Upload do verso global iniciado!");
 
   // Validar tipo de arquivo
   if (!file.type.startsWith("image/")) {
@@ -625,7 +626,7 @@ function handleGlobalBackUpload(event) {
 
     // Salvar no estado global
     AppState.setGlobalCustomBackImage(imageUrl);
-    console.log("✅ Verso global armazenado no AppState");
+    console.log("Verso global armazenado no AppState");
 
     // Mostrar preview
     const previewContainer = document.getElementById("global-back-preview");
@@ -646,7 +647,7 @@ function handleGlobalBackUpload(event) {
 function clearGlobalBackImage() {
   // Limpar do estado
   AppState.setGlobalCustomBackImage(null);
-  console.log("✅ Verso global removido do AppState");
+  console.log("Verso global removido do AppState");
 
   // Limpar preview
   const previewContainer = document.getElementById("global-back-preview");
@@ -691,7 +692,7 @@ function updateDecklistTextarea() {
  * Abre o modal de verso global
  */
 function openGlobalBackModal() {
-  console.log("🔍 Abrindo modal de verso global");
+  console.log("Abrindo modal de verso global");
   elements.globalBackModal.classList.remove("hidden");
   updateGlobalBackButton();
 }
@@ -700,7 +701,7 @@ function openGlobalBackModal() {
  * Fecha o modal de verso global
  */
 function closeGlobalBackModal() {
-  console.log("🔍 Fechando modal de verso global");
+  console.log("Fechando modal de verso global");
   elements.globalBackModal.classList.add("hidden");
 }
 
@@ -749,7 +750,7 @@ function handleGlobalBackUploadModal(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  console.log("🔍 Upload do verso global iniciado!");
+  console.log("Upload do verso global iniciado!");
 
   // Validar tipo de arquivo
   if (!file.type.startsWith("image/")) {
@@ -793,7 +794,7 @@ function handleGlobalBackUploadModal(event) {
   };
 
   reader.onerror = function (error) {
-    console.error("❌ Erro ao ler arquivo:", error);
+    console.error("Erro ao ler arquivo:", error);
     alert("Ocorreu um erro ao processar a imagem. Tente novamente.");
   };
 
@@ -806,7 +807,7 @@ function handleGlobalBackUploadModal(event) {
 function clearGlobalBackModal() {
   // Limpar do estado
   AppState.setGlobalCustomBackImage(null);
-  console.log("✅ Verso global removido do AppState");
+  console.log("Verso global removido do AppState");
 
   // Limpar preview
   const imgElement = elements.globalBackPreviewLarge;
@@ -823,13 +824,13 @@ function clearGlobalBackModal() {
 
 // Exportar funções para debug (console)
 // Nota: Várias funções movidas para módulos especializados:
-// - showProgressModal, hideProgressModal, updateProgress → ./js/ui/notifications.js
-// - openArtModal, closeArtModal, togglePrintSettings → ./js/ui/modal-manager.js
-// - handleCustomImageUpload, clearCustomImage → ./js/upload/image-upload.js
-// - processDecklist, clearDecklist, loadSampleDecklist → ./js/deck/deck-processor.js
-// - renderResults, createCardElement, toggleCardFace → ./js/deck/card-renderer.js
-// - generatePDF, blobToDataUrl → ./js/pdf/pdf-engine.js
-// - checkApiHealth → ./js/api/api-client.js
+// - showProgressModal, hideProgressModal, updateProgress -> ./js/ui/notifications.js
+// - openArtModal, closeArtModal, togglePrintSettings -> ./js/ui/modal-manager.js
+// - handleCustomImageUpload, clearCustomImage -> ./js/upload/image-upload.js
+// - processDecklist, clearDecklist, loadSampleDecklist -> ./js/deck/deck-processor.js
+// - renderResults, createCardElement, toggleCardFace -> ./js/deck/card-renderer.js
+// - generatePDF, blobToDataUrl -> ./js/pdf/pdf-engine.js
+// - checkApiHealth -> ./js/api/api-client.js
 
 window.deckFillApp = {
   // Funções movidas para módulos especializados - mantendo apenas estado e configuração
@@ -1096,7 +1097,7 @@ function handleGameChange() {
   const gameConfig = GameConfigs.getGameConfig(selectedGame);
 
   if (gameConfig.status !== "active") {
-    showError(`${gameConfig.label} ainda não está disponível.`);
+    showError(`${GameConfigs.getGameDisplayLabel(gameConfig)} ainda não está disponível.`);
     const magicInput = document.getElementById("game-magic");
     if (magicInput) {
       magicInput.checked = true;
@@ -1114,73 +1115,39 @@ function handleGameChange() {
 function updateSelectedGameUI() {
   const selectedGame = AppState.getSelectedGame();
   const gameConfig = GameConfigs.getGameConfig(selectedGame);
+  const selectedInput = document.querySelector(
+    `input[name="game-selector"][value="${selectedGame}"]`,
+  );
 
   if (document.body) {
     document.body.dataset.game = selectedGame;
+  }
+
+  if (selectedInput && !selectedInput.checked) {
+    selectedInput.checked = true;
   }
 
   if (elements.decklistInput) {
     elements.decklistInput.placeholder = gameConfig.decklistPlaceholder;
   }
 
-  updateGameSupportNotice(selectedGame, gameConfig);
+  updateGameSupportNotice(gameConfig);
 
-  console.log("Jogo selecionado:", gameConfig.label);
+  console.log("Jogo selecionado:", GameConfigs.getGameDisplayLabel(gameConfig));
 }
 
-function updateGameSupportNotice(selectedGame, gameConfig) {
+function updateGameSupportNotice(gameConfig) {
   if (!elements.gameSupportNotice) {
     return;
   }
 
-  const notices = {
-    magic: {
-      title: `${gameConfig.label} está selecionado`,
-      description: "Busca rápida usando a base local de cartas.",
-      classes: "border-df-line bg-df-surface text-df-muted",
-    },
-    pokemon: {
-      title: `${gameConfig.label} usa base local sincronizada`,
-      description:
-        "A busca usa o banco local Pokemon TCG. A seleção de versões e artes alternativas está disponível no modal da carta.",
-      classes: "border-df-line bg-df-surface text-df-muted",
-    },
-    yugioh: {
-      title: `${gameConfig.label} usa base local sincronizada`,
-      description:
-        "A busca usa o banco local YGOPRODeck. A seleção de versões e artes alternativas está disponível no modal da carta.",
-      classes: "border-df-line bg-df-surface text-df-muted",
-    },
-  };
-
-  const extendedNotices = {
-    lorcana: {
-      title: `${gameConfig.label} usa base local sincronizada`,
-      description:
-        "A busca usa o banco local Lorcast. A selecao de versoes e artes alternativas esta disponivel no modal da carta.",
-      classes: "border-df-line bg-df-surface text-df-muted",
-    },
-    onepiece: {
-      title: `${gameConfig.label} usa base local sincronizada`,
-      description:
-        "A busca usa o banco local OPTCG. A selecao de versoes e artes alternativas esta disponivel no modal da carta.",
-      classes: "border-df-line bg-df-surface text-df-muted",
-    },
-    fab: {
-      title: `${gameConfig.label} usa base local sincronizada`,
-      description:
-        "A busca usa o banco local GoAgain. A selecao de versoes e artes alternativas esta disponivel no modal da carta.",
-      classes: "border-df-line bg-df-surface text-df-muted",
-    },
-  };
-
-  const notice = extendedNotices[selectedGame] || notices[selectedGame] || notices.magic;
-
-  elements.gameSupportTitle.textContent = notice.title;
-  elements.gameSupportDescription.textContent = notice.description;
+  elements.gameSupportTitle.textContent =
+    GameConfigs.getGameSupportTitle(gameConfig);
+  elements.gameSupportDescription.textContent =
+    GameConfigs.getGameSupportDescription(gameConfig);
 
   elements.gameSupportNotice.className =
-    `mt-3 rounded-lg border px-4 py-3 text-sm ${notice.classes}`;
+    "mt-3 rounded-lg border px-4 py-3 text-sm border-df-line bg-df-surface text-df-muted";
 }
 
 console.log("Deck Fill App initialized");

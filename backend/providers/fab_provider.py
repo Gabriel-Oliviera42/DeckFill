@@ -59,6 +59,10 @@ def extract_fab_printing_hint(card_name: str) -> Tuple[str, Optional[str], Optio
 
     patterns = [
         re.compile(
+            r"^(?P<name>.+?)\s*[\(\[]\s*(?P<set>[A-Z0-9]{2,8})\s*(?:#|/|-)?\s*(?P<code>[A-Z0-9]{2,8}\d{3}[A-Z]?)\s*[\)\]]\s*$",
+            re.IGNORECASE,
+        ),
+        re.compile(
             r"^(?P<name>.+?)\s*[\(\[]\s*(?P<code>[A-Z0-9]{2,8}\d{3}[A-Z]?)\s*[\)\]]\s*$",
             re.IGNORECASE,
         ),
@@ -72,7 +76,12 @@ def extract_fab_printing_hint(card_name: str) -> Tuple[str, Optional[str], Optio
         match = pattern.match(card_name)
         if match:
             code = match.group("code").strip().upper()
-            return match.group("name").strip(), derive_fab_set_code(code), code
+            set_code = match.groupdict().get("set")
+            return (
+                match.group("name").strip(),
+                set_code.strip().upper() if set_code else derive_fab_set_code(code),
+                code,
+            )
 
     return card_name, None, None
 

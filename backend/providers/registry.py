@@ -1,10 +1,7 @@
 """
 Card Provider Registry
 
-Centraliza a escolha do provider correto para cada TCG.
-
-Nesta fase, apenas Magic está implementado.
-Pokémon e Yu-Gi-Oh serão adicionados depois sem alterar diretamente o main.py.
+Centraliza a escolha do provider correto para cada TCG suportado.
 """
 
 from fastapi import HTTPException

@@ -463,7 +463,7 @@ async function generatePDF() {
       cardsToPrint.length,
       Math.ceil(cardsToPrint.length / cardsPerPage),
     );
-    doc.save("decklist.pdf");
+    await Promise.resolve(doc.save("decklist.pdf"));
 
     console.log("✅ PDF gerado com sucesso!");
     console.groupEnd(); // Fecha o grupo principal da geração de PDF
@@ -543,11 +543,7 @@ async function drawCardImageOnPdf({
 
   console.log(`🌐 Fazendo fetch da imagem: ${fetchableImageUrl}`);
 
-  const response = await fetch(fetchableImageUrl);
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
+  const response = await fetchPdfImageWithFallback(fetchableImageUrl, imageUrl);
 
   console.log(`✅ Download bem-sucedido: ${cardName}`);
 
@@ -624,6 +620,38 @@ async function drawCardImageOnPdf({
   }
 }
 
+async function fetchPdfImageWithFallback(fetchableImageUrl, originalImageUrl) {
+  try {
+    const response = await fetch(fetchableImageUrl);
+
+    if (response.ok) {
+      return response;
+    }
+
+    if (fetchableImageUrl === originalImageUrl) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    console.warn(
+      `Proxy de imagem falhou (${response.status}); tentando URL original.`,
+    );
+  } catch (error) {
+    if (fetchableImageUrl === originalImageUrl) {
+      throw error;
+    }
+
+    console.warn("Proxy de imagem indisponível; tentando URL original.", error);
+  }
+
+  const directResponse = await fetch(originalImageUrl);
+
+  if (!directResponse.ok) {
+    throw new Error(`HTTP ${directResponse.status}`);
+  }
+
+  return directResponse;
+}
+
 /**
  * Converte Blob para DataURL
  */
@@ -638,7 +666,7 @@ function blobToDataUrl(blob) {
 
 function isPdfNativeImageBlob(blob) {
   const mime = (blob?.type || "").toLowerCase();
-  return mime === "image/jpeg" || mime === "image/jpg" || mime === "image/png";
+  return mime === "image/jpeg" || mime === "image/jpg";
 }
 
 function blobToJpegDataUrl(blob) {

@@ -17,6 +17,8 @@
     
     <!-- jsPDF via CDN - Biblioteca de geração de PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="js/vendor/pdf-lib.min.js"></script>
+    <script src="js/vendor/jspdf-fallback.js"></script>
     
     <!-- Lucide Icons - biblioteca SVG consistente para a interface -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -460,7 +462,7 @@
                                     <span class="game-status-pill rounded-full px-2 py-0.5 text-[11px]">Estável</span>
                                 </span>
                                 <span class="block text-xs text-gray-300 mt-2">
-                                    Busca rápida usando base local.
+                                    Scryfall/base local sincronizada.
                                 </span>
                             </span>
                         </label>
@@ -476,7 +478,7 @@
                                     <span class="game-status-pill rounded-full px-2 py-0.5 text-[11px]">Inicial</span>
                                 </span>
                                 <span class="block text-xs text-gray-300 mt-2">
-                                    Busca rapida usando base local.
+                                    Pokémon TCG/base local sincronizada.
                                 </span>
                             </span>
                         </label>
@@ -492,7 +494,7 @@
                                     <span class="game-status-pill rounded-full px-2 py-0.5 text-[11px]">Inicial</span>
                                 </span>
                                 <span class="block text-xs text-gray-300 mt-2">
-                                    Busca rapida usando base local.
+                                    YGOPRODeck/base local sincronizada.
                                 </span>
                             </span>
                         </label>
@@ -508,7 +510,7 @@
                                     <span class="game-status-pill rounded-full px-2 py-0.5 text-[11px]">Novo</span>
                                 </span>
                                 <span class="block text-xs text-gray-300 mt-2">
-                                    Busca rapida usando base Lorcast.
+                                    Lorcast/base local sincronizada.
                                 </span>
                             </span>
                         </label>
@@ -524,7 +526,7 @@
                                     <span class="game-status-pill rounded-full px-2 py-0.5 text-[11px]">Novo</span>
                                 </span>
                                 <span class="block text-xs text-gray-300 mt-2">
-                                    Busca rapida usando base OPTCG.
+                                    OPTCG/base local sincronizada.
                                 </span>
                             </span>
                         </label>
@@ -540,16 +542,16 @@
                                     <span class="game-status-pill rounded-full px-2 py-0.5 text-[11px]">Novo</span>
                                 </span>
                                 <span class="block text-xs text-gray-300 mt-2">
-                                    Busca rapida usando base GoAgain.
+                                    GoAgain/base local sincronizada.
                                 </span>
                             </span>
                         </label>
                         </div>
 
                         <div id="game-support-notice" class="mt-3 rounded-lg border border-slate-600 bg-slate-800 px-4 py-3 text-sm text-gray-300">
-                            <p id="game-support-title" class="font-medium text-gray-100">Magic: The Gathering está selecionado</p>
+                            <p id="game-support-title" class="font-medium text-gray-100">Magic: The Gathering usa base local sincronizada</p>
                             <p id="game-support-description" class="mt-1 text-xs text-gray-400">
-                                Busca rápida usando a base local de cartas.
+                                Fonte/base: Scryfall/base local sincronizada. Clique em uma carta para trocar versões ou artes alternativas quando houver dados disponíveis.
                             </p>
                         </div>
                     </div>
@@ -915,6 +917,8 @@
             </div>
 
             <div class="p-4 overflow-y-auto max-h-[calc(92vh-210px)] bg-slate-800">
+                <div id="art-source-notice" class="mb-4 hidden rounded-lg border border-df-accent bg-slate-900/70 px-3 py-2 text-xs text-df-soft"></div>
+
                 <div id="modal-loading" class="text-center py-12 hidden">
                     <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
                     <p class="mt-2 text-slate-400">Buscando artes...</p>
@@ -1136,7 +1140,7 @@
                 <div class="flex flex-wrap items-center gap-4 text-gray-400 text-sm">
                     <span class="inline-flex items-center gap-2"><i data-lucide="database" class="df-icon-sm text-df-primary" aria-hidden="true"></i>Base local multi-TCG</span>
                     <span>•</span>
-                    <span class="inline-flex items-center gap-2"><i data-lucide="sparkles" class="df-icon-sm text-df-accent" aria-hidden="true"></i>Powered by Scryfall, Pokemon TCG API e YGOPRODeck</span>
+                    <span class="inline-flex items-center gap-2"><i data-lucide="sparkles" class="df-icon-sm text-df-accent" aria-hidden="true"></i>Powered by Scryfall, Pokémon TCG API, YGOPRODeck, Lorcast, OPTCG e GoAgain</span>
                 </div>
             </div>
         </div>

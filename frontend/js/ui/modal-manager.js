@@ -16,12 +16,13 @@ async function openArtModal(card, cardIndex) {
   elements.modalCardName.textContent = card.name;
 
   if (elements.modalGameLabel) {
-    elements.modalGameLabel.textContent = `${gameConfig.label} artwork`;
+    elements.modalGameLabel.textContent =
+      `${GameConfigs.getGameDisplayLabel(gameConfig)} artes - ${gameConfig.sourceLabel}`;
   }
 
   if (elements.artSearchInput) {
     elements.artSearchInput.value = "";
-    elements.artSearchInput.placeholder = `Buscar outra carta em ${gameConfig.shortLabel || gameConfig.label}...`;
+    elements.artSearchInput.placeholder = `Buscar outra carta em ${GameConfigs.getGameShortLabel(gameConfig)}...`;
   }
 
   setArtResultCount(0);
@@ -42,13 +43,8 @@ async function openArtModal(card, cardIndex) {
 }
 
 function getLocalArtSourceLabel(game) {
-  const labels = {
-    magic: "Scryfall",
-    pokemon: "Pokemon TCG",
-    yugioh: "YGOPRODeck",
-  };
-
-  return labels[game] || "Base local";
+  const gameConfig = GameConfigs.getGameConfig(game);
+  return gameConfig.sourceLabel || "Base local";
 }
 
 function getFallbackArtSources(game) {
@@ -84,7 +80,7 @@ async function fetchArtSources(game) {
       }
     }
   } catch (error) {
-    console.warn("Nao foi possivel carregar fontes de arte:", error);
+    console.warn("Não foi possível carregar fontes de arte:", error);
   }
 
   return sources;
@@ -107,6 +103,7 @@ async function configureArtSources(card) {
 
   setSelectedArtSource(preferredSource?.id || "local");
   renderArtSourceTabs(card);
+  updateArtSourceNotice();
 }
 
 function setSelectedArtSource(sourceId) {
@@ -162,7 +159,7 @@ function renderArtSourceTabs(card) {
     button.disabled = !isAvailable;
     button.innerHTML = `
       <i data-lucide="${sourceIcon}" class="df-icon" aria-hidden="true"></i>
-      <span>${isAvailable ? escapeHtml(source.label) : `${escapeHtml(source.label)} indisponivel`}</span>
+      <span>${isAvailable ? escapeHtml(source.label) : `${escapeHtml(source.label)} indisponível`}</span>
     `;
     button.className = [
       "rounded-lg px-4 py-3 text-sm font-semibold transition-colors inline-flex items-center gap-2",
@@ -173,7 +170,7 @@ function renderArtSourceTabs(card) {
     ].join(" ");
 
     if (!isAvailable) {
-      button.title = "Fonte configurada, mas indisponivel agora.";
+      button.title = "Fonte configurada, mas indisponível agora.";
     }
 
     button.addEventListener("click", () => {
@@ -236,11 +233,29 @@ function getSelectedSourceLabel() {
   return source?.label || getLocalArtSourceLabel(AppState.getSelectedGame?.());
 }
 
+function getSelectedSourceNotice() {
+  const selectedGame = AppState.getSelectedGame?.() || "magic";
+  const gameConfig = GameConfigs.getGameConfig(selectedGame);
+  const sourceId = getSelectedArtSource();
+  const source = activeArtSources.find((item) => item.id === sourceId);
+
+  return source?.notice || gameConfig.technicalNotice || "";
+}
+
+function updateArtSourceNotice() {
+  if (!elements.artSourceNotice) return;
+
+  const notice = getSelectedSourceNotice();
+  elements.artSourceNotice.textContent = notice ? `Aviso técnico: ${notice}` : "";
+  elements.artSourceNotice.classList.toggle("hidden", !notice);
+}
+
 async function loadArtOptions(card, searchTerm = "") {
   elements.modalLoading.classList.remove("hidden");
   elements.modalArtGrid.classList.add("hidden");
   elements.modalError.classList.add("hidden");
-  elements.modalError.textContent = "Nao foi possivel buscar artes para esta carta.";
+  elements.modalError.textContent = "Não foi possível buscar artes para esta carta.";
+  updateArtSourceNotice();
   setArtResultCount(0, getSelectedSourceLabel());
 
   try {
@@ -273,7 +288,7 @@ async function loadArtOptions(card, searchTerm = "") {
     elements.modalArtGrid.classList.add("hidden");
     elements.modalError.classList.remove("hidden");
     elements.modalError.textContent =
-      error?.message || "Nao foi possivel buscar artes para esta carta.";
+      error?.message || "Não foi possível buscar artes para esta carta.";
     setArtResultCount(0, getSelectedSourceLabel());
   }
 }
@@ -326,7 +341,7 @@ function renderArtOptions(printings, currentCard) {
     elements.modalArtGrid.classList.add("hidden");
     elements.modalError.classList.remove("hidden");
     elements.modalError.textContent =
-      "As opcoes encontradas nao tinham imagem disponivel.";
+      "As opções encontradas não tinham imagem disponível.";
     setArtResultCount(0, getSelectedSourceLabel());
     return;
   }

@@ -481,6 +481,67 @@ def _search_by_loose_name(cursor: sqlite3.Cursor, card_name: str) -> List[Dict[s
     return [row_to_card(row) for row in cursor.fetchall()]
 
 
+TOKEN_SEARCH_STOPWORDS = {
+    "a",
+    "an",
+    "and",
+    "as",
+    "da",
+    "das",
+    "de",
+    "do",
+    "dos",
+    "e",
+    "em",
+    "for",
+    "in",
+    "of",
+    "on",
+    "the",
+    "to",
+}
+
+
+def _name_search_tokens(card_name: str) -> List[str]:
+    normalized = normalize_text(card_name)
+    normalized = re.sub(r"[^\w]+", " ", normalized, flags=re.UNICODE)
+    tokens = []
+
+    for token in normalized.split():
+        if len(token) <= 1 or token in TOKEN_SEARCH_STOPWORDS:
+            continue
+        if token not in tokens:
+            tokens.append(token)
+
+    return tokens[:6]
+
+
+def _search_by_name_tokens(cursor: sqlite3.Cursor, card_name: str) -> List[Dict[str, Any]]:
+    tokens = _name_search_tokens(card_name)
+
+    if len(tokens) < 2:
+        return []
+
+    where = " AND ".join("search_name LIKE ?" for _ in tokens)
+    params = [f"%{token}%" for token in tokens]
+
+    cursor.execute(f"""
+        SELECT {CARD_SELECT_COLUMNS}
+        FROM cards
+        WHERE {where}
+          AND image_uri_normal IS NOT NULL
+          AND image_uri_normal != ''
+        ORDER BY
+            LENGTH(search_name) ASC,
+            released_at DESC,
+            set_code ASC,
+            collector_number ASC
+        LIMIT 10
+    """, params)
+
+    return [row_to_card(row) for row in cursor.fetchall()]
+
+
 def search_cards_in_db(
     db_file: str,
     parsed_cards: List[Dict[str, Any]],
@@ -520,6 +581,9 @@ def search_cards_in_db(
 
             if not found_cards:
                 found_cards = _search_by_loose_name(cursor, card_name)
+
+            if not found_cards:
+                found_cards = _search_by_name_tokens(cursor, card_name)
 
             results[get_lookup_key(card)] = found_cards
 

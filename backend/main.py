@@ -4,6 +4,7 @@ Deck Fill - Backend API
 FastAPI server para processar decklists e buscar cartas no banco de dados local.
 """
 import hashlib
+from io import BytesIO
 import os
 
 import requests
@@ -22,6 +23,11 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from providers.registry import get_card_provider, normalize_game_key
+
+try:
+    from PIL import Image
+except ImportError:  # pragma: no cover - fallback only for minimal envs
+    Image = None
 
 # Configurações
 DB_FILE = "cards.db"
@@ -248,14 +254,39 @@ def _looks_like_image(content_type: str, content: bytes) -> bool:
 
 
 def _image_response(content: bytes, content_type: str, cache_state: str) -> Response:
+    content, content_type = _normalize_proxy_image_content(content, content_type)
+
     return Response(
         content=content,
         media_type=content_type,
         headers={
             "Cache-Control": f"public, max-age={IMAGE_CACHE_TTL_SECONDS}",
+            "Access-Control-Allow-Origin": "*",
+            "Cross-Origin-Resource-Policy": "cross-origin",
             "X-DeckFill-Image-Cache": cache_state,
         },
     )
+
+
+def _normalize_proxy_image_content(content: bytes, content_type: str) -> tuple[bytes, str]:
+    normalized_type = (content_type or "").split(";")[0].strip().lower()
+
+    if normalized_type not in {"image/avif", "image/webp"} or Image is None:
+        return content, content_type
+
+    try:
+        with Image.open(BytesIO(content)) as image:
+            canvas = Image.new("RGB", image.size, (255, 255, 255))
+            if image.mode in {"RGBA", "LA"}:
+                canvas.paste(image, mask=image.convert("RGBA").getchannel("A"))
+            else:
+                canvas.paste(image.convert("RGB"))
+
+            output = BytesIO()
+            canvas.save(output, format="JPEG", quality=95)
+            return output.getvalue(), "image/jpeg"
+    except Exception:
+        return content, content_type
 
 
 def _proxied_image_url(request: Request, image_url: Optional[str]) -> Optional[str]:

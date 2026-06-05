@@ -21,47 +21,7 @@
 function updateDeckProcessingLoading() {
   const selectedGame = AppState.getSelectedGame?.() || "magic";
   const gameConfig = GameConfigs.getGameConfig(selectedGame);
-
-  const loadingMessages = {
-    magic: {
-      title: "Processando deck de Magic...",
-      description: "Consultando a base local de cartas.",
-      hint: "",
-    },
-    yugioh: {
-      title: "Buscando cartas de Yu-Gi-Oh!...",
-      description: "Consultando o banco local YGOPRODeck.",
-      hint: "",
-    },
-    pokemon: {
-      title: "Buscando cartas de Pokémon TCG...",
-      description: "Consultando o banco local Pokemon TCG.",
-      hint: "",
-    },
-  };
-
-  const extraLoadingMessages = {
-    lorcana: {
-      title: "Buscando cartas de Disney Lorcana...",
-      description: "Consultando o banco local Lorcast.",
-      hint: "",
-    },
-    onepiece: {
-      title: "Buscando cartas de One Piece...",
-      description: "Consultando o banco local OPTCG.",
-      hint: "",
-    },
-    fab: {
-      title: "Buscando cartas de Flesh and Blood...",
-      description: "Consultando o banco local GoAgain.",
-      hint: "",
-    },
-  };
-
-  const message =
-    extraLoadingMessages[selectedGame] ||
-    loadingMessages[selectedGame] ||
-    loadingMessages.magic;
+  const message = GameConfigs.getGameLoadingCopy(gameConfig);
 
   if (elements.loadingTitle) {
     elements.loadingTitle.textContent = message.title;
@@ -72,7 +32,7 @@ function updateDeckProcessingLoading() {
   }
 
   if (elements.loadingHint) {
-    elements.loadingHint.textContent = message.hint;
+    elements.loadingHint.textContent = message.hint || "";
 
     if (message.hint) {
       elements.loadingHint.classList.remove("hidden");
@@ -81,19 +41,21 @@ function updateDeckProcessingLoading() {
     }
   }
 
-  console.log(`⏳ Loading de processamento: ${gameConfig.label}`);
+  console.log(
+    `Loading de processamento: ${GameConfigs.getGameDisplayLabel(gameConfig)}`,
+  );
 }
 
 async function processDecklist() {
   const decklist = elements.decklistInput.value.trim();
 
-  // === VALIDAÇÃO ===
+  // === VALIDACAO ===
   if (!decklist) {
     showError("Por favor, cole um decklist para processar.");
     return;
   }
 
-  // === PREVENÇÃO DE RACE CONDITIONS ===
+  // === PREVENCAO DE RACE CONDITIONS ===
   if (AppState.isProcessing) {
     console.log("Já está processando...");
     return;
@@ -108,7 +70,7 @@ async function processDecklist() {
   try {
     console.log("Enviando decklist para API...");
 
-    // === COMUNICAÇÃO COM API ===
+    // === COMUNICACAO COM API ===
     const response = await fetch(`${AppConfig.API_BASE}/parse-deck`, {
       method: "POST",
       headers: {
@@ -127,13 +89,13 @@ async function processDecklist() {
     const data = await response.json();
     console.log("Resposta da API:", data);
 
-    // === ATUALIZAÇÃO DE ESTADO ===
+    // === ATUALIZACAO DE ESTADO ===
     AppState.currentCards = data.cards; // Armazena cartas processadas globalmente
 
     // === TWO-WAY DATA BINDING ===
     updateDecklistTextarea();
 
-    // === RENDERIZAÇÃO ===
+    // === RENDERIZACAO ===
     renderResults(data);
   } catch (error) {
     console.error("Erro ao processar decklist:", error);
