@@ -100,14 +100,27 @@ const elements = {
   // === CATEGORIA 1: LAYOUT & GEOMETRIA ===
   pageSize: document.getElementById("page-size"), // Tamanho da folha
   gapSpacing: document.getElementById("gap-spacing"), // Espaçamento/gap
+  gapSpacingProfessional: document.getElementById("gap-spacing-professional"),
   scale: document.getElementById("scale"), // Escala da carta
   gapValue: document.getElementById("gap-value"), // Display do valor do gap
+  gapValueProfessional: document.getElementById("gap-value-professional"),
 
   // === CATEGORIA 2: GUIAS DE IMPRESSÒO ===
-  cropMarks: document.getElementById("crop-marks"), // Marcas de corte
+  cropMarks: document.getElementById("crop-marks"), // Guias
+  guideType: document.getElementById("guide-type"),
   blackCorners: document.getElementById("black-corners"), // Bordas pretas
   bleed: document.getElementById("bleed"), // Sangria/bleed
+  blackCornersProfessional: document.getElementById("black-corners-professional"),
+  bleedProfessional: document.getElementById("bleed-professional"),
   guideColor: document.getElementById("guide-color"), // Cor das guias
+  languageSettingsRow: document.getElementById("language-settings-row"),
+  languageSettingsNote: document.getElementById("language-settings-note"),
+  preferredLanguage: document.getElementById("preferred-language"),
+  autoCompleteCategory: document.getElementById("auto-complete-category"),
+  printRelevantFaces: document.getElementById("print-relevant-faces"),
+  relatedTokensRow: document.getElementById("related-tokens-row"),
+  includeRelatedTokens: document.getElementById("include-related-tokens"),
+  skipBasicLandsRow: document.getElementById("skip-basic-lands-row"),
 
   // === CATEGORIA 3: FUNCIONALIDADES INTELIGENTES ===
   skipBasicLands: document.getElementById("skip-basic-lands"), // Ignorar terrenos básicos
@@ -192,7 +205,12 @@ function initializeEventListeners() {
 
   handleOutputModeChange();
   // Slider value updates
-  elements.gapSpacing.addEventListener("input", updateGapValue);
+  elements.gapSpacing?.addEventListener("input", updateGapValue);
+  elements.gapSpacingProfessional?.addEventListener("input", updateGapValue);
+  elements.printRelevantFaces?.addEventListener("change", updateFaceWarningBadges);
+  elements.autoCompleteCategory?.addEventListener("change", () => {
+    console.log("Auto completar:", elements.autoCompleteCategory.value);
+  });
 
   // Progress Modal
   elements.progressCancelBtn.addEventListener("click", () => {
@@ -258,19 +276,11 @@ function initializeEventListeners() {
   });
 
   // Exclusão mútua: Sangria vs Bordas Pretas
-  const bleedCheckbox = document.getElementById("bleed");
-  const blackCornersCheckbox = document.getElementById("black-corners");
-
-  if (bleedCheckbox && blackCornersCheckbox) {
-    blackCornersCheckbox.addEventListener("change", (e) => {
-      if (e.target.checked) bleedCheckbox.checked = false;
-      e.target.blur(); // Remove foco para eliminar borda laranja
-    });
-    bleedCheckbox.addEventListener("change", (e) => {
-      if (e.target.checked) blackCornersCheckbox.checked = false;
-      e.target.blur(); // Remove foco para eliminar borda laranja
-    });
-  }
+  setupExclusiveEdgeControls(elements.bleed, elements.blackCorners);
+  setupExclusiveEdgeControls(
+    elements.bleedProfessional,
+    elements.blackCornersProfessional,
+  );
 
   // Event listeners para o modal de verso global
   console.log("Status do botão Global Back:", !!elements.globalBackBtn);
@@ -528,19 +538,37 @@ function showProgressMock() {
  * Obtém as configurações de impressão
  */
 function getPrintSettings() {
+  const selectedMode = getSelectedOutputMode();
+  const isProfessional = selectedMode === "professional";
+  const activeBleed = isProfessional
+    ? elements.bleedProfessional?.checked
+    : elements.bleed?.checked;
+  const activeBlackBorder = isProfessional
+    ? elements.blackCornersProfessional?.checked
+    : elements.blackCorners?.checked;
+  const activeGapSpacing = isProfessional
+    ? elements.gapSpacingProfessional?.value
+    : elements.gapSpacing?.value;
+
   return {
     pageSize: elements.pageSize?.value || "a4",
-    gapSpacing: parseFloat(elements.gapSpacing?.value) || 0,
+    gapSpacing: parseFloat(activeGapSpacing) || 2,
     scale: elements.scale?.value || "normal",
-    cropMarks: elements.cropMarks?.checked || false,
-    blackCorners: elements.blackCorners?.checked || false,
-    bleed: elements.bleed?.checked || false,
+    cropMarks: !isProfessional && (elements.cropMarks?.checked || false),
+    guideType: elements.guideType?.value || "external-corners",
+    blackCorners: Boolean(activeBlackBorder),
+    bleed: Boolean(activeBleed),
     skipBasicLands: elements.skipBasicLands?.checked || false,
     // Novos campos inteligentes (com fallbacks seguros)
-    autodetectTokens: elements.autodetectTokens?.checked || false,
+    autodetectTokens: elements.includeRelatedTokens?.checked || false,
+    includeRelatedTokens: elements.includeRelatedTokens?.checked || false,
+    printRelevantFaces: elements.printRelevantFaces?.checked !== false,
     printDoubleFaced: elements.printDoubleFaced?.checked || false,
+    outputMode: selectedMode,
+    preferredLanguage: elements.preferredLanguage?.value || "en",
     backFaceType: elements.backFaceType?.value || "standard",
-    smartFill: elements.smartFill?.value || "none",
+    smartFill: elements.autoCompleteCategory?.value || "off",
+    autoCompleteCategory: elements.autoCompleteCategory?.value || "off",
     // Cor das guias
     guideColor: elements.guideColor?.value || "#E7B650",
     // Campos removidos do HTML (mantidos para compatibilidade futura)
@@ -992,11 +1020,18 @@ function getSelectedOutputMode() {
     return "professional";
   }
 
-  return "manual";
+  return "normal";
 }
 
 function updateOutputModeUI() {
   const selectedMode = getSelectedOutputMode();
+
+  document
+    .querySelectorAll("[data-print-mode-section]")
+    .forEach((section) => {
+      const targetMode = section.dataset.printModeSection;
+      section.classList.toggle("hidden", targetMode !== selectedMode);
+    });
 
   if (elements.professionalPrintPanel) {
     elements.professionalPrintPanel.classList.toggle(
@@ -1005,6 +1040,17 @@ function updateOutputModeUI() {
     );
   }
 
+  if (elements.autoCompleteCategory) {
+    const defaultCategory = selectedMode === "professional" ? "iconic" : "off";
+    if (!elements.autoCompleteCategory.value) {
+      elements.autoCompleteCategory.value = defaultCategory;
+    }
+  }
+
+  updateGameDependentControls(
+    GameConfigs.getGameConfig(AppState.getSelectedGame?.() || "magic"),
+  );
+  updateFaceWarningBadges();
 }
 
 function openProfessionalPrintWhatsApp() {
@@ -1043,31 +1089,62 @@ function applyProfessionalPrintPreset() {
 
   if (elements.gapSpacing) {
     elements.gapSpacing.value = "2";
-    updateGapValue();
   }
 
+  if (elements.gapSpacingProfessional) {
+    elements.gapSpacingProfessional.value = "2";
+  }
+
+  updateGapValue();
+
+  if (elements.bleedProfessional) {
+    elements.bleedProfessional.checked = false;
+  }
+
+  if (elements.blackCornersProfessional) {
+    elements.blackCornersProfessional.checked = false;
+  }
+
+  if (elements.autoCompleteCategory) {
+    elements.autoCompleteCategory.value = "iconic";
+  }
+}
+
+function applyNormalPrintPreset() {
+  if (elements.pageSize) {
+    elements.pageSize.value = elements.pageSize.value || "a4";
+  }
+
+  if (elements.scale) {
+    elements.scale.value = elements.scale.value || "normal";
+  }
+
+  if (elements.gapSpacing) {
+    elements.gapSpacing.value = elements.gapSpacing.value || "2";
+  }
+
+  if (elements.gapSpacingProfessional) {
+    elements.gapSpacingProfessional.value =
+      elements.gapSpacingProfessional.value || "2";
+  }
+
+  updateGapValue();
+
   if (elements.cropMarks) {
-    elements.cropMarks.checked = false;
+    elements.cropMarks.checked = true;
   }
 
   if (elements.bleed) {
-    elements.bleed.checked = true;
+    elements.bleed.checked = false;
   }
 
   if (elements.blackCorners) {
     elements.blackCorners.checked = false;
   }
-}
 
-function setProfessionalPrintControlsLocked(isLocked) {
-  setElementDisabled(elements.pageSize, isLocked);
-  setElementDisabled(elements.scale, isLocked);
-  setElementDisabled(elements.cropMarks, isLocked);
-  setElementDisabled(elements.blackCorners, isLocked);
-
-  // Gap e sangria precisam ficar calibraveis no fluxo profissional.
-  setElementDisabled(elements.gapSpacing, false);
-  setElementDisabled(elements.bleed, false);
+  if (elements.autoCompleteCategory) {
+    elements.autoCompleteCategory.value = "off";
+  }
 }
 
 function handleOutputModeChange() {
@@ -1075,12 +1152,123 @@ function handleOutputModeChange() {
 
   if (selectedMode === "professional") {
     applyProfessionalPrintPreset();
-    setProfessionalPrintControlsLocked(true);
   } else {
-    setProfessionalPrintControlsLocked(false);
+    applyNormalPrintPreset();
   }
 
   updateOutputModeUI();
+}
+
+function setupExclusiveEdgeControls(bleedControl, blackBorderControl) {
+  if (!bleedControl || !blackBorderControl) {
+    return;
+  }
+
+  blackBorderControl.addEventListener("change", (event) => {
+    if (event.target.checked) {
+      bleedControl.checked = false;
+    }
+    event.target.blur();
+  });
+
+  bleedControl.addEventListener("change", (event) => {
+    if (event.target.checked) {
+      blackBorderControl.checked = false;
+    }
+    event.target.blur();
+  });
+}
+
+function getAutocompleteCategoryOptions(gameConfig) {
+  const categories =
+    GameConfigs.autocompleteCategories?.[gameConfig.id] ||
+    GameConfigs.autocompleteCategories?.magic ||
+    [];
+
+  return [
+    { id: "off", label: "Desligado" },
+    ...categories.map((category) => ({
+      id: category.id,
+      label: category.label,
+    })),
+  ];
+}
+
+function updateAutoCompleteCategoryOptions(gameConfig) {
+  if (!elements.autoCompleteCategory) {
+    return;
+  }
+
+  const selectedMode = getSelectedOutputMode();
+  const previousValue = elements.autoCompleteCategory.value;
+  const options = getAutocompleteCategoryOptions(gameConfig);
+
+  elements.autoCompleteCategory.innerHTML = options
+    .map(
+      (option) =>
+        `<option value="${option.id}">${option.label}</option>`,
+    )
+    .join("");
+
+  const desiredValue =
+    options.some((option) => option.id === previousValue)
+      ? previousValue
+      : selectedMode === "professional"
+        ? "iconic"
+        : "off";
+
+  elements.autoCompleteCategory.value = options.some(
+    (option) => option.id === desiredValue,
+  )
+    ? desiredValue
+    : "off";
+}
+
+function updateLanguageControls(gameConfig) {
+  const languageConfig = gameConfig.languages || {};
+  const shouldShow = Boolean(languageConfig.supported);
+
+  elements.languageSettingsRow?.classList.toggle("hidden", !shouldShow);
+
+  if (!shouldShow || !elements.preferredLanguage) {
+    return;
+  }
+
+  const options = languageConfig.options || GameConfigs.languages || [];
+  const currentValue = elements.preferredLanguage.value;
+
+  elements.preferredLanguage.innerHTML = options
+    .map(
+      (language) =>
+        `<option value="${language.id}">${language.label}</option>`,
+    )
+    .join("");
+
+  elements.preferredLanguage.value =
+    currentValue && options.some((language) => language.id === currentValue)
+      ? currentValue
+      : languageConfig.default || "en";
+
+  if (elements.languageSettingsNote) {
+    elements.languageSettingsNote.textContent =
+      languageConfig.partialNotice || "";
+  }
+}
+
+function updateGameDependentControls(gameConfig) {
+  updateAutoCompleteCategoryOptions(gameConfig);
+  updateLanguageControls(gameConfig);
+
+  const supportsRelatedTokens = Boolean(gameConfig.supportsRelatedTokens);
+
+  elements.relatedTokensRow?.classList.toggle("hidden", !supportsRelatedTokens);
+  if (elements.includeRelatedTokens) {
+    elements.includeRelatedTokens.checked = supportsRelatedTokens;
+  }
+
+  const shouldShowSkipBasics =
+    gameConfig.id === "magic" && getSelectedOutputMode() === "normal";
+  elements.skipBasicLandsRow?.classList.toggle("hidden", !shouldShowSkipBasics);
 }
 
 function getGameSelectorInputs() {
@@ -1131,6 +1319,7 @@ function updateSelectedGameUI() {
     elements.decklistInput.placeholder = gameConfig.decklistPlaceholder;
   }
 
+  updateGameDependentControls(gameConfig);
   updateGameSupportNotice(gameConfig);
 
   console.log("Jogo selecionado:", GameConfigs.getGameDisplayLabel(gameConfig));
@@ -1141,10 +1330,17 @@ function updateGameSupportNotice(gameConfig) {
     return;
   }
 
+  const noticeText = GameConfigs.getGameSupportDescription(gameConfig);
+
+  elements.gameSupportNotice.classList.toggle("hidden", !noticeText);
+
+  if (!noticeText) {
+    return;
+  }
+
   elements.gameSupportTitle.textContent =
     GameConfigs.getGameSupportTitle(gameConfig);
-  elements.gameSupportDescription.textContent =
-    GameConfigs.getGameSupportDescription(gameConfig);
+  elements.gameSupportDescription.textContent = noticeText;
 
   elements.gameSupportNotice.className =
     "mt-3 rounded-lg border px-4 py-3 text-sm border-df-line bg-df-surface text-df-muted";

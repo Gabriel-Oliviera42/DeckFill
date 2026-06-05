@@ -7,7 +7,7 @@
  * Gera PDF com layout 3x3 em A4 usando dimensões MTG oficiais (63x88mm)
  *
  * Arquitetura de geração:
- * - Sistema de DUAS PASSADAS para otimizar desenho de marcas de corte
+ * - Sistema de DUAS PASSADAS para otimizar desenho de guias
  * - Passada 1: Coleta de coordenadas para desenhar background lines
  * - Passada 2: Desenho completo (background lines + cartas + elementos)
  *
@@ -18,7 +18,7 @@ function getPdfInitialStatus(gameConfig, resolvedSettings) {
   const modeLabel =
     resolvedSettings.outputMode === "professional"
       ? "impressão profissional"
-      : "impressão manual";
+      : "modo normal";
 
   return `Preparando PDF de ${gameConfig.shortLabel || gameConfig.label} para ${modeLabel}...`;
 }
@@ -102,16 +102,17 @@ async function generatePDF() {
       activeResolvedSettings.outputMode === "professional";
 
     const shouldDrawManualGuides =
-      settings.cropMarks && !isProfessionalPrint;
+      Boolean(activeResolvedSettings.guides?.enabled) && !isProfessionalPrint;
+    const shouldDrawFullPageGuideLines = false;
 
     const shouldDrawProfessionalRegistrationMarks =
       isProfessionalPrint && activeResolvedSettings.cutMode === "silhouette";
     console.log("🩸 Status da Sangria:", settings.bleed);
-    console.log("✂️ Status das Marcas de Corte:", settings.cropMarks);
+    console.log("✂️ Status das Guias:", settings.cropMarks);
     console.log("⚫ Status das Bordas Pretas:", settings.blackCorners);
 
     // === UTILITÁRIOS DE COR ===
-    // Função auxiliar para converter HEX para RGB (usada para marcas de corte)
+    // Função auxiliar para converter HEX para RGB (usada para guias)
     const hex2rgb = (hex) => {
       const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
       return result
@@ -276,7 +277,7 @@ async function generatePDF() {
       }
 
       // === DESENHO DAS BACKGROUND LINES (SE ATIVADO) ===
-      if (shouldDrawManualGuides && pageCoordinates.has(pageIndex)) {
+      if (shouldDrawFullPageGuideLines && pageCoordinates.has(pageIndex)) {
         console.log("✂️ Desenhando Background Lines...");
         const coords = pageCoordinates.get(pageIndex);
 
@@ -376,8 +377,8 @@ async function generatePDF() {
           });
         }
 
-        // ATENÇÃO: Redesenhe as marcas de corte/sangria nesta nova página se estiverem ativadas
-        if (shouldDrawManualGuides && pageCoordinates.has(pageIndex)) {
+        // Redesenha guias/sangria nesta nova página se estiverem ativadas.
+        if (shouldDrawFullPageGuideLines && pageCoordinates.has(pageIndex)) {
           console.log("✂️ Desenhando Background Lines na página de versos...");
           const coords = pageCoordinates.get(pageIndex);
 
@@ -602,22 +603,66 @@ async function drawCardImageOnPdf({
   }
 
   if (settings.cropMarks && drawCropMarks) {
-    const c = 2;
-
-    doc.setDrawColor(r, g, b);
-    doc.setFillColor(r, g, b);
-    doc.setLineWidth(0.1);
-
-    const drawCross = (cx, cy) => {
-      doc.line(cx - c, cy, cx + c, cy);
-      doc.line(cx, cy - c, cx, cy + c);
-    };
-
-    drawCross(x, y);
-    drawCross(x + cardWidth, y);
-    drawCross(x, y + cardHeight);
-    drawCross(x + cardWidth, y + cardHeight);
+    drawExternalCornerGuides({
+      doc,
+      x,
+      y,
+      cardWidth,
+      cardHeight,
+      bleedSize,
+      blackBorderSize,
+      r,
+      g,
+      b,
+    });
   }
+}
+
+function drawExternalCornerGuides({
+  doc,
+  x,
+  y,
+  cardWidth,
+  cardHeight,
+  bleedSize = 0,
+  blackBorderSize = 0,
+  r,
+  g,
+  b,
+}) {
+  const extension = Math.max(bleedSize, blackBorderSize, 0);
+  const guideX = x - extension;
+  const guideY = y - extension;
+  const guideW = cardWidth + extension * 2;
+  const guideH = cardHeight + extension * 2;
+  const length = 3;
+  const offset = 1.2;
+
+  doc.setDrawColor(r, g, b);
+  doc.setFillColor(r, g, b);
+  doc.setLineWidth(0.12);
+
+  const corners = [
+    { x: guideX, y: guideY, hx: -1, vy: -1 },
+    { x: guideX + guideW, y: guideY, hx: 1, vy: -1 },
+    { x: guideX, y: guideY + guideH, hx: -1, vy: 1 },
+    { x: guideX + guideW, y: guideY + guideH, hx: 1, vy: 1 },
+  ];
+
+  corners.forEach((corner) => {
+    doc.line(
+      corner.x + corner.hx * offset,
+      corner.y,
+      corner.x + corner.hx * (offset + length),
+      corner.y,
+    );
+    doc.line(
+      corner.x,
+      corner.y + corner.vy * offset,
+      corner.x,
+      corner.y + corner.vy * (offset + length),
+    );
+  });
 }
 
 async function fetchPdfImageWithFallback(fetchableImageUrl, originalImageUrl) {

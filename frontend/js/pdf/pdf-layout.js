@@ -46,22 +46,16 @@ function calculateCenteredGridMargins({
   };
 }
 
-function calculateManualPdfLayout(settings) {
-  const scaleMultipliers = {
-    small: 0.75,
-    normal: 1,
-    large: 1.25,
-    giant: 1.5,
-  };
-
-  const scaleMult = scaleMultipliers[settings.scale] || 1;
+function calculateManualPdfLayout(settings, resolvedSettings) {
   const selectedGame = AppState.getSelectedGame?.() || "magic";
   const gameConfig = GameConfigs.getGameConfig(selectedGame);
-  const cardWidth = gameConfig.cardWidthMm * scaleMult;
-  const cardHeight = gameConfig.cardHeightMm * scaleMult;
+  const cardWidth =
+    resolvedSettings?.card?.finalWidthMm || gameConfig.cardWidthMm;
+  const cardHeight =
+    resolvedSettings?.card?.finalHeightMm || gameConfig.cardHeightMm;
 
-  const spacingX = Number.parseFloat(settings.gapSpacing) || 0;
-  const spacingY = Number.parseFloat(settings.gapSpacing) || 0;
+  const spacingX = resolvedSettings?.spacing?.gapMm ?? Number.parseFloat(settings.gapSpacing) ?? 2;
+  const spacingY = resolvedSettings?.spacing?.gapMm ?? Number.parseFloat(settings.gapSpacing) ?? 2;
 
   const tempPortrait = createTempPdfForLayout(settings.pageSize || "a4", "portrait");
   const basePageW = tempPortrait.internal.pageSize.getWidth();
@@ -107,7 +101,7 @@ function calculateManualPdfLayout(settings) {
   });
 
   return {
-    mode: "manual",
+    mode: "normal",
     game: selectedGame,
     pageSize: settings.pageSize || "a4",
     orientation,
@@ -127,7 +121,7 @@ function calculateManualPdfLayout(settings) {
   };
 }
 
-function calculateProfessionalPdfLayout(settings) {
+function calculateProfessionalPdfLayout(settings, resolvedSettings) {
   const pageSize = "a4";
   const orientation = "landscape";
 
@@ -147,8 +141,8 @@ function calculateProfessionalPdfLayout(settings) {
   const cols = 4;
   const rows = 2;
 
-  const spacingX = Number.parseFloat(settings.gapSpacing) || 2;
-  const spacingY = Number.parseFloat(settings.gapSpacing) || 2;
+  const spacingX = resolvedSettings?.spacing?.gapMm ?? Number.parseFloat(settings.gapSpacing) ?? 2;
+  const spacingY = resolvedSettings?.spacing?.gapMm ?? Number.parseFloat(settings.gapSpacing) ?? 2;
 
   const finalDoc = createTempPdfForLayout(pageSize, orientation);
   const pageWidth = finalDoc.internal.pageSize.getWidth();
@@ -217,10 +211,10 @@ function calculateProfessionalPdfLayout(settings) {
 
 function calculatePdfLayout(settings, resolvedSettings) {
   if (resolvedSettings?.outputMode === "professional") {
-    return calculateProfessionalPdfLayout(settings);
+    return calculateProfessionalPdfLayout(settings, resolvedSettings);
   }
 
-  return calculateManualPdfLayout(settings);
+  return calculateManualPdfLayout(settings, resolvedSettings);
 }
 
 window.PdfLayout = {

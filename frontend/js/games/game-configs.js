@@ -131,6 +131,62 @@ const GAME_SAMPLE_DECKLISTS = {
 1 This Round's on Me`,
 };
 
+const GAME_AUTOCOMPLETE_CATEGORIES = {
+  magic: [
+    { id: "basic-lands", label: "Terrenos básicos", aliases: ["equivalents"], cards: ["Plains", "Island", "Swamp", "Mountain", "Forest"] },
+    { id: "commander-staples", label: "Staples Commander", aliases: ["staples"], cards: ["Sol Ring", "Arcane Signet", "Command Tower", "Swords to Plowshares", "Counterspell"] },
+    { id: "common-tokens", label: "Tokens comuns", cards: ["Treasure Token", "Clue Token", "Food Token", "Spirit Token", "Goblin Token"] },
+    { id: "iconic", label: "Cartas icônicas", cards: ["Black Lotus", "Lightning Bolt", "Birds of Paradise", "Serra Angel", "Shivan Dragon"] },
+    { id: "removal", label: "Remoções úteis", cards: ["Swords to Plowshares", "Path to Exile", "Beast Within", "Chaos Warp", "Generous Gift"] },
+    { id: "ramp", label: "Ramp", cards: ["Sol Ring", "Arcane Signet", "Cultivate", "Kodama's Reach", "Farseek"] },
+    { id: "draw", label: "Draw", cards: ["Rhystic Study", "Mystic Remora", "Harmonize", "Night's Whisper", "Fact or Fiction"] },
+  ],
+
+  pokemon: [
+    { id: "basic-energy", label: "Energias básicas", aliases: ["equivalents"], cards: ["Fire Energy", "Water Energy", "Lightning Energy", "Psychic Energy", "Grass Energy"] },
+    { id: "trainers", label: "Trainers úteis", aliases: ["staples"], cards: ["Rare Candy", "Switch", "Professor's Research", "Ultra Ball", "Nest Ball"] },
+    { id: "iconic", label: "Cartas icônicas", cards: ["Pikachu", "Charizard", "Mewtwo", "Lugia V", "Gardevoir ex"] },
+  ],
+
+  yugioh: [
+    { id: "staples", label: "Staples", cards: ["Pot of Greed", "Monster Reborn", "Raigeki", "Harpie's Feather Duster", "Called by the Grave"] },
+    { id: "hand-traps", label: "Hand traps", cards: ["Ash Blossom & Joyous Spring", "Ghost Ogre & Snow Rabbit", "Effect Veiler", "Droll & Lock Bird"] },
+    { id: "classic-spells", label: "Magias clássicas", cards: ["Pot of Greed", "Monster Reborn", "Raigeki", "Dark Hole", "Change of Heart"] },
+    { id: "classic-traps", label: "Armadilhas clássicas", cards: ["Mirror Force", "Torrential Tribute", "Solemn Judgment", "Magic Cylinder"] },
+    { id: "iconic", label: "Cartas icônicas", cards: ["Blue-Eyes White Dragon", "Dark Magician", "Exodia the Forbidden One", "Stardust Dragon"] },
+  ],
+
+  lorcana: [
+    { id: "iconic", label: "Cartas icônicas", cards: ["Mickey Mouse - Brave Little Prince", "Elsa - Ice Artisan", "Stitch - Experiment 626", "Maleficent - Monstrous Dragon"] },
+    { id: "staples", label: "Staples", cards: ["Be Prepared", "Maui - Hero to All", "Tinker Bell - Giant Fairy", "A Whole New World"] },
+    { id: "popular-characters", label: "Personagens populares", cards: ["Simba - King in the Making", "Ariel - Ethereal Voice", "Belle - Accomplished Mystic", "Donald Duck - Flustered Sorcerer"] },
+  ],
+
+  onepiece: [
+    { id: "don", label: "DON!! cards", aliases: ["equivalents"], cards: ["DON!!"] },
+    { id: "leaders", label: "Líderes", cards: ["Monkey.D.Luffy", "Roronoa Zoro", "Trafalgar Law", "Yamato"] },
+    { id: "staples", label: "Staples", cards: ["Nami", "Sanji", "Tony Tony.Chopper", "Gum-Gum Jet Pistol"] },
+    { id: "iconic", label: "Cartas icônicas", cards: ["Monkey.D.Luffy", "Shanks", "Portgas.D.Ace", "Boa Hancock"] },
+  ],
+
+  fab: [
+    { id: "common-equipment", label: "Equipamentos comuns", aliases: ["equivalents"], cards: ["Nullrune Robe", "Snapdragon Scalers", "Braveforge Bracers", "Arcanite Skullcap"] },
+    { id: "staples", label: "Staples", cards: ["Sink Below", "Command and Conquer", "Enlightened Strike", "Art of War"] },
+    { id: "heroes", label: "Heróis", cards: ["Bravo", "Dorinthea", "Katsu", "Dash"] },
+    { id: "iconic", label: "Cartas icônicas", cards: ["Fyendal's Spring Tunic", "Command and Conquer", "Enlightened Strike", "Heart of Fyendal"] },
+  ],
+};
+
+const LANGUAGE_OPTIONS = [
+  { id: "en", label: "Inglês" },
+  { id: "pt", label: "Português" },
+  { id: "ja", label: "Japonês" },
+  { id: "es", label: "Espanhol" },
+  { id: "fr", label: "Francês" },
+  { id: "de", label: "Alemão" },
+  { id: "it", label: "Italiano" },
+];
+
 const GAME_CONFIGS = {
   magic: {
     id: "magic",
@@ -140,6 +196,14 @@ const GAME_CONFIGS = {
     statusLabel: "Estável",
     sourceLabel: "Scryfall",
     sourceBaseLabel: "Scryfall/base local sincronizada",
+    supportsRelatedTokens: true,
+    languages: {
+      supported: true,
+      default: "en",
+      fallback: "en",
+      options: LANGUAGE_OPTIONS,
+      partialNotice: "Português e outros idiomas dependem da existência daquela impressão no Scryfall.",
+    },
     cardWidthMm: 63,
     cardHeightMm: 88,
     defaultBackUrl: window.AppConfig.MTG_BACK_URL,
@@ -155,7 +219,7 @@ const GAME_CONFIGS = {
     shortLabel: "Pokémon",
     displayShortLabel: "Pokémon",
     status: "active",
-    statusLabel: "Inicial",
+    statusLabel: "Estável",
     sourceLabel: "Pokémon TCG",
     sourceBaseLabel: "Pokémon TCG/base local sincronizada",
     cardWidthMm: 63,
@@ -171,7 +235,7 @@ const GAME_CONFIGS = {
     label: "Yu-Gi-Oh!",
     shortLabel: "Yu-Gi-Oh!",
     status: "active",
-    statusLabel: "Inicial",
+    statusLabel: "Estável",
     sourceLabel: "YGOPRODeck",
     sourceBaseLabel: "YGOPRODeck/base local sincronizada",
     cardWidthMm: 59,
@@ -188,7 +252,7 @@ const GAME_CONFIGS = {
     label: "Disney Lorcana",
     shortLabel: "Lorcana",
     status: "active",
-    statusLabel: "Novo",
+    statusLabel: "Estável",
     sourceLabel: "Lorcast",
     sourceBaseLabel: "Lorcast/base local sincronizada",
     cardWidthMm: 63,
@@ -204,7 +268,7 @@ const GAME_CONFIGS = {
     label: "One Piece Card Game",
     shortLabel: "One Piece",
     status: "active",
-    statusLabel: "Novo",
+    statusLabel: "Parcial",
     sourceLabel: "OPTCG",
     sourceBaseLabel: "OPTCG/base local sincronizada",
     technicalNotice:
@@ -222,7 +286,7 @@ const GAME_CONFIGS = {
     label: "Flesh and Blood",
     shortLabel: "FAB",
     status: "active",
-    statusLabel: "Novo",
+    statusLabel: "Estável",
     sourceLabel: "GoAgain",
     sourceBaseLabel: "GoAgain/base local sincronizada",
     cardWidthMm: 63,
@@ -247,17 +311,11 @@ function getGameShortLabel(gameConfig) {
 }
 
 function getGameSupportTitle(gameConfig) {
-  return `${getGameDisplayLabel(gameConfig)} usa base local sincronizada`;
+  return `Aviso técnico de ${getGameDisplayLabel(gameConfig)}`;
 }
 
 function getGameSupportDescription(gameConfig) {
-  const baseText = `Fonte/base: ${gameConfig.sourceBaseLabel}. Clique em uma carta para trocar versões ou artes alternativas quando houver dados disponíveis.`;
-
-  if (gameConfig.technicalNotice) {
-    return `${baseText} Aviso técnico: ${gameConfig.technicalNotice}`;
-  }
-
-  return baseText;
+  return gameConfig.technicalNotice || "";
 }
 
 function getGameLoadingCopy(gameConfig) {
@@ -271,6 +329,8 @@ function getGameLoadingCopy(gameConfig) {
 window.GameConfigs = {
   all: GAME_CONFIGS,
   samples: GAME_SAMPLE_DECKLISTS,
+  autocompleteCategories: GAME_AUTOCOMPLETE_CATEGORIES,
+  languages: LANGUAGE_OPTIONS,
   getGameConfig,
   getGameDisplayLabel,
   getGameShortLabel,

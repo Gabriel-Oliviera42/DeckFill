@@ -1,12 +1,6 @@
 /**
  * Deck Fill - Print Settings Resolver
- * Transforma configurações brutas da UI em uma configuração previsível.
- *
- * Aqui ficam as regras de conflito:
- * - Sangria, borda preta e fundo seguro não devem brigar entre si.
- * - Dupla face vira um modo de verso claro.
- * - Escala vira multiplicador numérico.
- * - O PDF passa a trabalhar com modos, não checkboxes soltos.
+ * Transforma configuracoes brutas da UI em uma configuracao previsivel.
  */
 
 const PRINT_SCALE_MULTIPLIERS = {
@@ -16,17 +10,25 @@ const PRINT_SCALE_MULTIPLIERS = {
   giant: 1.5,
 };
 
+function clampGapMm(value) {
+  const numericValue = Number.parseFloat(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return 2;
+  }
+
+  return Math.min(5, Math.max(1, numericValue));
+}
+
 function resolveScale(scale) {
   return PRINT_SCALE_MULTIPLIERS[scale] || PRINT_SCALE_MULTIPLIERS.normal;
 }
 
-function resolveEdgeMode(rawSettings) {
-  // Quando criarmos um select próprio no HTML, ele terá prioridade.
-  if (rawSettings.edgeMode) {
-    return rawSettings.edgeMode;
-  }
+function resolveOutputMode(rawSettings) {
+  return rawSettings.outputMode === "professional" ? "professional" : "normal";
+}
 
-  // Compatibilidade com a UI atual.
+function resolveEdgeMode(rawSettings) {
   if (rawSettings.bleed) {
     return "bleed";
   }
@@ -38,21 +40,25 @@ function resolveEdgeMode(rawSettings) {
   return "none";
 }
 
-function resolveGuideMode(rawSettings) {
-  if (rawSettings.cropMarks) {
-    return "crop-lines";
+function resolveGuideSettings(rawSettings, outputMode) {
+  if (outputMode === "professional") {
+    return {
+      enabled: false,
+      mode: "professional-registration",
+      color: "#000000",
+      thicknessPx: 1,
+    };
   }
 
-  return "none";
+  return {
+    enabled: Boolean(rawSettings.cropMarks),
+    mode: rawSettings.guideType || "external-corners",
+    color: rawSettings.guideColor || "#E7B650",
+    thicknessPx: 1,
+  };
 }
 
 function resolveBackMode(rawSettings) {
-  // Quando criarmos um select próprio no HTML, ele terá prioridade.
-  if (rawSettings.backMode) {
-    return rawSettings.backMode;
-  }
-
-  // Compatibilidade com a UI atual.
   if (rawSettings.printDoubleFaced) {
     return "generic";
   }
@@ -60,37 +66,46 @@ function resolveBackMode(rawSettings) {
   return "none";
 }
 
-function resolveOutputMode(rawSettings) {
-  const allowedModes = ["manual", "professional"];
-  return allowedModes.includes(rawSettings.outputMode)
-    ? rawSettings.outputMode
-    : "manual";
+function resolveAutoCompleteCategory(rawSettings, outputMode) {
+  const selected = rawSettings.autoCompleteCategory || "off";
+
+  if (selected && selected !== "off") {
+    return selected;
+  }
+
+  return outputMode === "professional" ? "iconic" : "off";
 }
 
 function resolvePrintSettings(rawSettings) {
-  const scaleMultiplier = resolveScale(rawSettings.scale);
-  const gapMm = Number.isFinite(rawSettings.gapSpacing)
-    ? rawSettings.gapSpacing
-    : 0;
+  const outputMode = resolveOutputMode(rawSettings);
+  const scaleMultiplier = outputMode === "professional"
+    ? 1
+    : resolveScale(rawSettings.scale);
+  const gapMm = clampGapMm(rawSettings.gapSpacing);
   const selectedGame = AppState.getSelectedGame?.() || "magic";
   const gameConfig = GameConfigs.getGameConfig(selectedGame);
   const cardWidthMm = gameConfig.cardWidthMm || 63;
   const cardHeightMm = gameConfig.cardHeightMm || 88;
+  const languageConfig = gameConfig.languages || {};
+  const autoCompleteCategory = resolveAutoCompleteCategory(
+    rawSettings,
+    outputMode,
+  );
 
   return {
-    outputMode: resolveOutputMode(rawSettings),
-    partner: resolveOutputMode(rawSettings) === "professional" ? "marra-prints" : null,
-    cutMode: resolveOutputMode(rawSettings) === "professional" ? "silhouette" : "basic",
+    outputMode,
+    partner: outputMode === "professional" ? "marra-prints" : null,
+    cutMode: outputMode === "professional" ? "silhouette" : "basic",
 
     paper: {
-      size: rawSettings.pageSize || "a4",
+      size: outputMode === "professional" ? "a4" : rawSettings.pageSize || "a4",
       orientation: "auto",
     },
 
     card: {
       widthMm: cardWidthMm,
       heightMm: cardHeightMm,
-      scaleName: rawSettings.scale || "normal",
+      scaleName: outputMode === "professional" ? "normal" : rawSettings.scale || "normal",
       scaleMultiplier,
       finalWidthMm: cardWidthMm * scaleMultiplier,
       finalHeightMm: cardHeightMm * scaleMultiplier,
@@ -100,13 +115,12 @@ function resolvePrintSettings(rawSettings) {
       gapMm,
     },
 
-    guides: {
-      mode: resolveGuideMode(rawSettings),
-      color: rawSettings.guideColor || "#E7B650",
-    },
+    guides: resolveGuideSettings(rawSettings, outputMode),
 
     edges: {
       mode: resolveEdgeMode(rawSettings),
+      bleed: Boolean(rawSettings.bleed),
+      blackBorder: Boolean(rawSettings.blackCorners),
     },
 
     back: {
@@ -114,13 +128,20 @@ function resolvePrintSettings(rawSettings) {
     },
 
     content: {
-      skipBasicLands: Boolean(rawSettings.skipBasicLands),
+      skipBasicLands: selectedGame === "magic" && Boolean(rawSettings.skipBasicLands),
       includeInstructions: Boolean(rawSettings.includeInstructions),
-      includeTokens: Boolean(rawSettings.includeTokens),
+      includeRelatedTokens: Boolean(
+        gameConfig.supportsRelatedTokens && rawSettings.includeRelatedTokens,
+      ),
+      printRelevantFaces: rawSettings.printRelevantFaces !== false,
+      autoCompleteCategory,
+      preferredLanguage: languageConfig.supported
+        ? rawSettings.preferredLanguage || languageConfig.default || "en"
+        : "en",
     },
 
     compatibility: {
-      cropMarks: Boolean(rawSettings.cropMarks),
+      cropMarks: outputMode === "normal" && Boolean(rawSettings.cropMarks),
       blackCorners: Boolean(rawSettings.blackCorners),
       bleed: Boolean(rawSettings.bleed),
       printDoubleFaced: Boolean(rawSettings.printDoubleFaced),

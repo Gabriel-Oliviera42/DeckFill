@@ -16,6 +16,7 @@ class CardProvider(Protocol):
     def search_cards(
         self,
         parsed_cards: List[ParsedCard],
+        **kwargs: Any,
     ) -> Dict[str, List[CardDict]]:
         ...
 

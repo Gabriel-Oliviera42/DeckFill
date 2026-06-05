@@ -58,19 +58,70 @@ function buildPrintableCardItem(card, originalIndex) {
   };
 }
 
+function buildRelevantBackFaceItem(card, originalIndex) {
+  const backImageUrl = CardImageResolver.getResolvedBackImageUrl(
+    card,
+    originalIndex,
+  );
+
+  if (!backImageUrl) {
+    return null;
+  }
+
+  const backCard = {
+    ...card,
+    id: `${card.id || originalIndex}::back-face`,
+    name: card.back_name || `${card.name} - verso`,
+    printed_name: card.back_printed_name || card.back_name || null,
+    type_line: card.back_type_line || card.type_line || null,
+    oracle_text: card.back_oracle_text || card.printed_text || null,
+    printed_text: card.back_printed_text || null,
+    image_uri_normal: backImageUrl,
+    image_uri_png: backImageUrl,
+    image_uri_back_normal: null,
+    image_uri_back_png: null,
+    is_generated_relevant_face: true,
+    parent_card_id: card.id || null,
+    parent_card_name: card.name || null,
+  };
+
+  return {
+    originalIndex,
+    card: backCard,
+    isDoubleFaced: false,
+    isGeneratedRelevantFace: true,
+    frontImageUrl: backImageUrl,
+    backImageUrl: null,
+  };
+}
+
 function buildPrintableCardList(cards, resolvedSettings) {
   if (!Array.isArray(cards)) {
     return [];
   }
 
   const printableCards = [];
+  const shouldPrintRelevantFaces =
+    resolvedSettings?.content?.printRelevantFaces !== false;
 
   cards.forEach((card, originalIndex) => {
     if (!shouldIncludeCardInPdf(card, resolvedSettings)) {
       return;
     }
 
-    printableCards.push(buildPrintableCardItem(card, originalIndex));
+    const frontItem = buildPrintableCardItem(card, originalIndex);
+    printableCards.push(frontItem);
+
+    if (
+      shouldPrintRelevantFaces &&
+      CardImageResolver.hasRelevantSecondaryFace?.(card)
+    ) {
+      const backFaceItem = buildRelevantBackFaceItem(card, originalIndex);
+
+      if (backFaceItem) {
+        printableCards.push(backFaceItem);
+      }
+    }
   });
 
   return printableCards;

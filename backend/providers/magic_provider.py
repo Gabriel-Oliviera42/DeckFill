@@ -168,6 +168,7 @@ def search_exact_printing(
     card_name: str,
     set_code: str,
     collector_number: str,
+    preferred_language: str = "en",
 ) -> List[Dict[str, Any]]:
     cursor.execute(f"""
         SELECT {CARD_SELECT_COLUMNS}
@@ -185,11 +186,15 @@ def search_exact_printing(
           AND layout != 'art_series'
         ORDER BY
             CASE
+                WHEN lang = ? COLLATE NOCASE THEN 1
+                WHEN lang = 'en' THEN 2
+                WHEN lang = 'pt' THEN 3
+                ELSE 5
+            END ASC,
+            CASE
                 WHEN name = ? COLLATE NOCASE THEN 1
                 WHEN name LIKE ? COLLATE NOCASE THEN 2
-                WHEN lang = 'en' THEN 3
-                WHEN lang = 'pt' THEN 4
-                ELSE 5
+                ELSE 3
             END ASC
         LIMIT 1
     """, (
@@ -199,13 +204,18 @@ def search_exact_printing(
         f"{card_name}%",
         card_name,
         f"{card_name}%",
+        preferred_language,
         card_name,
         f"{card_name}%",
     ))
     return [dict(row) for row in cursor.fetchall()]
 
 
-def search_by_exact_name(cursor: sqlite3.Cursor, card_name: str) -> List[Dict[str, Any]]:
+def search_by_exact_name(
+    cursor: sqlite3.Cursor,
+    card_name: str,
+    preferred_language: str = "en",
+) -> List[Dict[str, Any]]:
     cursor.execute(f"""
         SELECT {CARD_SELECT_COLUMNS}
         FROM cards
@@ -215,19 +225,24 @@ def search_by_exact_name(cursor: sqlite3.Cursor, card_name: str) -> List[Dict[st
           AND layout != 'art_series'
         ORDER BY
             CASE
-                WHEN lang = 'en' THEN 1
-                WHEN lang = 'pt' THEN 2
-                ELSE 3
+                WHEN lang = ? COLLATE NOCASE THEN 1
+                WHEN lang = 'en' THEN 2
+                WHEN lang = 'pt' THEN 3
+                ELSE 4
             END ASC,
             released_at DESC,
             set_code ASC,
             CAST(collector_number AS INTEGER) ASC
         LIMIT 10
-    """, (card_name,))
+    """, (card_name, preferred_language))
     return [dict(row) for row in cursor.fetchall()]
 
 
-def search_by_loose_name(cursor: sqlite3.Cursor, card_name: str) -> List[Dict[str, Any]]:
+def search_by_loose_name(
+    cursor: sqlite3.Cursor,
+    card_name: str,
+    preferred_language: str = "en",
+) -> List[Dict[str, Any]]:
     loose_name = re.sub(r"[aeiouAEIOU\-.,']", "_", card_name)
     search_name = f"%{loose_name}%"
 
@@ -241,19 +256,23 @@ def search_by_loose_name(cursor: sqlite3.Cursor, card_name: str) -> List[Dict[st
         ORDER BY
             CASE WHEN name LIKE ? THEN 1 ELSE 2 END,
             CASE
-                WHEN lang = 'en' THEN 1
-                WHEN lang = 'pt' THEN 2
-                ELSE 3
+                WHEN lang = ? COLLATE NOCASE THEN 1
+                WHEN lang = 'en' THEN 2
+                WHEN lang = 'pt' THEN 3
+                ELSE 4
             END ASC,
             released_at DESC,
             set_code ASC,
             CAST(collector_number AS INTEGER) ASC
         LIMIT 10
-    """, (search_name, f"{card_name}%"))
+    """, (search_name, f"{card_name}%", preferred_language))
     return [dict(row) for row in cursor.fetchall()]
 
 
-def search_cards(parsed_cards: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+def search_cards(
+    parsed_cards: List[Dict[str, Any]],
+    preferred_language: str = "en",
+) -> Dict[str, List[Dict[str, Any]]]:
     """
     Busca cartas no banco local.
 
@@ -278,13 +297,22 @@ def search_cards(parsed_cards: List[Dict[str, Any]]) -> Dict[str, List[Dict[str,
                     card_name,
                     set_code,
                     collector_number,
+                    preferred_language,
                 )
 
             if not found_cards:
-                found_cards = search_by_exact_name(cursor, card_name)
+                found_cards = search_by_exact_name(
+                    cursor,
+                    card_name,
+                    preferred_language,
+                )
 
             if not found_cards:
-                found_cards = search_by_loose_name(cursor, card_name)
+                found_cards = search_by_loose_name(
+                    cursor,
+                    card_name,
+                    preferred_language,
+                )
 
             results[get_lookup_key(card)] = found_cards
 

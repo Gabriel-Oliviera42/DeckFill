@@ -466,6 +466,28 @@ function togglePrintSettings() {
 }
 
 function updateGapValue() {
-  const value = parseFloat(elements.gapSpacing.value);
-  elements.gapValue.textContent = `${value.toFixed(1)} mm`;
+  const activeGapControl = elements.outputModeProfessional?.checked
+    ? elements.gapSpacingProfessional
+    : elements.gapSpacing;
+  const value = parseFloat(activeGapControl?.value || elements.gapSpacing?.value || "2");
+  const formattedValue = `${value.toFixed(1)} mm`;
+
+  if (elements.gapSpacing && elements.gapSpacing.value !== String(value)) {
+    elements.gapSpacing.value = String(value);
+  }
+
+  if (
+    elements.gapSpacingProfessional &&
+    elements.gapSpacingProfessional.value !== String(value)
+  ) {
+    elements.gapSpacingProfessional.value = String(value);
+  }
+
+  if (elements.gapValue) {
+    elements.gapValue.textContent = formattedValue;
+  }
+
+  if (elements.gapValueProfessional) {
+    elements.gapValueProfessional.textContent = formattedValue;
+  }
 }

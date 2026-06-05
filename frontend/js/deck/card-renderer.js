@@ -46,6 +46,7 @@ function renderResults(data) {
   });
 
   addCardClickHandlers();
+  updateFaceWarningBadges();
   AppConfig.refreshIcons?.();
 
   if (errors && errors.length > 0) {
@@ -80,7 +81,58 @@ function createCardElement(card, index) {
     ? AppConfig.getDisplayImageUrl(backUrl)
     : backUrl;
   const isDFC = CardImageResolver.isDoubleFacedCard(card) || Boolean(backUrl);
+  const hasRelevantSecondaryFace =
+    CardImageResolver.hasRelevantSecondaryFace?.(card) || false;
   const cardText = getCardText(card);
+  const infoBadges = [];
+
+  if (card.is_related_token) {
+    infoBadges.push({
+      label: "Token",
+      title: card.parent_card_name
+        ? `Token relacionado a ${card.parent_card_name}`
+        : "Token relacionado",
+      className: "border-emerald-500/70 bg-emerald-950/90 text-emerald-100",
+    });
+  }
+
+  if (card.is_auto_completed) {
+    infoBadges.push({
+      label: "Extra",
+      title: card.auto_complete_category
+        ? `Adicionada por auto completar: ${card.auto_complete_category}`
+        : "Adicionada por auto completar pagina",
+      className: "border-sky-500/70 bg-sky-950/90 text-sky-100",
+    });
+  }
+
+  if (card.language_fallback) {
+    infoBadges.push({
+      label: "EN",
+      title:
+        "Esta carta nao foi encontrada no idioma preferido e usou ingles como fallback.",
+      className: "border-amber-500/70 bg-amber-950/90 text-amber-100",
+    });
+  }
+
+  const infoBadgesHtml = infoBadges.length
+    ? `
+      <div class="absolute right-2 top-2 z-30 flex flex-col items-end gap-1">
+        ${infoBadges
+          .map(
+            (badge) => `
+              <span
+                class="rounded-full border px-2 py-1 text-[11px] font-semibold shadow ${badge.className}"
+                title="${escapeHtml(badge.title)}"
+              >
+                ${escapeHtml(badge.label)}
+              </span>
+            `,
+          )
+          .join("")}
+      </div>
+    `
+    : "";
 
   if (frontUrl) {
     cardDiv.innerHTML = `
@@ -95,6 +147,27 @@ function createCardElement(card, index) {
           loading="lazy"
           onerror="AppConfig.handleImageLoadError(this)"
         />
+
+        ${
+          hasRelevantSecondaryFace
+            ? `
+              <div
+                class="relevant-face-included absolute left-2 top-2 z-30 rounded-full border border-df-primary/70 bg-slate-950/90 px-2 py-1 text-[11px] font-semibold text-df-primary shadow"
+                title="Esta carta possui outra face relevante e ela entrara como carta separada no PDF."
+              >
+                2 faces
+              </div>
+              <div
+                class="relevant-face-warning hidden absolute left-2 top-2 z-30 rounded-full border border-red-500/70 bg-red-950/90 px-2 py-1 text-[11px] font-semibold text-red-200 shadow"
+                title="Esta carta possui outra face relevante. Ative 'frente e verso como cartas separadas' para não perder a arte/texto do verso."
+              >
+                Face extra
+              </div>
+            `
+            : ""
+        }
+
+        ${infoBadgesHtml}
 
         <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
           ${
@@ -180,4 +253,16 @@ function toggleCardFace(button, frontUrlArg, backUrlArg) {
     button.title = "Virar Carta";
   }
   AppConfig.refreshIcons?.();
+}
+
+function updateFaceWarningBadges() {
+  const shouldPrintRelevantFaces = elements.printRelevantFaces?.checked !== false;
+
+  document.querySelectorAll(".relevant-face-warning").forEach((warning) => {
+    warning.classList.toggle("hidden", shouldPrintRelevantFaces);
+  });
+
+  document.querySelectorAll(".relevant-face-included").forEach((badge) => {
+    badge.classList.toggle("hidden", !shouldPrintRelevantFaces);
+  });
 }

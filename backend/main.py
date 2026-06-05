@@ -4,6 +4,7 @@ Deck Fill - Backend API
 FastAPI server para processar decklists e buscar cartas no banco de dados local.
 """
 import hashlib
+import inspect
 from io import BytesIO
 import os
 
@@ -74,10 +75,20 @@ class CardResponse(BaseModel):
     card_faces_json: Optional[str] = None
     download_url: Optional[str] = None
     art_source: Optional[str] = None
+    requested_language: Optional[str] = None
+    resolved_language: Optional[str] = None
+    language_fallback: bool = False
+    has_relevant_secondary_face: bool = False
+    is_related_token: bool = False
+    is_auto_completed: bool = False
+    auto_complete_category: Optional[str] = None
+    parent_card_id: Optional[str] = None
+    parent_card_name: Optional[str] = None
 
 class DeckParseRequest(BaseModel):
     decklist: str
     game: str = "magic"
+    preferred_language: str = "en"
 
 class DeckParseResponse(BaseModel):
     cards: List[CardResponse]
@@ -93,6 +104,42 @@ def get_parsed_card_lookup_key(card: Dict[str, Any]) -> str:
         str(card.get("set_code") or "").strip().casefold(),
         str(card.get("collector_number") or "").strip().casefold(),
     ])
+
+
+def card_has_relevant_secondary_face(card_data: Dict[str, Any]) -> bool:
+    """Indica se a carta tem verso/segunda face que pode precisar entrar no PDF."""
+    return bool(
+        card_data.get("image_uri_back_normal")
+        or card_data.get("image_uri_back_png")
+        or card_data.get("back_name")
+    )
+
+
+def search_cards_with_optional_language(
+    provider: Any,
+    parsed_cards: List[Dict[str, Any]],
+    preferred_language: str,
+) -> Dict[str, List[Dict[str, Any]]]:
+    """
+    Chama providers novos com idioma preferido sem quebrar providers antigos.
+
+    A arquitetura atual dos providers aceita apenas parsed_cards. Magic passa a
+    aceitar preferred_language, enquanto os demais continuam usando o contrato
+    anterior ate terem suporte real de idioma.
+    """
+    signature = inspect.signature(provider.search_cards)
+    accepts_kwargs = any(
+        parameter.kind == inspect.Parameter.VAR_KEYWORD
+        for parameter in signature.parameters.values()
+    )
+
+    if "preferred_language" in signature.parameters or accepts_kwargs:
+        return provider.search_cards(
+            parsed_cards,
+            preferred_language=preferred_language,
+        )
+
+    return provider.search_cards(parsed_cards)
 
 # Inicialização FastAPI
 app = FastAPI(
@@ -449,6 +496,7 @@ async def parse_deck(request: DeckParseRequest):
 
     game = normalize_game_key(request.game)
     provider = get_card_provider(game)
+    preferred_language = (request.preferred_language or "en").lower().strip()
     
     try:
         # 1. Parse do decklist
@@ -466,7 +514,11 @@ async def parse_deck(request: DeckParseRequest):
                 unique_parsed_cards.append(card)
                 seen_cards.add(lookup_key)
         
-        search_results = provider.search_cards(unique_parsed_cards)
+        search_results = search_cards_with_optional_language(
+            provider,
+            unique_parsed_cards,
+            preferred_language,
+        )
         
         # 3. Montar resposta
         response_cards = []
@@ -481,10 +533,22 @@ async def parse_deck(request: DeckParseRequest):
                 # Pega a primeira (melhor) correspondência
                 # Converte sqlite3.Row para dict nativo antes de passar para CardResponse
                 card_data = dict(search_results[lookup_key][0])
+                resolved_language = (card_data.get("lang") or "en").lower().strip()
+                language_fallback = (
+                    bool(preferred_language)
+                    and preferred_language != "en"
+                    and resolved_language != preferred_language
+                )
                 
                 # Adiciona a quantidade para cada cópia
                 for _ in range(quantity):
                     front_card = dict(card_data)
+                    front_card["requested_language"] = preferred_language
+                    front_card["resolved_language"] = resolved_language
+                    front_card["language_fallback"] = language_fallback
+                    front_card["has_relevant_secondary_face"] = (
+                        card_has_relevant_secondary_face(front_card)
+                    )
                     response_cards.append(CardResponse(**front_card))
             else:
                 not_found.append(f"{quantity}x {card_name}")

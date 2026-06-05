@@ -7,6 +7,10 @@ function isDoubleFacedCard(card) {
   return Boolean(card?.image_uri_back_normal || card?.image_uri_back_png);
 }
 
+function hasRelevantSecondaryFace(card) {
+  return Boolean(card?.has_relevant_secondary_face) || isDoubleFacedCard(card);
+}
+
 function getDefaultFrontImageUrl(card) {
   return card?.image_uri_png || card?.image_uri_normal || null;
 }
@@ -46,6 +50,18 @@ function applyPrintingToCard(card, printing) {
   const originalDeckSetCode = card.decklist_set_code || card.set_code || null;
   const originalDeckCollectorNumber =
     card.decklist_collector_number || card.collector_number || null;
+  const requestedLanguage =
+    printing.requested_language || card.requested_language || null;
+  const resolvedLanguage =
+    printing.resolved_language ||
+    printing.lang ||
+    card.resolved_language ||
+    null;
+  const hasLanguageFallback = Boolean(
+    requestedLanguage &&
+    requestedLanguage !== "en" &&
+    resolvedLanguage !== requestedLanguage,
+  );
 
   return {
     ...card,
@@ -87,6 +103,19 @@ function applyPrintingToCard(card, printing) {
     all_parts_json: printing.all_parts_json || null,
     card_faces_json: printing.card_faces_json || null,
     art_source: printing.art_source || card.art_source || "local",
+    requested_language: requestedLanguage,
+    resolved_language: resolvedLanguage,
+    language_fallback: hasLanguageFallback,
+    has_relevant_secondary_face: Boolean(
+      printing.has_relevant_secondary_face ||
+      printing.image_uri_back_normal ||
+      printing.image_uri_back_png,
+    ),
+    is_related_token: Boolean(card.is_related_token),
+    is_auto_completed: Boolean(card.is_auto_completed),
+    auto_complete_category: card.auto_complete_category || null,
+    parent_card_id: card.parent_card_id || null,
+    parent_card_name: card.parent_card_name || null,
     decklist_name: isMpcArt ? originalDeckName : printing.name,
     decklist_set_code: isMpcArt
       ? originalDeckSetCode
@@ -151,6 +180,7 @@ function clearCustomBackImageForCard(cardIndex) {
 
 window.CardImageResolver = {
   isDoubleFacedCard,
+  hasRelevantSecondaryFace,
   getDefaultFrontImageUrl,
   getDefaultBackImageUrl,
   getResolvedFrontImageUrl,
