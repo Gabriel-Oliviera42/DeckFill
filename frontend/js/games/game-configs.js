@@ -114,69 +114,68 @@ const GAME_SAMPLE_DECKLISTS = {
 1 Fyendal's Spring Tunic (ANQ #ANQ006)
 1 Command and Conquer (ANQ #ANQ009)
 1 Sink Below (FAB #FAB359)
-1 Crown of Providence
-1 Arcanite Skullcap
-1 Mask of Momentum
-1 Braveforge Bracers
-1 Snapdragon Scalers
-1 Nullrune Robe
-1 Art of War
-1 Tome of Fyendal
-1 Heart of Fyendal
-1 Tunic of Fyendal
-1 Dawnblade
-1 Rosetta
-1 Channel Mount Heroic
-1 Warmonger's Diplomacy
-1 This Round's on Me`,
+1 Crown of Providence (ANQ #ANQ005)
+1 Arcanite Skullcap (ARC #ARC150)
+1 Mask of Momentum (FAB #FAB005)
+1 Braveforge Bracers (FAB #FAB006)
+1 Snapdragon Scalers (ARA #ARA006)
+1 Nullrune Robe (FAB #FAB069)
+1 Art of War (ARC #ARC160)
+1 Tome of Fyendal (WTR #WTR160)
+1 Heart of Fyendal (ANQ #ANQ001)
+1 Fyendal's Spring Tunic (FAB #FAB001)
+1 Dawnblade (FAB #FAB062)
+1 Rosetta Thorn (BRI #BRI004)
+1 Channel Mount Heroic (ELE #ELE117)
+1 Warmonger's Diplomacy (DTD #DTD230)
+1 This Round's on Me (ANQ #ANQ024)`,
 };
 
 const GAME_AUTOCOMPLETE_CATEGORIES = {
   magic: [
-    { id: "basic-lands", label: "Terrenos básicos", aliases: ["equivalents"], cards: ["Plains", "Island", "Swamp", "Mountain", "Forest"] },
-    { id: "commander-staples", label: "Staples Commander", aliases: ["staples"], cards: ["Sol Ring", "Arcane Signet", "Command Tower", "Swords to Plowshares", "Counterspell"] },
-    { id: "common-tokens", label: "Tokens comuns", cards: ["Treasure Token", "Clue Token", "Food Token", "Spirit Token", "Goblin Token"] },
-    { id: "iconic", label: "Cartas icônicas", cards: ["Black Lotus", "Lightning Bolt", "Birds of Paradise", "Serra Angel", "Shivan Dragon"] },
-    { id: "removal", label: "Remoções úteis", cards: ["Swords to Plowshares", "Path to Exile", "Beast Within", "Chaos Warp", "Generous Gift"] },
-    { id: "ramp", label: "Ramp", cards: ["Sol Ring", "Arcane Signet", "Cultivate", "Kodama's Reach", "Farseek"] },
-    { id: "draw", label: "Draw", cards: ["Rhystic Study", "Mystic Remora", "Harmonize", "Night's Whisper", "Fact or Fiction"] },
+    { id: "basic-lands", label: "Terrenos basicos", aliases: ["equivalents"], cards: ["Plains", "Island", "Swamp", "Mountain", "Forest", "Wastes", "Snow-Covered Plains", "Snow-Covered Island", "Snow-Covered Swamp", "Snow-Covered Mountain", "Snow-Covered Forest"] },
+    { id: "commander-staples", label: "Staples Commander", aliases: ["staples"], cards: ["Sol Ring", "Arcane Signet", "Command Tower", "Swords to Plowshares", "Counterspell", "Cyclonic Rift", "Lightning Greaves", "Swiftfoot Boots", "Path to Exile", "Beast Within", "Chaos Warp", "Generous Gift", "Rhystic Study", "Mystic Remora", "Smothering Tithe", "Dockside Extortionist", "Esper Sentinel", "Teferi's Protection", "Demonic Tutor", "Vampiric Tutor"] },
+    { id: "common-tokens", label: "Tokens comuns", cards: ["Treasure Token", "Clue Token", "Food Token", "Blood Token", "Map Token", "Powerstone Token", "Gold Token", "Zombie Token", "Goblin Token", "Soldier Token", "Spirit Token", "Saproling Token", "Thopter Token", "Servo Token", "Construct Token", "Beast Token", "Dragon Token", "Angel Token", "Vampire Token", "Human Token"] },
+    { id: "iconic", label: "Cartas iconicas", cards: ["Black Lotus", "Lightning Bolt", "Birds of Paradise", "Serra Angel", "Shivan Dragon", "Sol Ring", "Counterspell", "Dark Ritual", "Llanowar Elves", "Swords to Plowshares", "Demonic Tutor", "Wrath of God", "Force of Will", "Jace, the Mind Sculptor", "Nicol Bolas, the Ravager", "Tiamat", "Avacyn, Angel of Hope", "Ragavan, Nimble Pilferer", "Mana Crypt", "Smothering Tithe"] },
+    { id: "removal", label: "Remocoes uteis", cards: ["Swords to Plowshares", "Path to Exile", "Beast Within", "Chaos Warp", "Generous Gift", "Anguished Unmaking", "Vindicate", "Assassin's Trophy", "Abrupt Decay", "Terminate", "Go for the Throat", "Infernal Grasp", "Reality Shift", "Pongify", "Rapid Hybridization", "Vandalblast", "Wear // Tear", "Cyclonic Rift", "Toxic Deluge", "Austere Command"] },
+    { id: "ramp", label: "Ramp", cards: ["Sol Ring", "Arcane Signet", "Cultivate", "Kodama's Reach", "Farseek", "Nature's Lore", "Three Visits", "Rampant Growth", "Skyshroud Claim", "Sakura-Tribe Elder", "Birds of Paradise", "Llanowar Elves", "Elvish Mystic", "Fyndhorn Elves", "Bloom Tender", "Smothering Tithe", "Dockside Extortionist", "Mana Crypt", "Fellwar Stone", "Talisman of Progress"] },
+    { id: "draw", label: "Draw", cards: ["Rhystic Study", "Mystic Remora", "Harmonize", "Night's Whisper", "Fact or Fiction", "Esper Sentinel", "Phyrexian Arena", "Necropotence", "Guardian Project", "Beast Whisperer", "Skullclamp", "Wheel of Fortune", "Windfall", "Return of the Wildspeaker", "Rishkar's Expertise", "Blue Sun's Zenith", "Read the Bones", "Sign in Blood", "Toski, Bearer of Secrets", "The Great Henge"] },
   ],
 
   pokemon: [
-    { id: "basic-energy", label: "Energias básicas", aliases: ["equivalents"], cards: ["Fire Energy", "Water Energy", "Lightning Energy", "Psychic Energy", "Grass Energy"] },
-    { id: "trainers", label: "Trainers úteis", aliases: ["staples"], cards: ["Rare Candy", "Switch", "Professor's Research", "Ultra Ball", "Nest Ball"] },
-    { id: "iconic", label: "Cartas icônicas", cards: ["Pikachu", "Charizard", "Mewtwo", "Lugia V", "Gardevoir ex"] },
+    { id: "basic-energy", label: "Energias basicas", aliases: ["equivalents"], cards: ["Fire Energy", "Water Energy", "Lightning Energy", "Psychic Energy", "Grass Energy", "Fighting Energy", "Darkness Energy", "Metal Energy", "Fairy Energy", "Basic Energy"] },
+    { id: "trainers", label: "Trainers uteis", aliases: ["staples"], cards: ["Rare Candy", "Switch", "Professor's Research", "Ultra Ball", "Nest Ball", "Boss's Orders", "Iono", "Arven", "Buddy-Buddy Poffin", "Earthen Vessel", "Super Rod", "Energy Retrieval", "Escape Rope", "Battle VIP Pass", "Judge", "Colress's Experiment", "Pal Pad", "Forest Seal Stone", "Technical Machine: Evolution", "Professor's Letter"] },
+    { id: "iconic", label: "Cartas iconicas", cards: ["Pikachu", "Charizard", "Mewtwo", "Lugia V", "Gardevoir ex", "Mew", "Lucario", "Gengar", "Snorlax", "Eevee", "Umbreon VMAX", "Rayquaza VMAX", "Arceus VSTAR", "Giratina VSTAR", "Greninja ex", "Dragonite V", "Blastoise ex", "Venusaur ex", "Miraidon ex", "Koraidon ex"] },
   ],
 
   yugioh: [
-    { id: "staples", label: "Staples", cards: ["Pot of Greed", "Monster Reborn", "Raigeki", "Harpie's Feather Duster", "Called by the Grave"] },
-    { id: "hand-traps", label: "Hand traps", cards: ["Ash Blossom & Joyous Spring", "Ghost Ogre & Snow Rabbit", "Effect Veiler", "Droll & Lock Bird"] },
-    { id: "classic-spells", label: "Magias clássicas", cards: ["Pot of Greed", "Monster Reborn", "Raigeki", "Dark Hole", "Change of Heart"] },
-    { id: "classic-traps", label: "Armadilhas clássicas", cards: ["Mirror Force", "Torrential Tribute", "Solemn Judgment", "Magic Cylinder"] },
-    { id: "iconic", label: "Cartas icônicas", cards: ["Blue-Eyes White Dragon", "Dark Magician", "Exodia the Forbidden One", "Stardust Dragon"] },
+    { id: "staples", label: "Staples", cards: ["Pot of Greed", "Monster Reborn", "Raigeki", "Harpie's Feather Duster", "Called by the Grave", "Forbidden Droplet", "Triple Tactics Talent", "Crossout Designator", "Infinite Impermanence", "Evenly Matched", "Lightning Storm", "Book of Moon", "Cosmic Cyclone", "Twin Twisters", "Dark Ruler No More", "Nibiru, the Primal Being", "Effect Veiler", "Ash Blossom & Joyous Spring", "Ghost Belle & Haunted Mansion", "Droll & Lock Bird"] },
+    { id: "hand-traps", label: "Hand traps", cards: ["Ash Blossom & Joyous Spring", "Ghost Ogre & Snow Rabbit", "Effect Veiler", "Droll & Lock Bird", "Ghost Belle & Haunted Mansion", "Nibiru, the Primal Being", "PSY-Framegear Gamma", "D.D. Crow", "Dimension Shifter", "Artifact Lancea", "Ghost Mourner & Moonlit Chill", "Ghost Reaper & Winter Cherries", "Skull Meister", "Token Collector", "Contact C", "Retaliating C", "Maxx C", "Fantastical Dragon Phantazmay", "Herald of Orange Light", "Battle Fader"] },
+    { id: "classic-spells", label: "Magias classicas", cards: ["Pot of Greed", "Monster Reborn", "Raigeki", "Dark Hole", "Change of Heart", "Harpie's Feather Duster", "Mystical Space Typhoon", "Heavy Storm", "Graceful Charity", "Delinquent Duo", "Premature Burial", "Snatch Steal", "Book of Moon", "Scapegoat", "Polymerization", "Fusion Deployment", "Reinforcement of the Army", "Foolish Burial", "Terraforming", "Card Destruction"] },
+    { id: "classic-traps", label: "Armadilhas classicas", cards: ["Mirror Force", "Torrential Tribute", "Solemn Judgment", "Magic Cylinder", "Trap Hole", "Bottomless Trap Hole", "Compulsory Evacuation Device", "Call of the Haunted", "Ring of Destruction", "Imperial Order", "Skill Drain", "Royal Decree", "Dust Tornado", "Waboku", "Threatening Roar", "Sakuretsu Armor", "Dimensional Prison", "Solemn Warning", "Solemn Strike", "Infinite Impermanence"] },
+    { id: "iconic", label: "Cartas iconicas", cards: ["Blue-Eyes White Dragon", "Dark Magician", "Exodia the Forbidden One", "Stardust Dragon", "Red-Eyes Black Dragon", "Dark Magician Girl", "Blue-Eyes Alternative White Dragon", "Blue-Eyes Ultimate Dragon", "Black Luster Soldier", "Number 39: Utopia", "Borreload Dragon", "Accesscode Talker", "Elemental HERO Neos", "Cyber Dragon", "Jinzo", "Kuriboh", "Summoned Skull", "Slifer the Sky Dragon", "Obelisk the Tormentor", "The Winged Dragon of Ra"] },
   ],
 
   lorcana: [
-    { id: "iconic", label: "Cartas icônicas", cards: ["Mickey Mouse - Brave Little Prince", "Elsa - Ice Artisan", "Stitch - Experiment 626", "Maleficent - Monstrous Dragon"] },
-    { id: "staples", label: "Staples", cards: ["Be Prepared", "Maui - Hero to All", "Tinker Bell - Giant Fairy", "A Whole New World"] },
-    { id: "popular-characters", label: "Personagens populares", cards: ["Simba - King in the Making", "Ariel - Ethereal Voice", "Belle - Accomplished Mystic", "Donald Duck - Flustered Sorcerer"] },
+    { id: "iconic", label: "Cartas iconicas", cards: ["Mickey Mouse - Brave Little Prince", "Elsa - Ice Artisan", "Stitch - Experiment 626", "Maleficent - Monstrous Dragon", "Belle - Accomplished Mystic", "Rapunzel - Gifted with Healing", "Tinker Bell - Giant Fairy", "Simba - King in the Making", "Ursula - Sea Witch Queen", "Hades - Infernal Schemer", "Maui - Hero to All", "Aladdin - Barreling Through", "Ariel - Ethereal Voice", "Beast - Gracious Prince", "Cinderella - Dream Come True", "Goofy - Galumphing Gumshoe", "Donald Duck - Flustered Sorcerer", "Madam Mim - Purple Dragon", "Merlin - Completing His Research", "Be Prepared"] },
+    { id: "staples", label: "Staples", cards: ["Be Prepared", "Maui - Hero to All", "Tinker Bell - Giant Fairy", "A Whole New World", "Friends on the Other Side", "Grab Your Sword", "Let It Go", "Dragon Fire", "Fishbone Quill", "Madam Mim - Fox", "Madam Mim - Snake", "Merlin - Goat", "Merlin - Rabbit", "Hiram Flaversham - Toymaker", "Bucky - Squirrel Squeak Tutor", "Ursula - Deceiver of All", "Sisu - Empowered Sibling", "Robin Hood - Champion of Sherwood", "Ariel - Spectacular Singer", "The Queen - Commanding Presence"] },
+    { id: "popular-characters", label: "Personagens populares", cards: ["Simba - King in the Making", "Ariel - Ethereal Voice", "Belle - Accomplished Mystic", "Donald Duck - Flustered Sorcerer", "Mickey Mouse - Brave Little Prince", "Minnie Mouse - Stylish Surfer", "Stitch - Rock Star", "Stitch - Carefree Surfer", "Elsa - Snow Queen", "Elsa - Spirit of Winter", "Maleficent - Biding Her Time", "Maleficent - Monstrous Dragon", "Ursula - Sea Witch", "Ursula - Sea Witch Queen", "Mulan - Imperial Soldier", "Rapunzel - Gifted with Healing", "Peter Pan - Never Landing", "Tinker Bell - Tiny Tactician", "Goofy - Daredevil", "Hades - Lord of the Underworld"] },
   ],
 
   onepiece: [
     { id: "don", label: "DON!! cards", aliases: ["equivalents"], cards: ["DON!!"] },
-    { id: "leaders", label: "Líderes", cards: ["Monkey.D.Luffy", "Roronoa Zoro", "Trafalgar Law", "Yamato"] },
-    { id: "staples", label: "Staples", cards: ["Nami", "Sanji", "Tony Tony.Chopper", "Gum-Gum Jet Pistol"] },
-    { id: "iconic", label: "Cartas icônicas", cards: ["Monkey.D.Luffy", "Shanks", "Portgas.D.Ace", "Boa Hancock"] },
+    { id: "leaders", label: "Lideres", cards: ["Monkey.D.Luffy", "Roronoa Zoro", "Trafalgar Law", "Yamato", "Shanks", "Portgas.D.Ace", "Donquixote Doflamingo", "Boa Hancock", "Charlotte Katakuri", "Kaido", "Big Mom", "Monkey.D.Garp", "Sabo", "Dracule Mihawk", "Nico Robin", "Eustass Captain Kid", "Nami", "Sanji", "Tony Tony.Chopper", "Uta"] },
+    { id: "staples", label: "Staples", cards: ["Nami", "Sanji", "Tony Tony.Chopper", "Gum-Gum Jet Pistol", "Radical Beam!!", "Guard Point", "Love-Love Mellow", "Paradise Waterfall", "Blast Breath", "Jet Pistol", "Red Roc", "Thunder Bagua", "Donquixote Doflamingo", "Trafalgar Law", "Marco", "Rebecca", "Brook", "Borsalino", "Rob Lucci", "Sabo"] },
+    { id: "iconic", label: "Cartas iconicas", cards: ["Monkey.D.Luffy", "Shanks", "Portgas.D.Ace", "Boa Hancock", "Roronoa Zoro", "Nami", "Sanji", "Tony Tony.Chopper", "Trafalgar Law", "Eustass Captain Kid", "Yamato", "Donquixote Doflamingo", "Charlotte Katakuri", "Kaido", "Big Mom", "Monkey.D.Garp", "Sabo", "Dracule Mihawk", "Nico Robin", "Gum-Gum Jet Pistol"] },
   ],
 
   fab: [
-    { id: "common-equipment", label: "Equipamentos comuns", aliases: ["equivalents"], cards: ["Nullrune Robe", "Snapdragon Scalers", "Braveforge Bracers", "Arcanite Skullcap"] },
-    { id: "staples", label: "Staples", cards: ["Sink Below", "Command and Conquer", "Enlightened Strike", "Art of War"] },
-    { id: "heroes", label: "Heróis", cards: ["Bravo", "Dorinthea", "Katsu", "Dash"] },
-    { id: "iconic", label: "Cartas icônicas", cards: ["Fyendal's Spring Tunic", "Command and Conquer", "Enlightened Strike", "Heart of Fyendal"] },
+    { id: "common-equipment", label: "Equipamentos comuns", aliases: ["equivalents"], cards: ["Nullrune Robe", "Nullrune Hood", "Nullrune Gloves", "Nullrune Boots", "Snapdragon Scalers", "Braveforge Bracers", "Arcanite Skullcap", "Crown of Providence", "Fyendal's Spring Tunic", "Ironrot Helm", "Ironrot Plate", "Ironrot Gauntlet", "Ironrot Legs", "Goliath Gauntlet", "Mage Master Boots", "Talismanic Lens", "Hope Merchant's Hood", "Flick Knives", "Mask of Momentum", "Teklo Foundry Heart"] },
+    { id: "staples", label: "Staples", cards: ["Sink Below", "Command and Conquer", "Enlightened Strike", "Art of War", "Tome of Fyendal", "Warmonger's Diplomacy", "This Round's on Me", "Fate Foreseen", "Oasis Respite", "Razor Reflex", "Pummel", "Sigil of Solace", "Scar for a Scar", "Ravenous Rabble", "Snatch", "Fyendal's Spring Tunic", "Crown of Providence", "Arcanite Skullcap", "Channel Mount Heroic", "Remembrance"] },
+    { id: "heroes", label: "Herois", cards: ["Bravo", "Dorinthea", "Katsu", "Dash", "Rhinar", "Kano", "Viserai", "Azalea", "Boltyn", "Chane", "Lexi", "Prism", "Oldhim", "Briar", "Iyslander", "Fai", "Dromai", "Arakni", "Uzuri", "Kayo"] },
+    { id: "iconic", label: "Cartas iconicas", cards: ["Fyendal's Spring Tunic", "Command and Conquer", "Enlightened Strike", "Heart of Fyendal", "Art of War", "Tome of Fyendal", "Crown of Providence", "Arcanite Skullcap", "Mask of Momentum", "Braveforge Bracers", "Dawnblade", "Rosetta Thorn", "Channel Mount Heroic", "Warmonger's Diplomacy", "This Round's on Me", "Sink Below", "Fyendal's Fighting Spirit", "Bloodrush Bellow", "Crippling Crush", "Teklo Plasma Pistol"] },
   ],
 };
-
 const LANGUAGE_OPTIONS = [
   { id: "en", label: "Inglês" },
   { id: "pt", label: "Português" },
@@ -255,6 +254,8 @@ const GAME_CONFIGS = {
     statusLabel: "Estável",
     sourceLabel: "Lorcast",
     sourceBaseLabel: "Lorcast/base local sincronizada",
+    technicalNotice:
+      "Disney Lorcana usa imagens vindas da fonte Lorcast/base local. Algumas imagens podem falhar na conversão usada pelo PDF; se isso acontecer, teste outra arte/versão ou gere o PDF sem essa carta até ajustarmos o pipeline de imagem.",
     cardWidthMm: 63,
     cardHeightMm: 88,
     defaultBackUrl: null,
@@ -289,6 +290,8 @@ const GAME_CONFIGS = {
     statusLabel: "Estável",
     sourceLabel: "GoAgain",
     sourceBaseLabel: "GoAgain/base local sincronizada",
+    technicalNotice:
+      "Algumas imagens de Flesh and Blood chegam com borda branca na própria fonte. Ao trocar a arte, prefira versões/prints sem essa borda; a Borda Preta do PDF não remove bordas que já fazem parte da imagem original.",
     cardWidthMm: 63,
     cardHeightMm: 88,
     defaultBackUrl: null,

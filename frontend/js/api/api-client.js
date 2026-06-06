@@ -19,7 +19,6 @@ async function checkApiHealth() {
       elements.statusBadge.className =
         "df-status-badge bg-df-success text-df-bg px-3 py-1 rounded-full text-sm font-medium";
       AppConfig.refreshIcons?.();
-      console.log("API Health Check:", data);
     } else {
       throw new Error("API not healthy");
     }

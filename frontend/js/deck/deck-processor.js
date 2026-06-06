@@ -41,9 +41,6 @@ function updateDeckProcessingLoading() {
     }
   }
 
-  console.log(
-    `Loading de processamento: ${GameConfigs.getGameDisplayLabel(gameConfig)}`,
-  );
 }
 
 function getCurrentResolvedPrintSettings() {
@@ -160,19 +157,23 @@ async function fetchRelatedTokensForCard(card) {
 }
 
 async function appendRelatedTokens(cards, selectedGame, resolvedSettings) {
-  const shouldIncludeTokens =
-    selectedGame === "magic" &&
-    Boolean(resolvedSettings?.content?.includeRelatedTokens);
+  const supportsRelatedTokens = selectedGame === "magic";
+  const shouldIncludeTokens = Boolean(
+    resolvedSettings?.content?.includeRelatedTokens,
+  );
 
-  if (!shouldIncludeTokens || !cards.length) {
+  if (!supportsRelatedTokens || !cards.length) {
     return cards;
   }
 
   const identities = getCardIdentitySet(cards);
   const processedIds = new Set();
   const relatedTokens = [];
+  const annotatedCards = cards.map((card) => ({ ...card }));
 
-  for (const card of cards) {
+  for (let cardIndex = 0; cardIndex < annotatedCards.length; cardIndex++) {
+    const card = annotatedCards[cardIndex];
+
     if (!card?.id || processedIds.has(card.id)) {
       continue;
     }
@@ -182,35 +183,51 @@ async function appendRelatedTokens(cards, selectedGame, resolvedSettings) {
     try {
       const relatedCards = await fetchRelatedTokensForCard(card);
 
-      relatedCards
+      const tokenCards = relatedCards
         .filter((relatedCard) => cardLooksLikeRelatedToken(relatedCard))
         .filter(
           (relatedCard) =>
             relatedCard.image_uri_normal || relatedCard.image_uri_png,
-        )
-        .forEach((relatedCard) => {
-          if (hasCardIdentity(identities, relatedCard)) {
-            return;
-          }
+        );
 
-          const tokenCard = {
-            ...relatedCard,
-            is_related_token: true,
-            parent_card_id: card.id,
-            parent_card_name: card.name,
-            has_relevant_secondary_face:
-              CardImageResolver.hasRelevantSecondaryFace?.(relatedCard) || false,
-          };
+      if (tokenCards.length) {
+        annotatedCards[cardIndex] = {
+          ...card,
+          has_related_tokens: true,
+          related_token_names: tokenCards
+            .map((relatedCard) => relatedCard.name)
+            .filter(Boolean),
+          related_tokens_included: shouldIncludeTokens,
+        };
+      }
 
-          rememberCardIdentity(identities, tokenCard);
-          relatedTokens.push(tokenCard);
-        });
+      if (!shouldIncludeTokens) {
+        continue;
+      }
+
+      tokenCards.forEach((relatedCard) => {
+        if (hasCardIdentity(identities, relatedCard)) {
+          return;
+        }
+
+        const tokenCard = {
+          ...relatedCard,
+          is_related_token: true,
+          parent_card_id: card.id,
+          parent_card_name: card.name,
+          has_relevant_secondary_face:
+            CardImageResolver.hasRelevantSecondaryFace?.(relatedCard) || false,
+        };
+
+        rememberCardIdentity(identities, tokenCard);
+        relatedTokens.push(tokenCard);
+      });
     } catch (error) {
       console.warn("Nao foi possivel buscar tokens relacionados:", card.name, error);
     }
   }
 
-  return [...cards, ...relatedTokens];
+  return [...annotatedCards, ...relatedTokens];
 }
 
 function getAutoCompleteCategory(selectedGame, categoryId) {
@@ -377,7 +394,6 @@ async function processDecklist() {
 
   // === PREVENCAO DE RACE CONDITIONS ===
   if (AppState.isProcessing) {
-    console.log("Já está processando...");
     return;
   }
 
@@ -388,7 +404,6 @@ async function processDecklist() {
   hideErrors();
 
   try {
-    console.log("Enviando decklist para API...");
     const selectedGame = AppState.getSelectedGame();
     const resolvedSettings = getCurrentResolvedPrintSettings();
     const processingStartedAt = performance.now();
@@ -407,7 +422,6 @@ async function processDecklist() {
     enrichedData.processing_time_ms = Math.round(
       (performance.now() - processingStartedAt) * 100,
     ) / 100;
-    console.log("Resposta da API:", data);
 
     // === ATUALIZACAO DE ESTADO ===
     AppState.currentCards = enrichedData.cards; // Armazena cartas processadas globalmente

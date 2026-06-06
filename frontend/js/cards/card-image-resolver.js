@@ -3,12 +3,52 @@
  * Centraliza decisões sobre frente, verso, DFC, impressão escolhida e imagens customizadas.
  */
 
-function isDoubleFacedCard(card) {
+const SEPARATE_FACE_LAYOUTS = new Set([
+  "transform",
+  "modal_dfc",
+  "double_faced_token",
+  "meld",
+  "reversible_card",
+]);
+
+const SINGLE_IMAGE_MULTI_PART_LAYOUTS = new Set([
+  "adventure",
+  "split",
+  "aftermath",
+  "flip",
+  "class",
+  "case",
+  "leveler",
+]);
+
+function getCardLayout(card) {
+  return String(card?.layout || "").trim().toLowerCase();
+}
+
+function hasSeparateBackImage(card) {
   return Boolean(card?.image_uri_back_normal || card?.image_uri_back_png);
 }
 
+function isSeparateFaceLayout(card) {
+  const layout = getCardLayout(card);
+
+  if (!layout) {
+    return hasSeparateBackImage(card);
+  }
+
+  if (SINGLE_IMAGE_MULTI_PART_LAYOUTS.has(layout)) {
+    return false;
+  }
+
+  return SEPARATE_FACE_LAYOUTS.has(layout) || hasSeparateBackImage(card);
+}
+
+function isDoubleFacedCard(card) {
+  return hasSeparateBackImage(card) && isSeparateFaceLayout(card);
+}
+
 function hasRelevantSecondaryFace(card) {
-  return Boolean(card?.has_relevant_secondary_face) || isDoubleFacedCard(card);
+  return Boolean(card?.has_relevant_secondary_face) && isDoubleFacedCard(card);
 }
 
 function getDefaultFrontImageUrl(card) {
@@ -106,11 +146,10 @@ function applyPrintingToCard(card, printing) {
     requested_language: requestedLanguage,
     resolved_language: resolvedLanguage,
     language_fallback: hasLanguageFallback,
-    has_relevant_secondary_face: Boolean(
-      printing.has_relevant_secondary_face ||
-      printing.image_uri_back_normal ||
-      printing.image_uri_back_png,
-    ),
+    has_relevant_secondary_face:
+      Boolean(printing.has_relevant_secondary_face) &&
+      hasSeparateBackImage(printing) &&
+      isSeparateFaceLayout(printing),
     is_related_token: Boolean(card.is_related_token),
     is_auto_completed: Boolean(card.is_auto_completed),
     auto_complete_category: card.auto_complete_category || null,

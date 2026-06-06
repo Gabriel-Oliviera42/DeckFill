@@ -108,6 +108,7 @@ const elements = {
   // === CATEGORIA 2: GUIAS DE IMPRESSÒO ===
   cropMarks: document.getElementById("crop-marks"), // Guias
   guideType: document.getElementById("guide-type"),
+  guideTypeOptions: document.getElementById("guide-type-options"),
   blackCorners: document.getElementById("black-corners"), // Bordas pretas
   bleed: document.getElementById("bleed"), // Sangria/bleed
   blackCornersProfessional: document.getElementById("black-corners-professional"),
@@ -153,7 +154,6 @@ window.elements = elements;
 
 // Ponto de entrada da aplicação - executado quando DOM está carregado
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("Deck Fill Application started");
   initializeEventListeners();
   AppConfig.refreshIcons?.();
   checkApiHealth();
@@ -207,11 +207,17 @@ function initializeEventListeners() {
   // Slider value updates
   elements.gapSpacing?.addEventListener("input", updateGapValue);
   elements.gapSpacingProfessional?.addEventListener("input", updateGapValue);
+  elements.guideColor?.addEventListener("input", updateGuidePreviewState);
+  elements.guideType?.addEventListener("change", updateGuidePreviewState);
+  elements.guideTypeOptions
+    ?.querySelectorAll("[data-guide-type-option]")
+    .forEach((option) => {
+      option.addEventListener("click", () => {
+        setSelectedGuideType(option.dataset.guideTypeOption);
+      });
+    });
+  updateGuidePreviewState();
   elements.printRelevantFaces?.addEventListener("change", updateFaceWarningBadges);
-  elements.autoCompleteCategory?.addEventListener("change", () => {
-    console.log("Auto completar:", elements.autoCompleteCategory.value);
-  });
-
   // Progress Modal
   elements.progressCancelBtn.addEventListener("click", () => {
     AppState.isGenerationCancelled = true;
@@ -247,20 +253,7 @@ function initializeEventListeners() {
   );
   elements.clearCustomImageBack.addEventListener("click", clearCustomImageBack);
 
-  // Upload do verso global
-  if (elements.globalBackUpload) {
-    elements.globalBackUpload.addEventListener(
-      "change",
-      handleGlobalBackUpload,
-    );
-  }
-
-  // Botão de limpar verso global
-  const clearGlobalBackBtn = document.getElementById("clear-global-back");
-  if (clearGlobalBackBtn) {
-    clearGlobalBackBtn.addEventListener("click", clearGlobalBackImage);
-  }
-
+// Botão de limpar verso global
   // Fechar modal clicando no backdrop
   elements.artModal.addEventListener("click", (e) => {
     if (e.target === elements.artModal) {
@@ -283,11 +276,8 @@ function initializeEventListeners() {
   );
 
   // Event listeners para o modal de verso global
-  console.log("Status do botão Global Back:", !!elements.globalBackBtn);
-
   if (elements.globalBackBtn) {
     elements.globalBackBtn.addEventListener("click", openGlobalBackModal);
-    console.log("Event listener do botão Global Back adicionado");
   }
 
   if (elements.closeGlobalBackModal) {
@@ -318,8 +308,6 @@ function initializeEventListeners() {
 
       // Se já tiver imagem customizada, permite resetar
       if (currentBack) {
-        console.log("Resetando verso para padrão MTG");
-
         // Limpar do estado
         AppState.setGlobalCustomBackImage(null);
 
@@ -358,26 +346,6 @@ function initializeEventListeners() {
 
   // Inicializa delegação de eventos para cliques nas cartas
   initializeCardClickDelegation();
-
-  // Listener para upload do verso global
-  if (elements.globalBackUpload && elements.globalBackFilename) {
-    elements.globalBackUpload.addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        if (file.type.startsWith("image/")) {
-          const reader = new FileReader();
-          reader.onload = function (event) {
-            AppState.globalCustomBackImage = event.target.result;
-            elements.globalBackFilename.textContent = file.name;
-          };
-          reader.readAsDataURL(file);
-        } else {
-          alert("Por favor, selecione um arquivo de imagem válido.");
-          e.target.value = "";
-        }
-      }
-    });
-  }
 
   // Atalho de teclado: Ctrl+Enter para processar
   elements.decklistInput.addEventListener("keydown", (e) => {
@@ -437,7 +405,6 @@ function updateCardElement(cardIndex) {
     // Garante que o novo elemento tenha cursor pointer
     newCardElement.style.cursor = "pointer";
     cardElements[cardIndex].replaceWith(newCardElement);
-
   }
 }
 
@@ -482,60 +449,7 @@ function addCardClickHandlers() {
 // Funções de progresso movidas para ./js/ui/notifications.js
 
 /**
- * Função Mock para Testar o Modal de Progresso
- */
-function showProgressMock() {
-  showProgressModal();
-
-  let progress = 0;
-  const totalCards = AppState.currentCards.length || 21;
-  const statuses = [
-    "Baixando imagens...",
-    "Processando cartas...",
-    "Montando páginas...",
-    "Aplicando configurações...",
-    "Gerando PDF...",
-    "Finalizando...",
-  ];
-
-  const interval = setInterval(() => {
-    progress += Math.random() * 15;
-
-    if (progress >= 100) {
-      progress = 100;
-      clearInterval(interval);
-
-      setTimeout(() => {
-        updateProgress(
-          100,
-          "Concluído",
-          totalCards,
-          totalCards,
-          Math.ceil(totalCards / 9),
-        );
-      }, 500);
-    }
-
-    const currentCard = Math.min(
-      Math.floor((progress / 100) * totalCards),
-      totalCards,
-    );
-    const currentPage = Math.ceil(currentCard / 9);
-    const statusIndex = Math.floor((progress / 100) * statuses.length);
-    const currentStatus = statuses[Math.min(statusIndex, statuses.length - 1)];
-
-    updateProgress(
-      progress,
-      currentStatus,
-      currentCard,
-      totalCards,
-      currentPage,
-    );
-  }, 300);
-}
-
-/**
- * Obtém as configurações de impressão
+ * Obtem as configuracoes de impressao
  */
 function getPrintSettings() {
   const selectedMode = getSelectedOutputMode();
@@ -571,9 +485,6 @@ function getPrintSettings() {
     autoCompleteCategory: elements.autoCompleteCategory?.value || "off",
     // Cor das guias
     guideColor: elements.guideColor?.value || "#E7B650",
-    // Campos removidos do HTML (mantidos para compatibilidade futura)
-    printDecklist: elements.printDecklist?.checked || false,
-    playtestWatermark: elements.playtestWatermark?.checked || false,
   };
 }
 
@@ -582,27 +493,6 @@ function getPrintSettings() {
 // ================================================================================
 
 // Funções de upload movidas para ./js/upload/image-upload.js
-
-/**
- * Atualiza a imagem da carta no grid principal
- */
-function updateCardImage(cardIndex, imageUrl) {
-  const cardElements = document.querySelectorAll(".card-item");
-  if (cardElements[cardIndex]) {
-    const imgElement =
-      cardElements[cardIndex].querySelector('[data-role="primary-card-image"]') ||
-      cardElements[cardIndex].querySelector("img");
-    if (imgElement) {
-      imgElement.src = imageUrl;
-
-      // Adicionar indicador visual de imagem personalizada
-      cardElements[cardIndex].classList.add("custom-image");
-
-      // Adicionar borda de destaque para indicar imagem personalizada
-      imgElement.classList.add("border-2", "border-df-primary");
-    }
-  }
-}
 
 /**
  * Restaura a imagem original da carta
@@ -624,67 +514,6 @@ function restoreOriginalImage(cardIndex) {
       imgElement.classList.remove("border-2", "border-df-primary");
     }
   }
-}
-
-/**
- * Obtém a URL da imagem para usar no PDF (prioriza imagem personalizada)
- */
-function getCardImageUrl(cardIndex, card) {
-  return CardImageResolver.getResolvedFrontImageUrl(card, cardIndex);
-}
-
-/**
- * Lida com o upload da imagem do verso global
- */
-function handleGlobalBackUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  console.log("Upload do verso global iniciado!");
-
-  // Validar tipo de arquivo
-  if (!file.type.startsWith("image/")) {
-    alert("Por favor, selecione um arquivo de imagem válido.");
-    return;
-  }
-
-  const reader = new FileReader();
-  reader.onload = function (e) {
-    const imageUrl = e.target.result;
-
-    // Salvar no estado global
-    AppState.setGlobalCustomBackImage(imageUrl);
-    console.log("Verso global armazenado no AppState");
-
-    // Mostrar preview
-    const previewContainer = document.getElementById("global-back-preview");
-    const imgElement = document.getElementById("global-back-preview-img");
-
-    if (previewContainer && imgElement) {
-      previewContainer.classList.remove("hidden");
-      imgElement.src = imageUrl;
-    }
-  };
-
-  reader.readAsDataURL(file);
-}
-
-/**
- * Limpa a imagem do verso global
- */
-function clearGlobalBackImage() {
-  // Limpar do estado
-  AppState.setGlobalCustomBackImage(null);
-  console.log("Verso global removido do AppState");
-
-  // Limpar preview
-  const previewContainer = document.getElementById("global-back-preview");
-  const imgElement = document.getElementById("global-back-preview-img");
-  const fileInput = document.getElementById("global-back-upload");
-
-  if (previewContainer) previewContainer.classList.add("hidden");
-  if (imgElement) imgElement.src = "";
-  if (fileInput) fileInput.value = "";
 }
 
 /**
@@ -720,7 +549,6 @@ function updateDecklistTextarea() {
  * Abre o modal de verso global
  */
 function openGlobalBackModal() {
-  console.log("Abrindo modal de verso global");
   elements.globalBackModal.classList.remove("hidden");
   updateGlobalBackButton();
 }
@@ -729,7 +557,6 @@ function openGlobalBackModal() {
  * Fecha o modal de verso global
  */
 function closeGlobalBackModal() {
-  console.log("Fechando modal de verso global");
   elements.globalBackModal.classList.add("hidden");
 }
 
@@ -777,8 +604,6 @@ function updateGlobalBackButton() {
 function handleGlobalBackUploadModal(event) {
   const file = event.target.files[0];
   if (!file) return;
-
-  console.log("Upload do verso global iniciado!");
 
   // Validar tipo de arquivo
   if (!file.type.startsWith("image/")) {
@@ -835,7 +660,6 @@ function handleGlobalBackUploadModal(event) {
 function clearGlobalBackModal() {
   // Limpar do estado
   AppState.setGlobalCustomBackImage(null);
-  console.log("Verso global removido do AppState");
 
   // Limpar preview
   const imgElement = elements.globalBackPreviewLarge;
@@ -863,7 +687,6 @@ function clearGlobalBackModal() {
 window.deckFillApp = {
   // Funções movidas para módulos especializados - mantendo apenas estado e configuração
   currentCards: AppState.currentCards,
-  showProgressMock, // Função de teste
   hideProgressModal,
   getPrintSettings,
 };
@@ -1050,6 +873,7 @@ function updateOutputModeUI() {
   updateGameDependentControls(
     GameConfigs.getGameConfig(AppState.getSelectedGame?.() || "magic"),
   );
+  updateGuidePreviewState();
   updateFaceWarningBadges();
 }
 
@@ -1176,6 +1000,38 @@ function setupExclusiveEdgeControls(bleedControl, blackBorderControl) {
       blackBorderControl.checked = false;
     }
     event.target.blur();
+  });
+}
+
+function setSelectedGuideType(guideType) {
+  if (!guideType || !elements.guideType) {
+    return;
+  }
+
+  elements.guideType.value = guideType;
+  updateGuidePreviewState();
+}
+
+function updateGuidePreviewState() {
+  const selectedGuideType = elements.guideType?.value || "external-corners";
+  const guideColor = elements.guideColor?.value || "#E7B650";
+
+  elements.guideTypeOptions
+    ?.querySelectorAll("[data-guide-type-option]")
+    .forEach((option) => {
+      const isSelected = option.dataset.guideTypeOption === selectedGuideType;
+
+      option.setAttribute("aria-pressed", String(isSelected));
+      option.classList.toggle("border-df-primary", isSelected);
+      option.classList.toggle("ring-1", isSelected);
+      option.classList.toggle("ring-df-primary/70", isSelected);
+      option.classList.toggle("bg-slate-900/70", isSelected);
+      option.classList.toggle("border-slate-600", !isSelected);
+      option.classList.toggle("bg-slate-900/50", !isSelected);
+    });
+
+  document.querySelectorAll("[data-guide-preview]").forEach((preview) => {
+    preview.style.setProperty("color", guideColor, "important");
   });
 }
 
@@ -1320,10 +1176,7 @@ function updateSelectedGameUI() {
   }
 
   updateGameDependentControls(gameConfig);
-  updateGameSupportNotice(gameConfig);
-
-  console.log("Jogo selecionado:", GameConfigs.getGameDisplayLabel(gameConfig));
-}
+  updateGameSupportNotice(gameConfig);}
 
 function updateGameSupportNotice(gameConfig) {
   if (!elements.gameSupportNotice) {
@@ -1345,5 +1198,3 @@ function updateGameSupportNotice(gameConfig) {
   elements.gameSupportNotice.className =
     "mt-3 rounded-lg border px-4 py-3 text-sm border-df-line bg-df-surface text-df-muted";
 }
-
-console.log("Deck Fill App initialized");

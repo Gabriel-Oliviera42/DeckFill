@@ -108,11 +108,31 @@ def get_parsed_card_lookup_key(card: Dict[str, Any]) -> str:
 
 def card_has_relevant_secondary_face(card_data: Dict[str, Any]) -> bool:
     """Indica se a carta tem verso/segunda face que pode precisar entrar no PDF."""
-    return bool(
-        card_data.get("image_uri_back_normal")
-        or card_data.get("image_uri_back_png")
-        or card_data.get("back_name")
+    layout = str(card_data.get("layout") or "").strip().lower()
+    separate_face_layouts = {
+        "transform",
+        "modal_dfc",
+        "double_faced_token",
+        "meld",
+        "reversible_card",
+    }
+    single_image_layouts = {
+        "adventure",
+        "split",
+        "aftermath",
+        "flip",
+        "class",
+        "case",
+        "leveler",
+    }
+    has_back_image = bool(
+        card_data.get("image_uri_back_normal") or card_data.get("image_uri_back_png")
     )
+
+    if not has_back_image or layout in single_image_layouts:
+        return False
+
+    return not layout or layout in separate_face_layouts
 
 
 def search_cards_with_optional_language(
@@ -164,7 +184,7 @@ def get_db_connection() -> sqlite3.Connection:
             status_code=500,
             detail=f"Banco de dados '{DB_FILE}' não encontrado. Execute sync_db.py primeiro."
         )
-    
+
     conn = sqlite3.connect(DB_FILE, check_same_thread=False)
     conn.row_factory = sqlite3.Row  # Para acessar colunas por nome
     return conn
@@ -223,7 +243,7 @@ async def health_check():
             cursor = conn.cursor()
             cursor.execute("SELECT COUNT(*) FROM cards")
             card_count = cursor.fetchone()[0]
-            
+
             return {
                 "status": "healthy",
                 "database_connected": True,
@@ -484,7 +504,7 @@ def image_proxy(url: str):
 async def parse_deck(request: DeckParseRequest):
     """
     Processa um decklist e retorna informações das cartas.
-    
+
     Exemplo de decklist:
     ```
     4x Lightning Bolt
@@ -497,15 +517,15 @@ async def parse_deck(request: DeckParseRequest):
     game = normalize_game_key(request.game)
     provider = get_card_provider(game)
     preferred_language = (request.preferred_language or "en").lower().strip()
-    
+
     try:
         # 1. Parse do decklist
         parsed_cards, parse_errors = provider.parse_decklist(request.decklist)
-        
+
         # 2. Buscar cartas no banco (agora com informações de set/number)
         unique_parsed_cards = []
         seen_cards = set()
-        
+
         for card in parsed_cards:
             lookup_key = get_parsed_card_lookup_key(card)
             card["lookup_key"] = lookup_key
@@ -513,22 +533,22 @@ async def parse_deck(request: DeckParseRequest):
             if lookup_key not in seen_cards:
                 unique_parsed_cards.append(card)
                 seen_cards.add(lookup_key)
-        
+
         search_results = search_cards_with_optional_language(
             provider,
             unique_parsed_cards,
             preferred_language,
         )
-        
+
         # 3. Montar resposta
         response_cards = []
         not_found = []
-        
+
         for parsed_card in parsed_cards:
             card_name = parsed_card['name']
             quantity = parsed_card['quantity']
             lookup_key = parsed_card.get("lookup_key") or get_parsed_card_lookup_key(parsed_card)
-            
+
             if lookup_key in search_results and search_results[lookup_key]:
                 # Pega a primeira (melhor) correspondência
                 # Converte sqlite3.Row para dict nativo antes de passar para CardResponse
@@ -539,7 +559,7 @@ async def parse_deck(request: DeckParseRequest):
                     and preferred_language != "en"
                     and resolved_language != preferred_language
                 )
-                
+
                 # Adiciona a quantidade para cada cópia
                 for _ in range(quantity):
                     front_card = dict(card_data)
@@ -552,22 +572,22 @@ async def parse_deck(request: DeckParseRequest):
                     response_cards.append(CardResponse(**front_card))
             else:
                 not_found.append(f"{quantity}x {card_name}")
-        
+
         # 4. Calcular tempo de processamento
         processing_time = (time.time() - start_time) * 1000  # ms
-        
+
         # 5. Montar erros
         errors = parse_errors.copy()
         if not_found:
             errors.extend([f"Carta não encontrada: {card}" for card in not_found])
-        
+
         return DeckParseResponse(
             cards=response_cards,
             total_cards=len(response_cards),
             processing_time_ms=round(processing_time, 2),
             errors=errors
         )
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -578,36 +598,36 @@ async def parse_deck(request: DeckParseRequest):
 async def search_card(card_name: str, limit: int = 10):
     """
     Busca uma carta específica pelo nome.
-    
+
     Query params:
     - limit: número máximo de resultados (padrão: 10)
     """
     try:
         with contextlib.closing(get_db_connection()) as conn:
             cursor = conn.cursor()
-            
+
             # Busca flexível
             search_name = f"%{card_name}%"
             cursor.execute(f"""
                 SELECT {CARD_SELECT_COLUMNS}
-                FROM cards 
-                WHERE name LIKE ? 
-                ORDER BY 
+                FROM cards
+                WHERE name LIKE ?
+                ORDER BY
                     CASE WHEN name LIKE ? THEN 1 ELSE 2 END,
                     name ASC,
                     set_code DESC,
                     collector_number ASC
                 LIMIT ?
             """, (search_name, f"{card_name}%", limit))
-                        
+
             results = [dict(row) for row in cursor.fetchall()]
-            
+
             return {
                 "card": card_name,
                 "results": results,
                 "count": len(results)
             }
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -817,17 +837,17 @@ async def get_stats():
     try:
         with contextlib.closing(get_db_connection()) as conn:
             cursor = conn.cursor()
-            
+
             # Estatísticas gerais
             cursor.execute("SELECT COUNT(*) FROM cards")
             total_cards = cursor.fetchone()[0]
-            
+
             cursor.execute("SELECT COUNT(DISTINCT name) FROM cards")
             unique_names = cursor.fetchone()[0]
-            
+
             cursor.execute("SELECT COUNT(DISTINCT set_code) FROM cards")
             unique_sets = cursor.fetchone()[0]
-            
+
             # Sets mais comuns
             cursor.execute("""
                 SELECT set_code, COUNT(*) as count
@@ -837,14 +857,14 @@ async def get_stats():
                 LIMIT 10
             """)
             top_sets = [dict(row) for row in cursor.fetchall()]
-            
+
             return {
                 "total_cards": total_cards,
                 "unique_names": unique_names,
                 "unique_sets": unique_sets,
                 "top_sets": top_sets
             }
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -853,23 +873,23 @@ async def get_stats():
 
 if __name__ == "__main__":
     import uvicorn
-    
+
     print("=" * 50)
     print("Deck Fill API Server")
     print("=" * 50)
-    
+
     # Verificar se banco de dados existe
     if not Path(DB_FILE).exists():
         print(f"Erro: Banco de dados '{DB_FILE}' não encontrado!")
         print("Execute 'python sync_db.py' primeiro.")
         exit(1)
-    
+
     print(f"Banco de dados encontrado: {DB_FILE}")
     print(f"Iniciando servidor na porta {PORT}")
     print(f"Docs: http://localhost:{PORT}/docs")
     print(f"Health: http://localhost:{PORT}/health")
     print("=" * 50)
-    
+
     uvicorn.run(
         "main:app",
         host="0.0.0.0",

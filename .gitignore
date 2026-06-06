@@ -47,6 +47,8 @@ debug.log
 # Artefatos locais de automacao/testes
 .codex-runtime/
 .codex-edge*/
+tmp-edge-profile*/
+tmp-browser-screenshots/
 
 # Anexos, conversas e notas privadas
 attachments/

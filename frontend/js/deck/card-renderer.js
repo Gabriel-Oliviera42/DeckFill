@@ -96,6 +96,26 @@ function createCardElement(card, index) {
     });
   }
 
+  if (card.has_related_tokens && !card.is_related_token) {
+    const relatedTokenNames = Array.isArray(card.related_token_names)
+      ? card.related_token_names.filter(Boolean)
+      : [];
+    const tokenList = relatedTokenNames.length
+      ? relatedTokenNames.join(", ")
+      : "tokens relacionados";
+    const tokenStatus = card.related_tokens_included
+      ? "adicionados ao fluxo"
+      : "disponiveis, mas nao adicionados";
+
+    infoBadges.push({
+      label: "Tokens",
+      title: `Tokens encontrados (${tokenStatus}): ${tokenList}`,
+      className: card.related_tokens_included
+        ? "border-emerald-500/70 bg-emerald-950/90 text-emerald-100"
+        : "border-amber-500/70 bg-amber-950/90 text-amber-100",
+    });
+  }
+
   if (card.is_auto_completed) {
     infoBadges.push({
       label: "Extra",

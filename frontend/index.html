@@ -10,16 +10,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Deck Fill - Gerador multi-TCG de PDFs para proxies</title>
-    
+
     <!-- === DEPENDÊNCIAS EXTERNAS === -->
     <!-- Tailwind CSS via CDN - Framework de estilos -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <!-- jsPDF via CDN - Biblioteca de geração de PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="js/vendor/pdf-lib.min.js"></script>
     <script src="js/vendor/jspdf-fallback.js"></script>
-    
+
     <!-- Lucide Icons - biblioteca SVG consistente para a interface -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
@@ -62,7 +62,7 @@
             }
         }
     </script>
-    
+
     <!-- === ESTILOS CUSTOMIZADOS === -->
     <style>
         :root {
@@ -360,19 +360,19 @@
         .fade-in {
             animation: fadeIn 0.3s ease-in-out;
         }
-        
+
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
+
         /* Grid responsivo para cards - se adapta a diferentes tamanhos de tela */
         .cards-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 1rem;
         }
-        
+
         /* Loading spinner para feedback visual durante operações assíncronas */
         .spinner {
             border: 3px solid rgba(216, 207, 192, 0.24);
@@ -382,12 +382,12 @@
             height: 40px;
             animation: spin 1s linear infinite;
         }
-        
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
+
         /* Card hover effects - REMOVIDOS para eliminar movimento fantasma */
     </style>
 </head>
@@ -526,13 +526,14 @@
                         <div id="game-support-notice" class="hidden mt-3 rounded-lg border border-slate-600 bg-slate-800 px-4 py-3 text-sm text-gray-300">
                             <p id="game-support-title" class="font-medium text-gray-100">Aviso técnico</p>
                             <p id="game-support-description" class="mt-1 text-xs text-gray-400">
-                                Algumas imagens de One Piece podem vir com SAMPLE dependendo da fonte disponível.
+                                Algumas fontes de imagem possuem limitações técnicas. A mensagem muda conforme o TCG selecionado.
                             </p>
                         </div>
+
                     </div>
                 </div>
             </div>
-            
+
             <div class="space-y-4">
                 <!-- Textarea para decklist -->
                 <div>
@@ -540,36 +541,36 @@
                         <i data-lucide="clipboard-paste" class="df-icon text-df-primary" aria-hidden="true"></i>
                         <span>Decklist</span>
                     </label>
-                    <textarea 
-                        id="decklist-input" 
-                        rows="8" 
+                    <textarea
+                        id="decklist-input"
+                        rows="8"
                         class="w-full px-4 py-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-mtg-blue focus:border-transparent resize-none max-h-64 overflow-y-auto bg-slate-800 text-gray-100 opacity-100 placeholder-gray-500"
                         placeholder="4x Lightning Bolt
-2 Island  
+2 Island
 1 Thantis, the Warweaver
 3 Black Lotus
 4 Force of Will">
                     </textarea>
                 </div>
-                
+
                 <!-- Botões de ação -->
                 <div class="flex flex-wrap gap-3">
-                    <button 
-                        id="process-btn" 
+                    <button
+                        id="process-btn"
                         class="bg-slate-700 hover:bg-slate-600 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center space-x-2">
                         <i data-lucide="wand-sparkles" class="df-icon-lg" aria-hidden="true"></i>
                         <span>Processar Deck</span>
                     </button>
-                    
-                    <button 
-                        id="clear-btn" 
+
+                    <button
+                        id="clear-btn"
                         class="bg-gray-500 hover:bg-gray-600 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center space-x-2">
                         <i data-lucide="eraser" class="df-icon-lg" aria-hidden="true"></i>
                         <span>Limpar</span>
                     </button>
-                    
-                    <button 
-                        id="load-sample-btn" 
+
+                    <button
+                        id="load-sample-btn"
                         class="bg-df-success hover:bg-df-success-dark text-df-bg font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center space-x-2">
                         <i data-lucide="file-plus" class="df-icon-lg" aria-hidden="true"></i>
                         <span>Carregar Exemplo</span>
@@ -606,7 +607,7 @@
                         </button>
                     </div>
                 </div>
-                
+
                 <div class="mt-6 border border-slate-700 rounded-lg p-4 bg-slate-800">
                     <div class="flex items-center justify-between gap-4 flex-wrap">
                         <div>
@@ -653,7 +654,7 @@
                                     Folha e tamanho de carta seguem o padrão do sistema. Gap, sangria, borda preta, dupla face real, tokens e auto completar continuam controláveis.
                                 </p>
                                 <div class="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-100">
-                                    Guias manuais não aparecem neste modo; o PDF usa marcas profissionais padronizadas para corte.
+                                    Guias manuais não aparecem neste modo. As marcas profissionais e o fluxo de corte ainda estão em acabamento; hoje o PDF usa a base atual de posicionamento e acabamento.
                                 </div>
                             </div>
 
@@ -678,7 +679,7 @@
                         </div>
                         <i id="print-settings-chevron" data-lucide="chevron-down" class="df-icon-lg text-gray-500 transform transition-transform duration-200" aria-hidden="true"></i>
                     </button>
-                    
+
                     <div id="print-settings-content" class="hidden">
                         <div class="bg-slate-800 p-6 space-y-6">
                             <div data-print-mode-section="normal" class="border border-gray-600 rounded-lg p-4 bg-gradient-to-br from-slate-800/30 to-slate-700/30">
@@ -688,8 +689,8 @@
                                     </div>
                                     <h3 class="font-semibold text-gray-200">Layout & Geometria</h3>
                                 </div>
-                                
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
                                     <div>
                                         <label class="df-section-heading text-sm font-medium text-gray-200 mb-1">
                                             <i data-lucide="file-text" class="df-icon-sm text-df-primary" aria-hidden="true"></i>
@@ -705,8 +706,8 @@
                                             <option value="a5">A5 (148 x 210 mm) - (Caberão menos cartas)</option>
                                         </select>
                                     </div>
-                                    
-                                    <div>
+
+                                    <div class="lg:order-3">
                                         <label class="df-section-heading text-sm font-medium text-gray-200 mb-1">
                                             <i data-lucide="ruler" class="df-icon-sm text-df-primary" aria-hidden="true"></i>
                                             <span>Espaçamento / Gap (mm)</span>
@@ -717,8 +718,8 @@
                                         </div>
                                         <p class="text-xs text-gray-500 mt-1">Espaço entre cartas. Limite: 1 a 5 mm.</p>
                                     </div>
-                                    
-                                    <div>
+
+                                    <div class="lg:order-2">
                                         <label class="df-section-heading text-sm font-medium text-gray-200 mb-1">
                                             <i data-lucide="maximize" class="df-icon-sm text-df-primary" aria-hidden="true"></i>
                                             <span>Tamanho da Carta</span>
@@ -775,14 +776,18 @@
                             </div>
 
                             <div data-print-mode-section="normal" class="border border-slate-700 rounded-lg p-4 bg-slate-800">
-                                <div class="flex items-center space-x-2 mb-4">
+                                <div class="flex items-center space-x-2 mb-2">
                                     <div class="w-6 h-6 bg-orange-500 rounded flex items-center justify-center">
                                         <i data-lucide="scissors" class="df-icon-sm text-white" aria-hidden="true"></i>
                                     </div>
                                     <h3 class="font-semibold text-gray-200">Guias</h3>
+                                    <span class="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-100">PDF parcial</span>
                                 </div>
-                                
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <p class="mb-4 text-xs text-amber-100/90">
+                                    No PDF, por enquanto, apenas "Cantos externos" está implementado. Os outros tipos aparecem como preview/configuração preparada para a próxima etapa.
+                                </p>
+
+                                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
                                     <div class="flex items-center justify-between p-3 bg-slate-700 rounded-md border border-gray-600">
                                         <div class="flex items-center space-x-3">
                                             <i data-lucide="scissors" class="df-icon text-orange-500" aria-hidden="true"></i>
@@ -800,22 +805,73 @@
                                         </div>
                                     </div>
 
-                                    <div>
+                                    <div class="lg:col-span-2 lg:row-span-3">
                                         <label class="df-section-heading text-sm font-medium text-gray-200 mb-1">
                                             <i data-lucide="corner-down-right" class="df-icon-sm text-df-primary" aria-hidden="true"></i>
                                             <span>Tipo de guia</span>
                                         </label>
-                                        <select id="guide-type" class="w-full px-3 py-2 border border-gray-600 rounded-md bg-slate-700 text-gray-100">
+                                        <select id="guide-type" class="sr-only">
                                             <option value="external-corners" selected>Cantos externos</option>
+                                            <option value="internal-corners">Cantos internos</option>
+                                            <option value="full-border">Borda completa</option>
+                                            <option value="rounded-corners">Cantos arredondados</option>
+                                            <option value="dashed">Tracejado</option>
                                         </select>
+                                        <div id="guide-type-options" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
+                                            <button type="button" data-guide-type-option="external-corners" class="guide-type-option rounded-md border border-df-primary bg-slate-900/70 p-3 text-left text-sm text-gray-100 ring-1 ring-df-primary/70" aria-pressed="true">
+                                                <span class="mb-3 flex h-20 items-center justify-center rounded bg-slate-950/80">
+                                                    <span data-guide-preview class="relative block h-12 w-9 text-df-accent">
+                                                        <span class="absolute -left-2 -top-2 h-3 w-3 border-l-2 border-t-2 border-current"></span>
+                                                        <span class="absolute -right-2 -top-2 h-3 w-3 border-r-2 border-t-2 border-current"></span>
+                                                        <span class="absolute -bottom-2 -left-2 h-3 w-3 border-b-2 border-l-2 border-current"></span>
+                                                        <span class="absolute -bottom-2 -right-2 h-3 w-3 border-b-2 border-r-2 border-current"></span>
+                                                    </span>
+                                                </span>
+                                                <span class="font-semibold">Cantos externos</span>
+                                                <span class="block text-xs text-gray-400">Implementado no PDF.</span>
+                                            </button>
+                                            <button type="button" data-guide-type-option="internal-corners" class="guide-type-option rounded-md border border-slate-600 bg-slate-900/50 p-3 text-left text-sm text-gray-100" aria-pressed="false">
+                                                <span class="mb-3 flex h-20 items-center justify-center rounded bg-slate-950/80">
+                                                    <span data-guide-preview class="relative block h-12 w-9 border border-slate-700 text-df-accent">
+                                                        <span class="absolute left-0 top-0 h-3 w-3 border-r-2 border-b-2 border-current"></span>
+                                                        <span class="absolute right-0 top-0 h-3 w-3 border-l-2 border-b-2 border-current"></span>
+                                                        <span class="absolute bottom-0 left-0 h-3 w-3 border-r-2 border-t-2 border-current"></span>
+                                                        <span class="absolute bottom-0 right-0 h-3 w-3 border-l-2 border-t-2 border-current"></span>
+                                                    </span>
+                                                </span>
+                                                <span class="font-semibold">Cantos internos</span>
+                                                <span class="block text-xs text-amber-100/90">Preview; ainda não altera o PDF.</span>
+                                            </button>
+                                            <button type="button" data-guide-type-option="full-border" class="guide-type-option rounded-md border border-slate-600 bg-slate-900/50 p-3 text-left text-sm text-gray-100" aria-pressed="false">
+                                                <span class="mb-3 flex h-20 items-center justify-center rounded bg-slate-950/80">
+                                                    <span data-guide-preview class="block h-12 w-9 border-2 border-current text-df-accent"></span>
+                                                </span>
+                                                <span class="font-semibold">Borda completa</span>
+                                                <span class="block text-xs text-amber-100/90">Preview; ainda não altera o PDF.</span>
+                                            </button>
+                                            <button type="button" data-guide-type-option="rounded-corners" class="guide-type-option rounded-md border border-slate-600 bg-slate-900/50 p-3 text-left text-sm text-gray-100" aria-pressed="false">
+                                                <span class="mb-3 flex h-20 items-center justify-center rounded bg-slate-950/80">
+                                                    <span data-guide-preview class="block h-12 w-9 rounded-md border-2 border-current text-df-accent"></span>
+                                                </span>
+                                                <span class="font-semibold">Cantos arredondados</span>
+                                                <span class="block text-xs text-amber-100/90">Preview; ainda não altera o PDF.</span>
+                                            </button>
+                                            <button type="button" data-guide-type-option="dashed" class="guide-type-option rounded-md border border-slate-600 bg-slate-900/50 p-3 text-left text-sm text-gray-100" aria-pressed="false">
+                                                <span class="mb-3 flex h-20 items-center justify-center rounded bg-slate-950/80">
+                                                    <span data-guide-preview class="block h-12 w-9 border-2 border-dashed border-current text-df-accent"></span>
+                                                </span>
+                                                <span class="font-semibold">Tracejado</span>
+                                                <span class="block text-xs text-amber-100/90">Preview; ainda não altera o PDF.</span>
+                                            </button>
+                                        </div>
                                     </div>
-                                    
-                                    <div class="flex items-center justify-between p-3 bg-slate-700 rounded-md border border-slate-600">
+
+                                    <div class="flex items-center justify-between p-3 bg-slate-700 rounded-md border border-slate-600 lg:col-start-1">
                                         <div class="flex items-center space-x-3">
                                             <i data-lucide="square" class="df-icon text-orange-500" aria-hidden="true"></i>
                                             <div>
                                                 <span class="text-sm text-gray-200">Borda Preta</span>
-                                                <p class="text-xs text-gray-500">Desliga sangria automaticamente.</p>
+                                                <p class="text-xs text-gray-500">Desliga sangria. Moldura externa no PDF; não remove borda da imagem.</p>
                                             </div>
                                         </div>
                                         <label class="relative inline-flex items-center cursor-pointer">
@@ -823,13 +879,13 @@
                                             <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-df-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-df-accent"></div>
                                         </label>
                                     </div>
-                                    
-                                    <div class="flex items-center justify-between p-3 bg-slate-700 rounded-md border border-slate-600">
+
+                                    <div class="flex items-center justify-between p-3 bg-slate-700 rounded-md border border-slate-600 lg:col-start-1">
                                         <div class="flex items-center space-x-3">
                                             <i data-lucide="droplets" class="df-icon text-orange-500" aria-hidden="true"></i>
                                             <div>
                                                 <span class="text-sm text-gray-200">Sangria</span>
-                                                <p class="text-xs text-gray-500">Desliga borda preta automaticamente.</p>
+                                                <p class="text-xs text-gray-500">Desliga borda preta. Sangria básica; ajuste por TCG virá depois.</p>
                                             </div>
                                         </div>
                                         <label class="relative inline-flex items-center cursor-pointer">
@@ -854,7 +910,7 @@
                                             <i data-lucide="square" class="df-icon text-orange-500" aria-hidden="true"></i>
                                             <div>
                                                 <span class="text-sm text-gray-200">Borda Preta</span>
-                                                <p class="text-xs text-gray-500">Desativada por padrão.</p>
+                                                <p class="text-xs text-gray-500">Desliga sangria. Moldura externa; não remove borda da imagem.</p>
                                             </div>
                                         </div>
                                         <label class="relative inline-flex items-center cursor-pointer">
@@ -868,7 +924,7 @@
                                             <i data-lucide="droplets" class="df-icon text-orange-500" aria-hidden="true"></i>
                                             <div>
                                                 <span class="text-sm text-gray-200">Sangria</span>
-                                                <p class="text-xs text-gray-500">Desativada por padrão.</p>
+                                                <p class="text-xs text-gray-500">Desliga borda preta. Sangria básica; ajuste por TCG virá depois.</p>
                                             </div>
                                         </div>
                                         <label class="relative inline-flex items-center cursor-pointer">
@@ -886,7 +942,7 @@
                                     </div>
                                     <h3 class="font-semibold text-gray-200">Conteúdo Inteligente</h3>
                                 </div>
-                                
+
                                 <div class="space-y-4">
                                     <div id="language-settings-row" class="hidden p-3 bg-slate-700 rounded-md border border-slate-600">
                                         <label class="df-section-heading text-sm font-medium text-gray-200 mb-1">
@@ -950,15 +1006,15 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                         </div>
                     </div>
                 </div>
             </div>
-            
+
             <div id="cards-grid" class="cards-grid mt-8">
             </div>
-            
+
             <div id="errors-section" class="hidden mt-6 p-4 bg-red-900/30 border border-red-700/50 rounded-lg">
                 <h3 class="text-red-400 font-medium mb-2">Erros encontrados:</h3>
                 <ul id="errors-list" class="text-red-300 text-sm space-y-1"></ul>
@@ -982,7 +1038,7 @@
                     <i data-lucide="x" class="w-7 h-7" aria-hidden="true"></i>
                 </button>
             </div>
-            
+
             <!-- Conteúdo -->
             <div class="bg-slate-700/70 border-b border-slate-600 px-4 py-3">
                 <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -1073,7 +1129,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Erro -->
                 <div id="modal-error" class="text-center py-8 hidden">
                     <div class="text-red-500 mb-2">
@@ -1097,10 +1153,10 @@
                 <i data-lucide="x" class="w-6 h-6" aria-hidden="true"></i>
             </button>
         </div>
-        
+
         <div class="p-6 overflow-y-auto">
             <p class="text-slate-300 mb-4 text-sm">Esta arte será usada como o verso de todas as cartas no modo Dupla Face (a menos que a carta seja uma DFC nativa).</p>
-            
+
             <div class="grid grid-cols-2 md:grid-cols-3 gap-4" id="global-back-options">
 <div class="back-option-card cursor-pointer border-4 border-df-primary rounded-xl overflow-hidden transition-all shadow-lg aspect-[63/88] relative group" data-url="https://i.postimg.cc/P5g4Hbnb/Fundo-0.jpg">
     <img src="https://i.postimg.cc/P5g4Hbnb/Fundo-0.jpg" class="w-full h-full object-fill" alt="Fundo 0">
@@ -1152,7 +1208,7 @@
                 <span>Fazer Upload de Verso Customizado</span>
             </label>
             <input type="file" id="global-back-upload-modal" accept="image/*" class="hidden">
-            
+
             <button id="confirm-global-back-selection" class="flex items-center justify-center w-full bg-df-primary hover:bg-df-primary-dark text-df-bg px-4 py-3 rounded-lg transition-colors shadow-lg font-medium">
                 <i data-lucide="check" class="df-icon-lg mr-2" aria-hidden="true"></i>
                 <span>Confirmar Seleção</span>
@@ -1165,14 +1221,14 @@
     <div id="progress-modal" class="fixed inset-0 bg-black bg-opacity-75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 relative">
             <!-- Botão X (Fechar) -->
-            <button 
-                id="progress-close-btn" 
+            <button
+                id="progress-close-btn"
                 class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors duration-200"
                 onclick="window.deckFillApp.hideProgressModal()"
             >
                 <i data-lucide="x" class="df-icon text-gray-600" aria-hidden="true"></i>
             </button>
-            
+
             <!-- Header -->
             <div class="text-center mb-6">
                 <div class="inline-flex items-center justify-center w-12 h-12 bg-mtg-blue rounded-full mb-4">
@@ -1180,7 +1236,7 @@
                 </div>
                 <h2 class="text-xl font-bold text-gray-800">Gerando seu PDF...</h2>
             </div>
-            
+
             <!-- Progress Bar -->
             <div class="mb-6">
                 <div class="flex justify-between text-sm text-gray-600 mb-2">
@@ -1191,7 +1247,7 @@
                     <div id="progress-bar" class="bg-mtg-blue h-2 rounded-full transition-all duration-300 ease-out" style="width: 0%"></div>
                 </div>
             </div>
-            
+
             <!-- Status Messages -->
             <div class="space-y-2 text-sm">
                 <div class="flex items-center space-x-2">
@@ -1207,7 +1263,7 @@
                     <span id="progress-pages" class="text-gray-600">Página atual: 0</span>
                 </div>
             </div>
-            
+
             <!-- Cancel Button -->
             <div class="mt-6 text-center">
                 <button id="progress-cancel-btn" class="text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors inline-flex items-center gap-2">
@@ -1275,7 +1331,7 @@
                     <i data-lucide="x" class="w-6 h-6" aria-hidden="true"></i>
                 </button>
             </div>
-            
+
             <!-- Conteúdo -->
             <div class="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
                 <!-- Introdução -->
@@ -1341,15 +1397,15 @@
                     </h3>
                     <div class="space-y-3">
                         <div class="flex items-center gap-2">
-                            <input 
-                                type="text" 
-                                id="pix-key" 
-                                readonly 
-                                value="9db48d2d-3908-42be-aaa3-6064e6d6be29" 
+                            <input
+                                type="text"
+                                id="pix-key"
+                                readonly
+                                value="9db48d2d-3908-42be-aaa3-6064e6d6be29"
                                 class="flex-1 px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-300 font-mono text-sm"
                             >
-                            <button 
-                                id="copy-pix-btn" 
+                            <button
+                                id="copy-pix-btn"
                                 class="px-4 py-2 bg-df-success hover:bg-df-success-dark text-df-bg rounded-lg transition-colors font-medium inline-flex items-center gap-2"
                             >
                                 <i data-lucide="copy" class="df-icon" aria-hidden="true"></i>
@@ -1401,13 +1457,13 @@ document.addEventListener('DOMContentLoaded', () => {
         btnCopyPix.addEventListener('click', () => {
             navigator.clipboard.writeText(pixKeyInput.value).then(() => {
                 const originalText = btnCopyPix.innerHTML;
-                
+
                 // Muda a cor e o texto para dar feedback ao usuário
                 btnCopyPix.classList.remove('bg-df-success', 'hover:bg-df-success-dark');
                 btnCopyPix.classList.add('bg-df-primary', 'hover:bg-df-primary-dark');
                 btnCopyPix.innerHTML = '<i data-lucide="check" class="df-icon" aria-hidden="true"></i><span>Chave Copiada!</span>';
                 AppConfig.refreshIcons?.();
-                
+
                 // Volta ao normal depois de 2 segundos
                 setTimeout(() => {
                     btnCopyPix.classList.remove('bg-df-primary', 'hover:bg-df-primary-dark');
