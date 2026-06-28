@@ -17,7 +17,7 @@ const LOCAL_API_HOST =
 
 const API_BASE = window.DECKFILL_API_BASE || localStorage.getItem("deckfill_api_base") || (IS_LOCAL_FRONTEND
   ? `http://${LOCAL_API_HOST}:8000`
-  : "https://deck-fill-api.onrender.com");
+  : "https://thrumming-harborwave-910.fly.dev");
 
 const DISPLAY_IMAGE_PROXY_HOSTS = new Set([
   "cards.lorcast.io",

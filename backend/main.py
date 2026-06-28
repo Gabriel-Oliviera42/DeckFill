@@ -31,7 +31,7 @@ except ImportError:  # pragma: no cover - fallback only for minimal envs
     Image = None
 
 # Configurações
-DB_FILE = "cards.db"
+DB_FILE = "/data/cards.db"
 PORT = 8000
 IMAGE_CACHE_DIR = Path(__file__).resolve().parent / ".image-cache"
 IMAGE_CACHE_TTL_SECONDS = int(os.getenv("DECKFILL_IMAGE_CACHE_TTL_SECONDS", "604800"))
@@ -878,22 +878,20 @@ if __name__ == "__main__":
     print("Deck Fill API Server")
     print("=" * 50)
 
-    # Verificar se banco de dados existe
+    # Comentamos a trava para permitir que o servidor inicie vazio
+    # e aguarde enviarmos o arquivo pelo terminal (SFTP)
     if not Path(DB_FILE).exists():
-        print(f"Erro: Banco de dados '{DB_FILE}' não encontrado!")
-        print("Execute 'python sync_db.py' primeiro.")
-        exit(1)
+        print(f"Aviso: Banco '{DB_FILE}' ainda não encontrado. Aguardando upload...")
+    else:
+        print(f"Banco de dados encontrado: {DB_FILE}")
 
-    print(f"Banco de dados encontrado: {DB_FILE}")
-    print(f"Iniciando servidor na porta {PORT}")
-    print(f"Docs: http://localhost:{PORT}/docs")
-    print(f"Health: http://localhost:{PORT}/health")
+    print("Iniciando servidor na porta 8000")
     print("=" * 50)
 
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=PORT,
-        reload=True,
+        port=8000, # Fixado na porta que o Fly.io espera
+        reload=False, # Na nuvem (produção), o reload deve ficar False
         log_level="info"
     )
